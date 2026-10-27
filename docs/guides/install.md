@@ -4,24 +4,14 @@ raidlock installs `raidlock` and its short alias `raid`. The current lead-lease 
 
 ## Install with your agent
 
-Paste this prompt into Claude Code, Codex or another terminal coding agent. The README's one-line prompt points the agent here.
+Paste this into Claude Code, Codex or another terminal coding agent:
 
 ```text
-Install raidlock (https://github.com/agi1clj/raidlock), a lease-and-review board for coding agents.
-1. Install the CLI: `uv tool install raidlock` (or `pipx install raidlock`). If `raid` is not on
-   PATH afterwards, run `uv tool update-shell` and tell me to open a new terminal.
-2. Run `raid --version` and `raid doctor`. Fix what doctor reports, or tell me what you cannot fix.
-3. If you are Claude Code, add the plugin: `claude plugin marketplace add agi1clj/raidlock`, then
-   `claude plugin install raidlock@raidlock`, and tell me to run /reload-plugins or restart.
-4. Ask me which folder holds my repos, then run `raid up` there (or `raid quickstart --demo` in an
-   empty folder to try it on a demo repo). It prints the path of the lead secret file. Never read,
-   print or copy that file's contents; only pass its path with --lead-secret.
-5. Explain the board-first rule to me in two sentences: every piece of work is a card first; the
-   hooks deny lead edits in a git repo without a held card and subagent launches whose prompt names
-   no open card id. Either rule turns off with `raid --lead-secret FILE config set
-   require_card_for_lead_edits off` or `... config set board_first_subagents off`.
-6. Show me `raid show` and tell me to open the board with `raid ui --open`, then stop.
+Install or update raidlock by following
+https://raw.githubusercontent.com/agi1clj/raidlock/main/AGENT_INSTALL.md
 ```
+
+[AGENT_INSTALL.md](../../AGENT_INSTALL.md) is written for the agent: it checks prerequisites, installs or upgrades to the latest release, adds the Claude Code plugin, verifies with `raid doctor`, creates a board and explains the board-first rule.
 
 ## Install the CLI
 

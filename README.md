@@ -36,11 +36,11 @@ Parallel agents fail in predictable ways. Two of them edit the same file. One re
 Paste this into Claude Code, Codex or another terminal coding agent:
 
 ```text
-Install raidlock by following the "Install with your agent" steps in
-https://github.com/agi1clj/raidlock/blob/main/docs/guides/install.md
+Install or update raidlock by following
+https://raw.githubusercontent.com/agi1clj/raidlock/main/AGENT_INSTALL.md
 ```
 
-The agent installs the CLI and the Claude Code plugin, runs `raid doctor`, creates a board and explains the board-first rule back to you. It never reads the lead secret.
+The agent installs or upgrades to the latest release, adds the Claude Code plugin, runs `raid doctor`, creates a board and explains the board-first rule back to you. It never reads the lead secret.
 
 ## Install by hand
 
