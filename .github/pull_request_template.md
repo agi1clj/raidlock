@@ -1,13 +1,11 @@
-## What and why
+## What
 
-## How it was tested
+## How to verify
 
 ## Checklist
 
-- [ ] Every commit is signed off (`git commit -s`)
-- [ ] Tests added or updated; the suite passes locally
-- [ ] `CHANGELOG.md` updated under Unreleased (if users would notice)
-- [ ] Docs updated (README, PROTOCOL.md, docs/guides) if behavior changed
-- [ ] PROTOCOL.md changes called out above
-- [ ] No code comments, no new runtime dependency, no secrets or real board data in fixtures
-- [ ] Workflow changes pass actionlint and pin actions to commit SHAs
+- [ ] PR title follows Conventional Commits (`feat:`, `fix:`, `docs:`...); it becomes the changelog entry
+- [ ] Commits signed off (`git commit -s`)
+- [ ] Tests added or updated; `uv run pytest -n auto` passes
+- [ ] Docs updated if behavior changed (README, docs/guides, PROTOCOL.md, skills)
+- [ ] No new runtime dependency, no secrets or real board data, actions pinned to commit SHAs
