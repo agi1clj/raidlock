@@ -531,6 +531,19 @@ WINDOWS_MESSAGE = (
 
 def main(argv=None, prog=None):
     argv = list(sys.argv[1:] if argv is None else argv)
+    if sys.platform == "win32" and argv[:1] == ["hook"]:
+        from ._python import GUARDS
+
+        if argv[1:2] and argv[1] in GUARDS:
+            decision = {
+                "hookSpecificOutput": {
+                    "hookEventName": "PreToolUse",
+                    "permissionDecision": "deny",
+                    "permissionDecisionReason": "raidlock: " + WINDOWS_MESSAGE,
+                }
+            }
+            sys.stdout.write(json.dumps(decision, separators=(",", ":")))
+        return 0
     if sys.platform == "win32" and argv[:1] not in (["--version"], ["-V"]):
         print(WINDOWS_MESSAGE, file=sys.stderr)
         return 3
