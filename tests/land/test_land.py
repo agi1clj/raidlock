@@ -8,7 +8,7 @@ from portable import SH
 from runhelpers import git
 
 from raidlock import cli
-from raidlock.core.errors import IdentityError, Precondition
+from raidlock.core.errors import IdentityError, Precondition, StaleLead
 from raidlock.runners import isolation
 from raidlock.runners import land as land_module
 from raidlock.runners.land import land
@@ -143,6 +143,22 @@ def test_land_runs_no_repository_hooks(ws, tmp_path):
     assert r["commit"] == head(ws.repo) != before
     assert not marker.exists()
     assert git(ws.repo, "log", "-1", "--format=%an <%ae>").strip() == "t <t@t>"
+
+
+def test_lead_handover_before_apply_refuses_without_committing(ws, monkeypatch):
+    handed_back(ws)
+    real = land_module._check_paths
+
+    def handover(*args, **kwargs):
+        ws.board.lead_handover(ws.lead, "next-session")
+        return real(*args, **kwargs)
+
+    monkeypatch.setattr(land_module, "_check_paths", handover)
+    before = head(ws.repo)
+    with pytest.raises(StaleLead):
+        land(ws.board, ws.lead, "land", cwd=str(ws.repo))
+    assert head(ws.repo) == before
+    assert status(ws.repo) == ""
 
 
 def test_non_lead_is_refused(ws):

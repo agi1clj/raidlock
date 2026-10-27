@@ -123,20 +123,23 @@ def land(board, caller, card_id, cwd=None, message=None, timeout=600):
             f"the patch from run {run} does not apply to {where}: {checked.stderr.strip()[:300]}",
             card=card_id,
         )
-    applied = _git(where, "apply", "--index", "--whitespace=nowarn", patch)
-    if applied.returncode != 0:
-        _git(where, "reset", "-q", "--hard", before)
-        raise Precondition(f"git apply failed: {applied.stderr.strip()[:300]}", card=card_id)
-    committed = _git(
-        where, *W.IDENT, "commit", "-q", "--no-verify", "-m", message or _subject(card), env=_identity(where)
-    )
-    if committed.returncode != 0:
-        _git(where, "reset", "-q", "--hard", before)
-        raise Precondition(
-            f"git commit failed, nothing was committed: {(committed.stderr or committed.stdout).strip()[:300]}",
-            card=card_id,
+    with board.lead_write(caller, f"land {card_id}"):
+        if board.card(card_id)["lane"] in ("done", "cancelled", "todo"):
+            raise Precondition(f"{card_id} left review or doing before the patch was applied", card=card_id)
+        applied = _git(where, "apply", "--index", "--whitespace=nowarn", patch)
+        if applied.returncode != 0:
+            _git(where, "reset", "-q", "--hard", before)
+            raise Precondition(f"git apply failed: {applied.stderr.strip()[:300]}", card=card_id)
+        committed = _git(
+            where, *W.IDENT, "commit", "-q", "--no-verify", "-m", message or _subject(card), env=_identity(where)
         )
-    sha = W.head(where)
+        if committed.returncode != 0:
+            _git(where, "reset", "-q", "--hard", before)
+            raise Precondition(
+                f"git commit failed, nothing was committed: {(committed.stderr or committed.stdout).strip()[:300]}",
+                card=card_id,
+            )
+        sha = W.head(where)
     verify = None
     if card.get("verify_cmd"):
         try:
@@ -152,10 +155,17 @@ def land(board, caller, card_id, cwd=None, message=None, timeout=600):
     else:
         outcome = "no verify command on the card"
     note = f"landed run {run} as {sha[:12]}; {outcome}"
-    if board.card(card_id)["lane"] == "review":
-        board.note(card_id, caller, note)
-    else:
-        board.move(card_id, "review", caller, note=note)
+    try:
+        if board.card(card_id)["lane"] == "review":
+            board.note(card_id, caller, note)
+        else:
+            board.move(card_id, "review", caller, note=note)
+    except RaidlockError as exc:
+        raise Precondition(
+            f"committed {sha[:12]} in {where}, but the card was not updated: {exc.message}",
+            card=card_id,
+            commit=sha,
+        ) from exc
     if verify and not verify["passed"]:
         blocker = "verify failed; fix the work, commit, then " + lead_cmd(
             board, f"verify {card_id} --cwd {shlex.quote(where)}"
