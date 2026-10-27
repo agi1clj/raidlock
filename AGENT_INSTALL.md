@@ -44,6 +44,32 @@ claude plugin install raidlock@raidlock || claude plugin update raidlock@raidloc
 
 Tell the user to start a new Claude Code session: the hooks load at session start.
 
+## 4b. Add the hooks to Codex (Codex only)
+
+Codex runs the same raidlock hooks. Read `~/.codex/hooks.json` if it exists, show the user what you will add, and ask before writing. Merge these entries into it (keep the user's existing hooks), then tell the user to review and approve them with `/hooks` inside Codex:
+
+```json
+{
+  "hooks": {
+    "SessionStart": [{"hooks": [{"type": "command", "command": "raidlock hook session-start", "timeout": 5}]}],
+    "PreToolUse": [
+      {"matcher": "^(apply_patch|Edit|Write)$", "hooks": [{"type": "command", "command": "raidlock hook pre-write", "timeout": 5}]},
+      {"matcher": "^(Bash|exec_command|shell|shell_command)$", "hooks": [{"type": "command", "command": "raidlock hook pre-bash", "timeout": 5}]},
+      {"matcher": "*", "hooks": [{"type": "command", "command": "raidlock hook pre-urgent", "timeout": 5}]}
+    ],
+    "PostToolUse": [{"matcher": "*", "hooks": [{"type": "command", "command": "raidlock hook post-tool", "timeout": 5}]}],
+    "SubagentStop": [{"hooks": [{"type": "command", "command": "raidlock hook subagent-stop", "timeout": 5}]}],
+    "SessionEnd": [{"hooks": [{"type": "command", "command": "raidlock hook session-end", "timeout": 3}]}]
+  }
+}
+```
+
+A Codex worker starts with its identity in the environment (`RAIDLOCK_AGENT=<name> RAIDLOCK_TOKEN=<token> codex`). Details: https://github.com/agi1clj/raidlock/blob/main/docs/guides/native.md#codex
+
+## 4c. Other agents (Gemini CLI and others)
+
+They coordinate through the CLI (`raid claim`, `raid note`, `raid move`) or the MCP server (`raid mcp`); they get no edit-time hooks. Tell the user that only the git commit guard and `raid delegate` sandboxing protect against them, and suggest delegating their work with `raid --lead-secret FILE delegate CARD --to gemini`.
+
 ## 5. Create a board
 
 Ask the user which folder holds their repos, then run `raid up` there. To try raidlock first, run `raid quickstart --demo` in an empty folder instead. Both print the path of the lead secret file; remember the path, never the contents.
