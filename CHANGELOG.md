@@ -4,6 +4,13 @@ All notable changes to this project are documented here.
 
 The format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/), and the project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.1](https://github.com/agi1clj/raidlock/compare/v0.2.0...v0.2.1) (2026-10-27)
+
+
+### Bug Fixes
+
+* a failed update check retries within the hour instead of silencing notices for a day ([#22](https://github.com/agi1clj/raidlock/issues/22)) ([b27a07d](https://github.com/agi1clj/raidlock/commit/b27a07d33ac903762b8134e8d12303b3c8dac613))
+
 ## [0.2.0](https://github.com/agi1clj/raidlock/compare/v0.1.1...v0.2.0) (2026-10-27)
 
 
