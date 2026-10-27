@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from raidlock import _python, cli
+from raidlock import __version__, _python, cli
 
 ROOT = Path(__file__).resolve().parents[2]
 SHIM = ROOT / "bin" / "raidlock"
@@ -55,7 +55,7 @@ def test_shim_prefers_the_installed_tools_interpreter(tmp_path):
     (bad / "python3").chmod(0o755)
     out = shim("--version", path=f"{tools}:{bad}:/usr/bin:/bin")
     assert out.returncode == 0, out.stderr
-    assert out.stdout.decode().strip() == "raidlock 0.1.0"
+    assert out.stdout.decode().strip() == f"raidlock {__version__}"
 
 
 @POSIX_SHIM
@@ -71,7 +71,7 @@ def test_shim_skips_an_old_python3_for_a_versioned_one(tmp_path):
 @POSIX_SHIM
 def test_shim_honours_raidlock_python(tmp_path):
     out = shim("--version", path="/usr/bin:/bin", env={"RAIDLOCK_PYTHON": sys.executable})
-    assert out.returncode == 0 and b"raidlock 0.1.0" in out.stdout
+    assert out.returncode == 0 and f"raidlock {__version__}".encode() in out.stdout
 
 
 @POSIX_SHIM
