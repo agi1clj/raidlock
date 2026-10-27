@@ -644,7 +644,7 @@ class Lead:
                 expires = clock.parse(lease.get("expires", ""))
                 if (
                     not expires
-                    or clock.age_seconds(lease["expires"]) > 7 * 86400
+                    or (clock.age_seconds(lease["expires"]) or 0) > 7 * 86400
                     or not alive(lease.get("pid"), lease.get("pid_start"), self.table())
                 ):
                     raise StaleLead("the lead lease expired; use explicit lead takeover", fence=lease.get("fence", 0))
