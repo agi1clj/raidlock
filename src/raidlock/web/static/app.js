@@ -1113,6 +1113,46 @@ function renderUpdate(u) {
       h("span", {class: "cls", text: "Then start a new Claude Code session so the new hooks load."}),
       h("a", {href: `https://github.com/agi1clj/raidlock/releases/tag/v${u.latest}`, target: "_blank", rel: "noopener", text: "What's new"}))));
 }
+function tourKey() { return "rl.tour." + state.view; }
+function renderTour(cards, opts) {
+  let el = $("tour");
+  if (!el) el = h("section", {id: "tour", class: "tour", "aria-labelledby": "tourTitle", hidden: true});
+  const spot = opts.realm ? $("realmbar") : $("focus");
+  if (opts.realm ? spot.nextElementSibling !== el : spot.previousElementSibling !== el) opts.realm ? spot.after(el) : spot.before(el);
+  const lanes = new Set(cards.map(c => c.lane));
+  const any = (...ls) => ls.some(l => lanes.has(l));
+  if (recall(tourKey()) === null && !opts.hide) store(tourKey(), cards.length ? "off" : "on");
+  if (lanes.has("done")) store(tourKey(), "off");
+  if (recall(tourKey()) !== "on" || (opts.realm && cards.length) || opts.hide) { el.hidden = true; el.dataset.sig = ""; return; }
+  const verified = any("review", "done") || cards.some(c => (c.notes || []).some(n => FX_VERIFY.test(String((n && n.text) || ""))));
+  const first = cards.slice().sort((a, b) => (a.created || "").localeCompare(b.created || "") || a.id.localeCompare(b.id))[0];
+  const id = first ? first.id : "<card>";
+  const repo = (opts.repos || []).length === 1 ? opts.repos[0].name : "<repo>";
+  const steps = [
+    [cards.length > 0, w("Create a card", "Post a quest"), w("The lead adds a card with the paths it may change and a check that proves it.", "The raid leader posts a quest with the ground it may touch and the proof it needs."), leadCmd(`new "<title>" --locks ${repo}/<path> --verify-cmd "<check>"`)],
+    [any("doing", "review", "blocked", "done"), w("Claim it", "Accept the quest"), w("A worker claims the card and holds its locks.", "A hero accepts the quest and holds its ground."), `raid claim ${id}`],
+    [verified, w("Verify it", "Prove the deed"), w("The lead runs the check and records the result.", "The raid leader tests the deed and records the proof."), leadCmd(`verify ${id}`)],
+    [any("done"), w("Close it", "Turn in the quest"), w("The lead marks the card done and releases its locks.", "The raid leader turns in the quest and frees its ground."), leadCmd(`done ${id}`)]];
+  const count = steps.filter(s => s[0]).length;
+  const next = steps.findIndex(s => !s[0]);
+  el.hidden = false;
+  setKids(el, [
+    h("div", {class: "tour-head"},
+      h("h2", {id: "tourTitle", text: w("Your first card", "First quest")}),
+      h("span", {class: "cls tour-count", text: `${count} of ${steps.length}`}),
+      h("button", {type: "button", id: "tourClose", class: "tour-x", "aria-label": w("Dismiss the first card guide", "Dismiss the first quest"), text: "×", onclick: closeTour})),
+    h("ol", {class: "tour-steps"}, steps.map(([ok, title, text, cmd], i) => h("li", {class: "tour-step" + (ok ? " done" : i === next ? " next" : ""), "aria-current": i === next ? "step" : null},
+      h("span", {class: "tour-mark", "aria-hidden": "true", text: ok ? "✓" : String(i + 1)}),
+      h("div", {class: "tour-body"},
+        h("b", null, title, h("span", {class: "sr-only", text: ok ? ": done" : ": pending"})),
+        h("span", {class: "cls", text}),
+        ok ? null : cmdLine(cmd)))))], JSON.stringify([state.view, state.theme, steps.map(s => [s[0], s[3]]), next]));
+}
+function closeTour() {
+  store(tourKey(), "off");
+  $("tour").hidden = true;
+  $("content").focus();
+}
 function renderLimits(data) {
   const providers = (data && data.providers) || [];
   const real = providers.filter(p => (p.status === "ok" || p.status === "stale") && ((p.windows || []).length || p.context || (p.session && p.session.cost_usd != null)));
@@ -1565,6 +1605,7 @@ function renderBoard(data) {
   renderLogFilter();
   renderChat();
   renderLayout(shown);
+  renderTour(cards, {repos: data.repos});
   for (const id of state.open) if (state.cards[id]) loadDetail(id);
   fxBoard(data);
   state.first = false;
@@ -1636,6 +1677,7 @@ function renderOverview() {
   $("realmStatus").textContent = `${plural(ps.length, w("workspace", "guild"))} · ${live} active`;
   setKids($("hudLevel"), [levelBadge("Realm", sumCounts(ps))], JSON.stringify(["realm", state.theme, ps.map(p => p.counts)]));
   levelUp("realm", "Realm", sumCounts(ps), $("hudLevel"));
+  renderTour([], {realm: true, hide: !ps.length || Object.values(sumCounts(ps)).some(n => n > 0)});
   if (!ps.length) { setKids(o, h("div", {class: "empty"}, "No boards yet. In a project folder, run ", h("code", {text: "raid quickstart"}), ", then reload this page."), "none"); $("idle").hidden = true; return; }
   const rows = ps.map(p => ({p, info: projInfo(p)})).map(r => ({...r, rank: attention(r.info)}));
   rows.sort((a, b) => a.rank - b.rank || (b.p.last || "").localeCompare(a.p.last || "") || a.p.name.localeCompare(b.p.name));
