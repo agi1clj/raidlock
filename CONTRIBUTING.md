@@ -128,7 +128,7 @@ See [the release guide](docs/RELEASING.md) for publication gates, token setup, v
 
 ## Python checks
 
-CI tests the oldest supported Python (3.11) on Linux and the newest (3.14) on macOS, runs the Playwright UI suite, ruff, pyright and actionlint, and builds and scans the container image.
+CI tests the oldest supported Python (3.11) on Linux and the newest (3.14) on macOS, and runs ruff, pyright and actionlint. The Playwright UI suite runs when the web UI changes; the container build, smoke test and Trivy scan run when the image inputs change and weekly.
 Run the same static checks locally:
 
 ```bash

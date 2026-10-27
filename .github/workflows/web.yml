@@ -1,0 +1,53 @@
+name: Web UI
+
+on:
+  push:
+    branches: [main]
+    paths: ["src/raidlock/web/**", "tests/web/**", "uv.lock", ".github/workflows/web.yml"]
+  pull_request:
+    paths: ["src/raidlock/web/**", "tests/web/**", "uv.lock", ".github/workflows/web.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: web-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHONUTF8: "1"
+  UV_NO_PROGRESS: "1"
+
+jobs:
+  playwright:
+    name: web UI (Playwright)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e
+        with:
+          enable-cache: true
+          python-version: "3.13"
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('uv.lock') }}
+      - name: Install browser
+        run: |
+          uv sync --locked --extra ui-test
+          uv run --locked playwright install --with-deps --only-shell chromium
+      - name: Run web tests
+        run: uv run --locked --with pytest-xdist==3.8.0 pytest -n auto tests/web
+      - name: Upload traces on failure
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: playwright-results
+          path: test-results/
+          if-no-files-found: ignore
+          retention-days: 7
+
