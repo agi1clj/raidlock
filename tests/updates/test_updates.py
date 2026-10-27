@@ -119,3 +119,13 @@ def test_running_ui_keeps_checking(monkeypatch):
     with pytest.raises(SystemExit):
         updates.watch()
     assert len(calls) == 3
+
+
+def test_new_release_changes_the_overview_etag(home):
+    from raidlock.web import data
+
+    catalog = data.Catalog(home=str(home))
+    write(home, "0.0.1")
+    before = catalog.overview_key()
+    write(home, "99.0.0")
+    assert catalog.overview_key() != before
