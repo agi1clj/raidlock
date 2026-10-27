@@ -51,6 +51,10 @@ Command output supplies candidate identity fields. The hook validates the presen
 6. The lead's session: allowed inside a card the lead holds. With `require_card_for_lead_edits` on (the default), a path in a git repo that no card of the lead covers is denied: add and claim a card first. With it off, free paths stay writable without exporting an identity. Another agent's lease always denies.
 7. Unbound session: denied inside any lease; free paths only when the board runs with `auth off`.
 
+## Subagent limits (`pre-bash`)
+
+A subagent never acts as the lead. Its shell commands are denied when they reach a lead-only raidlock command directly or through a launcher (`xargs`, `parallel`, `find -exec`, `uv run`, `uvx`, `pipx run`, `npx`, `env`, `nice`, `timeout`, `nohup`, `command`), when interpreter or shell code (`python -c`, `sh -c`, heredocs, piped shells) mentions raidlock, when the command passes `--lead-secret` or sets `RAIDLOCK_LEAD_SECRET`, and when the raidlock verb is computed (`raid $V`). Ordinary worker commands such as `raid note`, `raid move CARD review` and `raid show` still run. On native Windows the guard hooks deny every tool call with a pointer to WSL2 instead of failing open.
+
 ## Board-first subagents (`pre-urgent`)
 
 With `board_first_subagents` on (the default), a `Task` or `Agent` tool call inside a raidlock workspace is denied unless its prompt or description contains `card <id>` for a card that is not done or cancelled (also `card: <id>`). Create the card with `raid new`, then write `card <id>` in the prompt.
