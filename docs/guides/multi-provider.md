@@ -59,6 +59,8 @@ raid review checkout --by codex-reviewer-checkout --verdict approve --note "empt
 
 With the cross-provider review requirement enabled, the lead cannot close work until the required independent approval exists. A `changes` verdict returns the card to its owner in `doing`.
 
+The requirement stays on after the second provider leaves. A blocked close names the ways out: assign a reviewer, close merged work with `raid --lead-secret FILE close ID --evidence <PR URL or SHA> --note <text>`, or stop requiring reviews with `raid --lead-secret FILE config set require_review 0`. Cards that touch protected paths always need the cross-provider review.
+
 After inspecting and integrating the intended changes, release the worker's lease if it still points at the worker's clone, then verify from the lead session, using the checkout that contains those changes:
 
 ```bash

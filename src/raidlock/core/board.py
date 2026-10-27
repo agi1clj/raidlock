@@ -1485,7 +1485,14 @@ class Board:
                 approvals=got,
                 hint=f"a reviewer on {'another' if need['other_provider'] else 'any'} provider runs raidlock review "
                 f"{card['id']} --verdict approve; to request one: "
-                + lead_cmd(self, f"review {card['id']} --assign <reviewer>"),
+                + lead_cmd(self, f"review {card['id']} --assign <reviewer>")
+                + "; for work already merged: "
+                + lead_cmd(self, f"close {card['id']} --evidence <PR URL or SHA> --note <text>")
+                + (
+                    ""
+                    if card.get("allow_protected")
+                    else "; to stop requiring reviews on this board: " + lead_cmd(self, "config set require_review 0")
+                ),
             )
 
     def _apply_move(self, card, lane, role):

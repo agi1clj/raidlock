@@ -238,6 +238,7 @@ def test_raid_log_is_virtualized(browse):
     p = browse()
     page = p.open("/acme-shop", panels=("logPanel",))
     page.wait_for_selector("#log .lrow")
+    page.wait_for_function("() => parseInt(document.getElementById('logHint').innerText) > 20")
     total = int(page.locator("#logHint").inner_text().split()[0])
     rows = page.locator("#log .lrow").count()
     assert total > 20 and rows < total
