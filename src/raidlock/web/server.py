@@ -3,6 +3,7 @@ import json
 import os
 import re
 import sys
+import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, unquote, urlsplit
 
@@ -289,4 +290,7 @@ class Server(ThreadingHTTPServer):
 
 
 def make_server(port=8765, single=None, home=None, extra=None, host="127.0.0.1"):
+    from .. import updates
+
+    threading.Thread(target=updates.refresh, daemon=True).start()
     return Server((host, port), data.Catalog(single=single, home=home, extra=extra))

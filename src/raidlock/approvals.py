@@ -60,6 +60,18 @@ def _item(kind, card, reason, commands, **extra):
     }
 
 
+def reviewer_runtime(board, card):
+    from .core import identity as I
+
+    agents = board.agents()
+    owner = agents.get(card.get("owner") or "", {})
+    taken = owner.get("provider") or I.RUNTIME_PROVIDER.get(owner.get("runtime", ""), "")
+    for runtime in ("codex-cli", "claude-code", "gemini-cli"):
+        if I.RUNTIME_PROVIDER[runtime] != taken:
+            return I.RUNTIME_SHORT[runtime]
+    return "codex"
+
+
 def _review_items(board, card):
     cid = card["id"]
     try:
@@ -73,7 +85,7 @@ def _review_items(board, card):
                 commands.append(_lead(board, f'edit {_q(cid)} --verify-cmd "<check>"'))
         if "review" in e.message:
             commands += [
-                _lead(board, f"delegate {_q(cid)} --to <runtime> --as reviewer"),
+                _lead(board, f"delegate {_q(cid)} --to {reviewer_runtime(board, card)} --as reviewer"),
                 f"raid review {_q(cid)} --verdict approve   # as a reviewer agent",
             ]
         commands.append(f"raid show {_q(cid)}")

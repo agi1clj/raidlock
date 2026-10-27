@@ -1,6 +1,13 @@
 # Install
 
-raidlock installs `raidlock` and its short alias `raid`. The current lead-lease implementation supports Linux and macOS, with Python 3.11 or newer and no runtime dependencies. On Windows, run raidlock, git and your agents inside WSL2, where it uses the Linux code path; this is expected to work but has not been tested yet. Keep your repos and `~/.raidlock` in the WSL Linux filesystem (for example `~/code`), not under `/mnt/c`: Windows drives do not keep the `0600` file modes raidlock checks on secret files, and git is much slower there. Native Windows is not supported: process-anchor verification (Toolhelp) is not verified and there is no verify sandbox.
+raidlock installs `raidlock` and its short alias `raid`. It supports Linux and macOS with Python 3.11 or newer and has no runtime dependencies. On Windows, see [On Windows](#on-windows).
+
+## On Windows
+
+Native Windows is not supported yet: there is no verify sandbox and lead-process checks are not verified there, so `raid` stops with a one-line message pointing here. Two paths work today:
+
+- **WSL2 (full raidlock).** Install Ubuntu with `wsl --install`, then run raidlock, git and your agents inside it exactly as on Linux. Keep your repos and `~/.raidlock` in the Linux filesystem (for example `~/code`), not under `/mnt/c`: Windows drives do not keep the `0600` file modes raidlock checks on secret files, and git is much slower there.
+- **Docker Desktop (UI, MCP and sandboxed verify).** The [container image](docker.md) runs `raid ui`, `raid mcp` and `raid verify` with the full sandbox. The CLI and the Claude Code hooks still need WSL2.
 
 ## Install with your agent
 
@@ -26,6 +33,17 @@ If `raid` is not found, put `~/.local/bin` on your `PATH` (`uv tool update-shell
 To try everything on a throwaway repo first, follow the [playground](../../examples/playground/README.md).
 
 An optional hardened container image runs `raid ui`, `raid mcp` and sandboxed `raid verify`, including on Windows through Docker Desktop; the CLI and hooks still install on the host. See [Docker image](docker.md).
+
+## Upgrade
+
+`raid doctor`, `raid up` and `raid ui` check PyPI at most once a day and say when a newer release exists; the web UI shows an "Update" button in the header. Upgrade with:
+
+```bash
+uv tool upgrade raidlock
+claude plugin marketplace update raidlock && claude plugin update raidlock@raidlock
+```
+
+Then start a new Claude Code session so the new hooks load. The check is one HTTPS request to pypi.org, cached in `~/.raidlock/update-check.json`, with a 2-second timeout; hooks never make it. Set `RAIDLOCK_NO_UPDATE_CHECK=1` to turn it off; it is skipped when `CI` is set.
 
 ## Claude Code
 

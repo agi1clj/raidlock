@@ -44,13 +44,48 @@ claude plugin install raidlock@raidlock || claude plugin update raidlock@raidloc
 
 Tell the user to start a new Claude Code session: the hooks load at session start.
 
+## 4b. Add the hooks to Codex (Codex only)
+
+Codex runs the same raidlock hooks. Read `~/.codex/hooks.json` if it exists, show the user what you will add, and ask before writing. Merge these entries into it (keep the user's existing hooks), then tell the user to review and approve them with `/hooks` inside Codex:
+
+```json
+{
+  "hooks": {
+    "SessionStart": [{"hooks": [{"type": "command", "command": "raidlock hook session-start", "timeout": 5}]}],
+    "PreToolUse": [
+      {"matcher": "^(apply_patch|Edit|Write)$", "hooks": [{"type": "command", "command": "raidlock hook pre-write", "timeout": 5}]},
+      {"matcher": "^(Bash|exec_command|shell|shell_command)$", "hooks": [{"type": "command", "command": "raidlock hook pre-bash", "timeout": 5}]},
+      {"matcher": "*", "hooks": [{"type": "command", "command": "raidlock hook pre-urgent", "timeout": 5}]}
+    ],
+    "PostToolUse": [{"matcher": "*", "hooks": [{"type": "command", "command": "raidlock hook post-tool", "timeout": 5}]}],
+    "SubagentStop": [{"hooks": [{"type": "command", "command": "raidlock hook subagent-stop", "timeout": 5}]}],
+    "SessionEnd": [{"hooks": [{"type": "command", "command": "raidlock hook session-end", "timeout": 3}]}]
+  }
+}
+```
+
+A Codex worker starts with its identity in the environment (`RAIDLOCK_AGENT=<name> RAIDLOCK_TOKEN=<token> codex`). Details: https://github.com/agi1clj/raidlock/blob/main/docs/guides/native.md#codex
+
+## 4c. Other agents (Gemini CLI and others)
+
+They coordinate through the CLI (`raid claim`, `raid note`, `raid move`) or the MCP server (`raid mcp`); they get no edit-time hooks. Tell the user that only the git commit guard and `raid delegate` sandboxing protect against them, and suggest delegating their work with `raid --lead-secret FILE delegate CARD --to gemini`.
+
 ## 5. Create a board
 
 Ask the user which folder holds their repos, then run `raid up` there. To try raidlock first, run `raid quickstart --demo` in an empty folder instead. Both print the path of the lead secret file; remember the path, never the contents.
 
-## 6. Explain the board-first rule
+## 6. Confirm board-first enforcement and follow it
 
-Tell the user, in two sentences: every piece of work is a card on the board first; the hooks deny a lead edit inside a git repo without a held card, and a subagent launch whose prompt does not contain `card <id>` for an open card. Either rule turns off with `raid --lead-secret FILE config set require_card_for_lead_edits off` or `raid --lead-secret FILE config set board_first_subagents off`.
+Board-first rules are on by default. Confirm, in the board folder:
+
+```bash
+raid config get require_card_for_lead_edits   # expect true
+raid config get board_first_subagents         # expect true
+```
+
+Explain them to the user in two sentences: every piece of work is a card on the board first; the hooks deny a lead edit inside a git repo without a held card, and a subagent launch whose prompt does not contain `card <id>` for an open card. Only the user can turn a rule off (`raid --lead-secret FILE config set <key> off`); do not do it yourself.
+
+From now on, work board-first yourself: create a card with `raid --lead-secret FILE new "<title>" --locks <repo>/<path>`, claim it before editing, put `card <id>` in every subagent prompt, and close the card with evidence when the work is done.
 
 ## 7. Finish
 

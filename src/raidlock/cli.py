@@ -766,6 +766,13 @@ def _init_opts(p):
     p.add_argument("--no-auth", action="store_true", help="do not require agent tokens")
 
 
+def _update_line():
+    from . import updates
+
+    newer = updates.notice(updates.refresh())
+    return f"\n{newer}" if newer else ""
+
+
 @command("up", "get going: create the board, join it, or show what you are on", mutating=True)
 def cmd_up(ctx, a):
     try:
@@ -782,7 +789,7 @@ def cmd_up(ctx, a):
             "workspace": board.workspace,
             "lead": board.lead,
             "token_file": _lead_file(board),
-        }, _init_text(board, token)
+        }, _init_text(board, token) + _update_line()
     caller = ctx.caller()
     if a.join and caller.is_lead:
         raise IdentityError(
@@ -2172,6 +2179,18 @@ def cmd_doctor(ctx, a):
         check("database", False, f"cannot open the index in {short(home)}: {e}")
     used = sum(_tree_bytes(os.path.join(home, name)) for name in ("runs", "verify"))
     check("storage", True, f"{used / 1e6:.0f} MB in run clones and the verify cache; closed cards free theirs")
+    from . import updates
+
+    latest = updates.refresh(persist=False)
+    newer = updates.notice(latest)
+    check(
+        "update",
+        True,
+        newer
+        or (
+            f"raidlock {__version__} is the latest release" if latest else "update check skipped (offline or disabled)"
+        ),
+    )
     which = shutil.which("raid")
     shadow = _shadow(which, own_script())
     check(

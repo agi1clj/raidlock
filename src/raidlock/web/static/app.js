@@ -1062,6 +1062,24 @@ function renderAgents(cards) {
   setKids($("agents"), kids, sig);
 }
 
+function renderUpdate(u) {
+  const old = $("updateMenu");
+  if (!u) { if (old) old.remove(); return; }
+  if (old) return;
+  const plugin = "claude plugin marketplace update raidlock && claude plugin update raidlock@raidlock";
+  const row = (label, cmd) => {
+    const btn = h("button", {type: "button", class: "tog", text: "Copy"});
+    btn.addEventListener("click", () => copyCommand(btn, cmd, "Copy"));
+    return h("div", {class: "upd-row"}, h("span", {class: "cls", text: label}), h("code", {text: cmd}), btn);
+  };
+  $("hudLevel").after(h("details", {id: "updateMenu", class: "menu"},
+    h("summary", {class: "tog update-chip", title: `raidlock ${u.latest} is available`}, "Update", h("span", {class: "v", text: ` ${u.latest}`})),
+    h("div", {class: "menu-body upd-body"},
+      h("b", {text: `raidlock ${u.latest} is available (you have ${u.current})`}),
+      row("CLI", u.upgrade), row("Claude Code plugin", plugin),
+      h("span", {class: "cls", text: "Then start a new Claude Code session so the new hooks load."}),
+      h("a", {href: `https://github.com/agi1clj/raidlock/releases/tag/v${u.latest}`, target: "_blank", rel: "noopener", text: "What's new"}))));
+}
 function renderLimits(data) {
   const providers = (data && data.providers) || [];
   const real = providers.filter(p => (p.status === "ok" || p.status === "stale") && ((p.windows || []).length || p.context || (p.session && p.session.cost_usd != null)));
@@ -1814,7 +1832,7 @@ async function tick() {
     const names = state.projects.map(p => p.name);
     if (state.mode !== "all" && !names.includes(state.view) && names.length) { state.view = names[0]; applyView(); }
     else if (state.view !== "*" && !names.includes(state.view)) { state.unknown = state.view; state.view = "*"; applyView(); }
-    if (changed || wasError) { renderTabs(); renderCrumbs(); chatEvents(); renderLimits(state.overview.limits); }
+    if (changed || wasError) { renderTabs(); renderCrumbs(); chatEvents(); renderLimits(state.overview.limits); renderUpdate(state.overview.update); }
     if (state.view === "*") { if (changed || state.first || wasError) { renderOverview(); renderChat(); state.first = false; } return; }
     const ws = state.view;
     const b = await getJSON(api("board", ws), "b:" + ws);
