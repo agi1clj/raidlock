@@ -64,7 +64,7 @@ Run `raid install-commands` for a bare `/raid` (a personal skill in `~/.claude/s
 Check it works:
 
 - `/plugin` lists `raidlock` as enabled, and `/raidlock:raid who` prints the board (or `no board found here or in any parent folder` outside a workspace).
-- `claude --plugin-dir /path/to/raidlock plugin details raidlock` shows the skills, the `raid-worker` agent, four hook events and about 200 always-on tokens.
+- `claude --plugin-dir /path/to/raidlock plugin details raidlock` shows the skills, the `raid-worker` agent, five hook events (eight handlers) and about 190 always-on tokens.
 - In a workspace with a board, ask Claude to edit a file under a locked path without claiming its card. The edit is denied with a one-line `raidlock:` reason.
 
 Create the board from the shell of the session that will lead it:

@@ -28,28 +28,29 @@ Runtime names accept a short form wherever a runtime is named: `claude` or `clau
 
 | Command | What it does | Flags |
 |---|---|---|
-| `up` | Get going: create the board, join it, or show what you are on. | `--team`, `--role {worker,reviewer}`, `--runtime`, `--model` |
+| `up` | Get going: create the board, join it, or show what you are on. | `--join`, `--card`, `--team`, `--role {worker,reviewer}`, `--runtime`, `--model` |
 | `quickstart [PATH]` | New board with a `core` team and an example card; you become the lead. `--demo` also creates `acme-shop/`, a small git repo for the [getting-started guide](getting-started.md). | `--lead`, `--runtime`, `--team`, `--locks`, `--demo` |
 | `init [PATH]` | Create an empty board. Prints the lead secret's file path, never the secret. | `--lead`, `--runtime`, `--model`, `--no-auth` |
 | `doctor` | Check Python, the board, `RAIDLOCK_HOME`, the database and `PATH`. See [Operations](operations.md#doctor). | |
 | `version` | Print the version. | |
 | `install-commands` | Add a personal `/raid` skill to Claude Code. | `--uninstall` |
-| `migrate` | Upgrade a legacy v1 board, or restore its backup. See [Operations](operations.md#migrate-a-legacy-board). | `--yes`, `--rollback` |
+| `migrate` | Upgrade a legacy v1 board, or restore its backup. See [Operations](operations.md#migrate-a-legacy-board). | `--lead`, `--allow-auth-downgrade`, `--yes`, `--rollback` |
 
 ## Plan
 
 | Command | What it does | Flags |
 |---|---|---|
-| `new TITLE` | Create a card. `--suggest-locks` previews lock paths without creating anything. | `--id`, `--team`, `--locks`, `--depends`, `--scope`, `--verify`, `--verify-cmd`, `--output`, `--ticket`, `--reviewers`, `--suggest-locks` |
+| `new TITLE` | Create a card. `--suggest-locks` previews lock paths without creating anything. | `--id`, `--team`, `--locks`, `--depends`, `--scope`, `--verify`, `--verify-cmd`, `--output`, `--ticket`, `--reviewers`, `--repo`, `--allow-protected`, `--suggest-locks` |
 | `plan import FILE` | Import cards from a JSON or Markdown plan, or a recipe (`recipe:NAME`). | `--team`, `--var NAME=VALUE` |
 | `recipes` | List built-in plan recipes. See [Planning](planning.md#recipes). | |
 | `suggest-locks TEXT` | Rank narrow lock paths for a card description. Read-only. | `--repos REPO...`, `--limit N` |
 | `foresight CARD` | Predict merge conflicts before claiming or committing. See [Foresight](foresight.md). | |
-| `lock ID PATHS` | Add paths to a card's locks. | |
+| `lock ID PATHS` | Add paths to a card's locks. | `--replace PATHS` (lead: replace all locks) |
+| `unlock ID PATHS` | Lead: remove exact lock paths from a card. | |
 | `team {add,rm,list} [NAME]` | Manage teams. | `--max`, `--mission`, `--repos` |
-| `lore VERB [ARG]` | Lessons vault: `list`, `show`, `search`, `pending`, `propose`, `approve`, `reject`, `distill`, `capture`, `for CARD`. See [Lore](lore.md). | `--paths`, `--card`, `--local`, `--budget`, `-n` |
+| `lore VERB [ARG]` | Lessons vault: `list`, `show`, `search`, `pending`, `propose`, `approve`, `reject`, `retire`, `distill`, `capture`, `for CARD`. See [Lore](lore.md). | `--paths`, `--card`, `--local`, `--budget`, `-n` |
 | `budget [{set,show}] [KEY] [VALUE]` | Set or show delegation budgets. See [Operations](operations.md#delegation-budgets). | |
-| `config [{get,set}] [KEY] [VALUE]` | Board settings: `auth`, `ttl_minutes`, `require_review`, `require_review.count`, `require_review.other_provider`, `require_verify`, `require_card_for_lead_edits`, `board_first_subagents`, `brief_max_tokens`, `lead_store`, `pr.redact`, `pr.terms`, `pr.base`, `pr.remote`. | |
+| `config [{get,set}] [KEY] [VALUE]` | Board settings: `auth`, `ttl_minutes`, `hold_minutes`, `require_review`, `require_review.count`, `require_review.other_provider`, `require_verify`, `require_card_for_lead_edits`, `board_first_subagents`, `brief_max_tokens`, `lead_store`, `pr.redact`, `pr.terms`, `pr.base`, `pr.remote`. | |
 
 ## Work
 
@@ -81,7 +82,7 @@ Runtime names accept a short form wherever a runtime is named: `claude` or `clau
 | `close ID` | Lead: verify and record cross-provider approval, or close with external evidence without verification or review. | `--reviewer` or `--evidence` (HTTPS URL or SHA), required `--note`, `--cwd` / `--checkout`, `--timeout` |
 | `cancel ID` | Lead: cancel without completion gates and release the lease. | `--reason` |
 | `reopen ID` | Lead: move a done or cancelled card back to `todo`. | `--note` |
-| `reap` | Lead: move cards whose `doing` lease expired to `blocked`. | |
+| `reap` | Lead: move cards whose `doing` lease expired to `blocked`, and drop expired review and blocked holds without changing their lane. | |
 | `pr ID` | Lead: push the card's verified commit to a branch and open a pull request with `gh`. Dry run when `gh` is not authenticated. See [Pull requests](pr.md). | `--dry-run`, `--base`, `--remote`, `--branch`, `--redact`, `--redact-terms`, `--draft` |
 | `pr-link ID REF` | Lead: link a card to an existing pull request (number or URL). | |
 | `pr-sync [ID ...]` | Lead: poll linked pull requests; a merged card closes only through the verify and review gates. | `--min-interval`, `--force`, `--watch SECONDS`, `--max-polls` |
@@ -94,7 +95,7 @@ Runtime names accept a short form wherever a runtime is named: `claude` or `clau
 | `lead {status,heartbeat,handover,takeover}` | Inspect or transfer the lead session lease. See [Install](install.md#lead-session-handover). | `--to SESSION` |
 | `who` | Who is on the board and what they are doing. | `--brief` |
 | `guard {install,uninstall,check}` | Git pre-commit and pre-push lease guards for the checkout in the current folder. See [Operations](operations.md#git-guards). | `--hook {pre-commit,pre-push}` |
-| `scan SOURCE` | Check a patch file or clone for secrets, denied paths and large binaries. | `--base` |
+| `scan SOURCE` | Check a patch file or clone for secrets, denied paths and large binaries. | `--card` (locks that authorize symlink targets), `--base` |
 | `bridge [{show,pool}] [NAMES]` | Native host bridge for Agent Teams and Codex hooks: show its config, or set (lead) the comma-separated pool of joined workers that teammates auto-join as. See [Agent Teams and Codex hooks](native.md). | |
 | `mcp` | Serve this board to MCP clients over stdio. See [MCP server](mcp.md). | `--workspace PATH` |
 

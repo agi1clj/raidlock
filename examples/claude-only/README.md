@@ -3,11 +3,11 @@
 Run these commands from the Claude Code session that will hold the lead lease. See [Install](../../docs/guides/install.md) for explicit session handover if a terminal already created the board.
 
 ```bash
-cd ~/demo/shop
-raid quickstart
+mkdir -p ~/demo/shop && cd ~/demo/shop
+raid quickstart --demo
 LEAD_SECRET_FILE="/absolute/path/printed/by/raid"
 raid --lead-secret "$LEAD_SECRET_FILE" new "Add /health endpoint" --id health --team core \
-  --locks "acme-shop/src/health" --verify "uv run pytest tests/health"
+  --locks "acme-shop/src/health" --verify-cmd "uv run pytest tests/health"
 raid --lead-secret "$LEAD_SECRET_FILE" new "Fix README typos" --id readme --team core \
   --locks "acme-shop/README.md"
 ```
@@ -15,7 +15,8 @@ raid --lead-secret "$LEAD_SECRET_FILE" new "Fix README typos" --id readme --team
 In Claude Code, with the plugin installed ([Install](../../docs/guides/install.md)), paste:
 
 ```text
-Use raidlock. Start one raid-worker subagent per claimable quest (`raid claimable`) in the background.
+Use raidlock. Start one raid-worker subagent per claimable quest (`raid claimable`) in the background,
+and put `card <id>` in each raid-worker prompt.
 Keep lead credentials out of worker environments. Watch `raid who`; inspect and integrate changes,
 then present --lead-secret with the printed path to verify and close each quest.
 ```

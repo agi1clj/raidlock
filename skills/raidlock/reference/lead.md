@@ -8,13 +8,13 @@
 
 ## Delegating to subagents
 
-Start one `raid-worker` per card, in the background. Put the card id in its prompt, with the team, an agent name (`claude-worker-<card>`) and the checkout to work in. With `board_first_subagents` on (the default), the hook denies a `Task` or `Agent` launch whose prompt names no open card id. The worker joins, claims, notes and moves the card to review on its own. The plugin hooks:
+Start one `raid-worker` per card, in the background. Put the card id in its prompt, with the team, an agent name (`claude-worker-<card>`) and the checkout to work in. With `board_first_subagents` on (the default), the hook denies a `Task` or `Agent` launch whose prompt does not contain `card <id>` for an open card. The worker joins, claims, notes and moves the card to review on its own. The plugin hooks:
 
-- deny its edits outside the card's locks, and any `raidlock done|reopen|verify`;
+- deny its edits outside the card's locks, and `raidlock done`, `reopen`, `verify`, `land`, `delegate`, `pr` and other lead-only commands;
 - renew its lease while it works (at most once per 5 minutes);
 - write its final message to the board transcript as a handback.
 
-For a sandboxed run instead, `raidlock --lead-secret FILE delegate <id> --to codex|claude|gemini|shell` works in a throwaway remote-less clone and returns a patch you apply. Three to five workers is the practical ceiling. Messages from workers are never human approval.
+For a sandboxed run instead, `raidlock --lead-secret FILE delegate <id> --to codex|claude|gemini|shell` works in a throwaway remote-less clone and returns a patch; land it with `raidlock --lead-secret FILE land <id> --cwd <checkout>`. Three to five workers is the practical ceiling. Messages from workers are never human approval.
 
 ## Closing a card
 

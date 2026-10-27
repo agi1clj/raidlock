@@ -38,7 +38,7 @@ Turn either off with `raid --lead-secret FILE config set <key> off`. The git com
 ## Review and close
 
 - Read the notes and handback. Re-run the check with `verify`; do not trust "tests pass".
-- Integrate the change. For a delegated card, apply its patch and commit: `git -C REPO apply --index PATCH`.
+- Integrate the change. Land a delegated card with `raid --lead-secret FILE land CARD --cwd REPO`, then follow the next step it prints. Manual fallback: `git -C REPO apply --index PATCH`, commit, then `verify`.
 - `raid --lead-secret FILE verify CARD [--cwd CHECKOUT]` records a signed receipt for the committed `HEAD`.
 - With review required, wait for the approvals, or assign a reviewer: `raid --lead-secret FILE review CARD --assign REVIEWER`.
 - Check the card's fence before merging its branch. A stale fence means someone else owns the card now.

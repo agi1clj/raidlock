@@ -20,7 +20,7 @@ If the lease was bound somewhere else, for example `raid quickstart` or the firs
 What an unbound session may do:
 
 - Write inside a git repo: never inside another agent's lease. Unleased paths only when the board runs with `auth off`; on a token board (the default) every repo write is denied until the session claims a card.
-- Lead actions: none. `done`, `reopen`, `verify`, `move <id> done`, `--for` and `--urgent` are denied, and so is presenting the lead secret (`--lead-secret`, `RAIDLOCK_LEAD_SECRET`) while the lead lease is live.
+- Lead actions: none. `done`, `reopen`, `verify`, `move <id> done`, `land`, `delegate`, `pr` and other lead-only commands, `--for` and `--urgent` are denied, and so is presenting the lead secret (`--lead-secret`, `RAIDLOCK_LEAD_SECRET`) while the lead lease is live.
 - Secrets: reading the lead secret, the token folder or any agent token is denied, through Read, Glob, Grep and Bash.
 - Board commands other than the read-only ones must name an agent that is not the lead, and a literal `$RAIDLOCK_TOKEN` is denied, so an inherited token cannot be borrowed.
 

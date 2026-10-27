@@ -3,13 +3,14 @@
 Claude builds one quest, Codex builds another, and each reviews the other's work before the lead closes either.
 
 ```bash
-raid quickstart
+mkdir -p ~/demo/shop && cd ~/demo/shop
+raid quickstart --demo
 LEAD_SECRET_FILE="/absolute/path/printed/by/raid"
 raid --lead-secret "$LEAD_SECRET_FILE" config set require_review.count 1
 raid --lead-secret "$LEAD_SECRET_FILE" config set require_review.other_provider true
 (cd acme-shop && raid guard install)
-raid --lead-secret "$LEAD_SECRET_FILE" new "Validate cart at checkout" --id checkout --team core --locks "acme-shop/src/checkout" --verify "uv run pytest tests/checkout"
-raid --lead-secret "$LEAD_SECRET_FILE" new "Paginate orders" --id orders --team core --locks "acme-shop/src/orders" --verify "uv run pytest tests/orders"
+raid --lead-secret "$LEAD_SECRET_FILE" new "Validate cart at checkout" --id checkout --team core --locks "acme-shop/src/checkout" --verify-cmd "uv run pytest tests/checkout"
+raid --lead-secret "$LEAD_SECRET_FILE" new "Paginate orders" --id orders --team core --locks "acme-shop/src/orders" --verify-cmd "uv run pytest tests/orders"
 raid --lead-secret "$LEAD_SECRET_FILE" delegate orders --to codex --sandbox workspace-write
 ```
 

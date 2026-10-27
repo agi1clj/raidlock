@@ -24,7 +24,7 @@ These are human-readable files. `init` writes a `.gitignore` containing `*`, so 
 
 | Path | Content |
 |---|---|
-| `board.json` | `{schema, uid, workspace, created, lead, settings{auth, ttl_minutes, require_review{count, other_provider}, brief_max_tokens}}` |
+| `board.json` | `{schema, uid, workspace, created, lead, settings{auth, ttl_minutes, hold_minutes, require_review{count, other_provider}, require_verify, require_card_for_lead_edits, board_first_subagents, brief_max_tokens, lead_store, pr.*}}` |
 | `cards/<id>.json` | `{schema, card}`, one file per card; the source of truth for card content |
 | `agents.json`, `teams.json` | `{schema, agents\|teams}` |
 | `inbox/<agent>.jsonl` | messages for one agent |
@@ -84,7 +84,7 @@ Migrated boards get `auth: off`: v1 agents have no tokens, so the lead turns aut
 | Polling | `Board.version()` returns `{workspace, global}` counters, bumped by every write. `snapshot()["etag"]` is `"<workspace>-<global>"`, so the UI can answer `If-None-Match` without building a snapshot. |
 | Spend | `costs` table with GROUP BY. |
 
-**Benchmark.** `tests/core/test_scale.py` is marked `slow`. It runs with `RAIDLOCK_SLOW=1` (nightly CI); the p95 threshold comes from `RAIDLOCK_SCALE_P95_MS`, default 100.
+**Benchmark.** `tests/core/test_scale.py` is marked `slow`. Run it manually with `RAIDLOCK_SLOW=1`. The p95 threshold comes from `RAIDLOCK_SCALE_P95_MS`, default 100.
 
 - Setup: 50 workspaces × 20 agents × 1,000 cards, with 500 pre-existing leases.
 - Load: 200 claim attempts from 20 concurrent processes. 20 conflict groups of 5 cards each, spread over 5 workspaces that share one remote and use lock-path variants (`./`, `\`, `//`, trailing `/`, child path). 100 disjoint cards.
@@ -120,11 +120,11 @@ A lock path is `<repo>/<path>`. A single segment (`app`) locks the whole repo.
 | `claim --take-over` | Allowed when the owner's doing lease has expired, or the card is `blocked`. Mints a new fence. |
 | owner `heartbeat` / `note` / `lock` | Requires the current fence (missing: exit 3, stale: exit 2). Renews the TTL and keeps the fence. |
 | renew after expiry, no take-over | Re-granted with the same fence if nothing overlapping was granted meanwhile. Logged as "lease resumed after expiry". |
-| `move review` / `move blocked` | The lease becomes *held*: no expiry while the card waits. |
+| `move review` / `move blocked` | The lease becomes an advisory hold for `hold_minutes` (default 60). Its paths stay visible and overlapping claims print a warning, but the hold never authorizes writes. Heartbeats and moves between review and blocked do not extend it. |
 | `review --verdict changes` | The card returns to `doing` with the same owner and fence, and the TTL starts again. |
 | `move todo`, `release` (from doing) | Lease dropped; the card goes to `todo` with no owner (A2A `canceled`). |
 | `move done` | Lease dropped. |
-| `reap` | Only `doing` cards whose lease expired: the card goes to `blocked` and the lease is dropped. Held review/blocked leases are never reaped. |
+| `reap` | Drops expired leases. A `doing` card goes to `blocked`; a review or blocked card whose hold expired keeps its lane. |
 
 **Deviation from PROTOCOL 2.5.** A reaped card keeps its owner but loses its lease. Once a doing lease has expired, its paths were already unprotected and someone may have claimed them. Converting it to a held lease at reap time could create two live overlapping leases. `claimable` still offers the reaped card as a take-over.
 
@@ -151,7 +151,7 @@ The default secret store is a private file outside the board. `config set lead_s
 
 All agents run as the same OS user. This is a cooperative boundary: same-UID code can read private files, inspect environments, alter board state or import the library and construct caller objects. Session IDs and hook identity must come from the host integration. Strong isolation requires separate OS users or a sandbox with separate credentials.
 
-`core.lead_env` supplies environment scrubbing and refusal helpers for launchers. `core.lead_hook` supplies protected-secret path checks and one-time urgent delivery as quoted JSON context for a validated worker. Urgent messages and lead notes on an owned card are delivered even while its owner is doing another operation. These helpers do not install runtime hooks: the plugin and runner security branches must wire and test them before release. Hooks must guard shell reads as well as structured file tools, and resolve worker identity from host-controlled context.
+`core.lead_env` supplies environment scrubbing and refusal helpers for launchers. `core.lead_hook` supplies protected-secret path checks and one-time urgent delivery as quoted JSON context for a validated worker. Urgent messages and lead notes on an owned card are delivered even while its owner is doing another operation. The plugin hooks (`raidlock.hooks`) and the runners use them. Hooks guard shell reads as well as structured file tools, and resolve worker identity from host-controlled context.
 
 ## Git in worker checkouts
 
@@ -417,51 +417,15 @@ raidlock <command> [--board PATH] [--json] [--fields all|a,b] [--agent NAME] [--
 | `RAIDLOCK_MODEL`, `RAIDLOCK_BILLING`, `RAIDLOCK_RUNTIME`, `RAIDLOCK_SESSION` | override detection |
 | `RAIDLOCK_SLOW`, `RAIDLOCK_SCALE_P95_MS` | scale tests |
 
-| Group | Command and flags |
-|---|---|
-| Start | `up [--team] [--role worker\|reviewer] [--runtime] [--model]` |
-| | `quickstart [PATH] [--lead] [--runtime] [--team core] [--locks]` |
-| | `doctor` (Python, board, `RAIDLOCK_HOME` writable, database, `raid` on `PATH`; exit 3 on a problem) |
-| Plan | `new TITLE [--id --team --locks --depends --scope --verify --verify-cmd --output --ticket --reviewers]` |
-| | `plan import FILE [--team]` (JSON list or `{"cards": [...]}`; Markdown `- [ ] title \| locks: a/b`) |
-| Work | `brief ID [--max-tokens N] [--quiet]` |
-| | `claim ID [--take-over] [--ttl MIN] [--for AGENT] [--checkout PATH]` |
-| | `note ID TEXT` |
-| | `move ID todo\|review\|blocked\|done [--note]` |
-| | `done ID [--note]` |
-| Agents | `who [--brief]` (`delegate` from the runners card) |
-| Board | `show [ID] [--all] [--brief]` (`ui` from the web card) |
-| Advanced | `init [PATH] [--lead --runtime --model --no-auth]` |
-| | `join [--team --role --runtime --provider --model --runner-model --reported-model --effort --session --card --billing]` |
-| | `team add\|rm\|list [NAME] [--max --mission --repos]` |
-| | `config get [KEY]`, `config set KEY VALUE` (auth, ttl_minutes, require_review, require_review.count, require_review.other_provider, brief_max_tokens) |
-| | `claimable [--for-review]` |
-| | `heartbeat ID [--ttl]` |
-| | `lock ID PATHS` |
-| | `release ID [--note]` |
-| | `reopen ID [--note]` |
-| | `review ID --verdict approve\|changes\|comment [--by AGENT] [--note]` or `review ID --assign a,b` |
-| | `verify ID [--timeout S] [--cwd]` (exit 2 when it fails) |
-| | `msg TEXT --to AGENT [--from AGENT] [--task ID] [--urgent]` |
-| | `inbox [--all] [--wait [S]] [--interval S]` |
-| | `wait ID [--timeout S] [--interval S]` |
-| | `cost [ID] [--model --input --cached-input --cache-write --output --reasoning-output --usd --billing --for --duration-ms]` |
-| | `spend [--by provider\|model\|agent\|team\|card\|billing\|workspace\|day\|week] [--since] [--until] [--all]` |
-| | `reap` |
-| | `workspaces [--rm NAME...]` (alias `projects`) |
-| | `check [PATHS] [--id] [--write FILE]` (exit 2 on conflict or deny) |
-| | `transcript [--task --kind --who] [-n N]` |
-| | `tokens` |
-| | `help [advanced\|COMMAND]` |
-| | `version` |
+The commands and their flags are listed in [the command reference](guides/commands.md); `raid <command> --help` prints the exact flags.
 
-**Extension point.** A module among `raidlock.web.cli`, `raidlock.runners.cli`, `raidlock.hooks` and `raidlock.mcp`, or an entry point in the group `raidlock.commands`, exposes `register_cli(add_command)`. `pyproject.toml` declares entry points for notify, snapshot, reputation, tui, recipes, guard, mcp, delegate, ui, suggest-locks and foresight; one whose module is not installed yet is skipped (a note under `--debug`). It calls:
+**Extension point.** A module among `raidlock.web.cli`, `raidlock.runners.cli`, `raidlock.hooks` and `raidlock.mcp`, or an entry point in the group `raidlock.commands`, exposes `register_cli(add_command)`. `pyproject.toml` declares an entry point for each command module outside the core, for example `delegate`, `ui`, `lore`, `pr` and `bench`. A module that fails to import is skipped, with a note under `--debug`. It calls:
 
 ```python
 add_command(name, help, setup(parser), handler(ctx, args) -> (result_dict, text), mutating=False, aliases=())
 ```
 
-`ctx.board` opens the board lazily, `ctx.caller()` resolves the agent, and `_exit` in the result sets the exit code. The help groups already list `delegate` and `ui`; a group shows a command once it is registered.
+`ctx.board` opens the board lazily, `ctx.caller()` resolves the agent, and `_exit` in the result sets the exit code.
 
 ## Spec status
 
@@ -473,8 +437,8 @@ Which PROTOCOL.md rules the core enforces today.
 | 2.2 overlap on `/` boundary; reads need no lock | enforced | `paths.overlaps`, `db.Index.conflicts` |
 | 2.3 all-or-nothing grant across workspaces; refusal names path, holder, card, workspace, expiry | enforced | `db.Index.grant` (one `BEGIN IMMEDIATE` transaction) |
 | 2.4 45-min TTL, renew on owner actions, reap, take-over | enforced, with fence check and resume logging | `claim`, `heartbeat`, `note`, `lock_paths`, `reap` |
-| 2.5 lease kept through review/blocked, released on done/todo/release | enforced (reaped doing cards lose their lease, see the deviation) | `move`, `release`, `reap` |
-| 2.6 enforcement on writes | library decision only (`check_write`); the hook, git guard and runner diff belong to other cards | `Board.check_write` |
+| 2.5 advisory hold through review/blocked for `hold_minutes`, released on done/todo/release | enforced; `reap` drops expired holds and keeps the lane (reaped doing cards lose their lease, see the deviation) | `move`, `release`, `reap` |
+| 2.6 enforcement on writes | implemented; see PROTOCOL §9 | `Board.check_write` |
 | 2.7 own checkout per agent (clone or worktree) | recorded on the lease, not enforced | `repos.checkout_info` |
 | 2.8 fencing | enforced on every owner command and in `check_write` | `Board._owner_or_lead` |
 | 3.1 only the library writes `.board/` | raidlock code only; `check_write` denies `.board/` paths for hooks | |
@@ -485,7 +449,7 @@ Which PROTOCOL.md rules the core enforces today.
 | 4 claimable rules; only claim enters doing; done lead-only; verify and review gates | enforced | `claimable`, `claim`, `move`, `_done_gate` |
 | 5 identity with provider, runtime, model; derived status | enforced (token auth, see the trust model) | `identity`, `models`, `billing`, `status` |
 | 6 messages: queue, same-task immediate, urgent, caps, transcript | enforced | `messages`, `Board.send`, `Board.inbox` |
-| 7 runners and pricing | pricing, billing modes and the spend ledger enforced; runners belong to the runners card | `cost`, `db.Index.spend` |
+| 7 runners and pricing | implemented; see PROTOCOL §9 | `cost`, `db.Index.spend` |
 | 8 hard limits for workers | lead-only commands enforced; merges, pushes and settings are outside raidlock's reach | `identity.require_lead` |
 
 Executable aliases and uppercase `GIT` remain general-shell recognition limits.

@@ -15,9 +15,9 @@ uv run raidlock --help
 
 raidlock itself uses the standard library only. `uv sync` installs the declared test tools into the local `.venv`; nothing is installed globally.
 
-## Before the first release
+## Install from a checkout
 
-Until raidlock is on PyPI and the repository is public, `pipx install raidlock`, `uv tool install raidlock` and `/plugin marketplace add agi1clj/raidlock` fail, and the README badges and release links return 404. Install from a local checkout instead.
+To try an unreleased change, install from a local checkout.
 
 From the checkout's root, as a tool on `PATH`:
 
@@ -108,23 +108,15 @@ Tests: add a recorded event stream under the runner tests and assert the transcr
 
 ## GitHub Actions pins
 
-Actions are pinned to full commit SHAs. Dependabot opens update PRs weekly. Current pins:
-
-| Action | Tag | Commit |
-|---|---|---|
-| actions/checkout | v7.0.1 | `3d3c42e5aac5ba805825da76410c181273ba90b1` |
-| astral-sh/setup-uv | v10.3.2 | `07a047e608db84b3d8c06cd9a7c7dcc9c355c18e` |
-| actions/upload-artifact | v7.0.2 | `cf430e030ddbb5b0abf93d22962f4752f3646cd9` |
-| actions/download-artifact | v8.0.2 | `9000827ccba6bdab643e8b6fd33ac0654aef8333` |
-| pypa/gh-action-pypi-publish | v1.14.3 | `7245906fb61fa33a13554f9d5fb856fe61758086` |
+All actions are pinned to full commit SHAs; Dependabot updates them weekly.
 
 actionlint 1.7.12 is downloaded in CI from its GitHub release and checked against its published SHA-256.
 
 ## Releases
 
-Releases are automated. release-please keeps a release PR open from the Conventional Commits on `main` and bumps every version file (`pyproject.toml`, `src/raidlock/__init__.py`, `uv.lock`, plugin manifests, changelog). A maintainer merges it; the release workflow then tags the version, publishes to PyPI with attestations, attaches Sigstore-signed distributions to the GitHub release, and pushes a signed multi-arch image to `ghcr.io/agi1clj/raidlock`. See [docs/RELEASING.md](docs/RELEASING.md).
+Releases are automated. release-please keeps a release PR open from the Conventional Commits on `main` and bumps every version file (`pyproject.toml`, `src/raidlock/__init__.py`, `uv.lock`, plugin manifests, changelog). A maintainer merges it; the release workflow then tags the version, publishes to PyPI with attestations, attaches Sigstore-signed distributions to the GitHub release, and pushes a signed multi-arch image to `ghcr.io/agi1clj/raidlock`.
 
-See [the release guide](docs/RELEASING.md) for publication gates, token setup, version checks and the initial tag procedure.
+See [docs/RELEASING.md](docs/RELEASING.md) for the release flow and the settings it depends on.
 
 ## Python checks
 

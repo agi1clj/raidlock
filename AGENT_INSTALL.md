@@ -68,7 +68,7 @@ A Codex worker starts with its identity in the environment (`RAIDLOCK_AGENT=<nam
 
 ## 4c. Other agents (Gemini CLI and others)
 
-They coordinate through the CLI (`raid claim`, `raid note`, `raid move`) or the MCP server (`raid mcp`); they get no edit-time hooks. Tell the user that only the git commit guard and `raid delegate` sandboxing protect against them, and suggest delegating their work with `raid --lead-secret FILE delegate CARD --to gemini`.
+They coordinate through the CLI (`raid claim`, `raid note`, `raid move`); they get no edit-time hooks. Gemini CLI can try the MCP server (`raid mcp`), but that is not verified. The supported path for Gemini is `raid --lead-secret FILE delegate CARD --to gemini`, which is tested against recorded Gemini output, not a live Gemini CLI. Tell the user that only the git commit guard and `raid delegate` sandboxing protect against these agents.
 
 ## 5. Create a board
 

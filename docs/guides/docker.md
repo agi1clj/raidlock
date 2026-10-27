@@ -15,7 +15,7 @@ cosign verify ghcr.io/agi1clj/raidlock:latest \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com
 ```
 
-`latest` is the newest release; pin a version tag such as `:0.1.1` for reproducible setups. Release images are built for `linux/amd64` and `linux/arm64`, carry an SBOM and build provenance, and are signed keyless with cosign. Or build from a checkout:
+`latest` is the newest release; pin a version tag such as `:X.Y.Z` (see [Releases](https://github.com/agi1clj/raidlock/releases)) for reproducible setups. Release images are built for `linux/amd64` and `linux/arm64`, carry an SBOM and build provenance, and are signed keyless with cosign. Or build from a checkout:
 
 ```bash
 docker build -t raidlock .
@@ -125,4 +125,4 @@ The image is based on `python:3.11-slim` (Debian), pinned by digest, rather than
 - A host lead cannot delegate `raid verify` to a container; the lead must run in the container.
 - On AppArmor hosts, verify needs `apparmor=unconfined` for the verify container, because Docker's default AppArmor profile blocks the mounts bubblewrap makes. Seccomp, dropped capabilities, `no-new-privileges` and the read-only root stay in force.
 - MCP needs the full `RAIDLOCK_HOME` mounted read-write.
-- CI builds and smoke-tests `linux/amd64` only; `linux/arm64` is built at release and was tested locally on Docker Desktop.
+- CI builds and Trivy-scans `linux/amd64` only; `linux/arm64` is built at release and was tested locally on Docker Desktop.

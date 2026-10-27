@@ -73,7 +73,7 @@ These tools overlap with raidlock, and several do some things better. Each row w
 
 **Clones or worktrees?** Either. Each agent works in its own checkout; leases are keyed by repo identity, so clones and worktrees of the same repo share one lock space. Delegated external runs always use a fresh remote-less clone.
 
-**What happens if an agent goes quiet?** Its lease expires after 45 minutes. The lead can run `raid --lead-secret FILE reap` to move stalled work to blocked, and another authenticated worker can claim it with `--take-over`. The fence changes, so the old owner's later writes are refused. `raid resurrect` hands the card to a fresh agent with a resume packet; automatic resurrection is off until you turn it on with `raid resurrect-policy`.
+**What happens if an agent goes quiet?** Its lease expires after 45 minutes (`ttl_minutes`). The lead can run `raid --lead-secret FILE reap` to move stalled work to blocked, and another authenticated worker can claim it with `--take-over`. The fence changes, so the old owner's later writes are refused. `raid resurrect` hands the card to a fresh agent with a resume packet; automatic resurrection is off until you turn it on with `raid resurrect-policy`.
 
 **Is `.board/` committed?** No by default. `init` gitignores it. Review the transcript before you choose to share it.
 

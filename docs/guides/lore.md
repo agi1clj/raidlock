@@ -130,15 +130,6 @@ Each lesson is one `> ` line with its text in double quotes. Before quoting, the
 - Decay: a lesson whose `last_used` (else `created`) is more than 90 days old is not injected. It stays in the vault.
 - `lessons_for` is read-only and deterministic: the same vault gives the same bytes, so the brief stays cacheable. Call `mark_used(board, ids)` once the brief has actually been sent; it bumps `hits` and `last_used` in both vaults.
 
-## Wiring for the integrate card
-
-The lore lease does not cover `cli.py`, `core/tokens.py`, `core/brief.py`, the runners or `pyproject.toml`, so these hooks are not wired yet.
-
-1. CLI: add `"raidlock.lore.cli"` to `EXTENSION_MODULES` in `src/raidlock/cli.py`, or add the entry point `[project.entry-points."raidlock.commands"] lore = "raidlock.lore.cli:register_cli"`. To show it in `raidlock help advanced`, also add `"lore"` to a group in `cli.GROUPS`.
-2. Token report: add `"raidlock.lore"` to `EXTENSION_MODULES` in `src/raidlock/core/tokens.py`, or the entry point `[project.entry-points."raidlock.tokens"] lore = "raidlock.lore:register_tokens"`. It reports the median injection over open cards as "lore lessons".
-3. Brief: core has no brief hook. The lore block fits inside the brief cap if the renderer takes it out of the budget before notes are dropped. `Board.brief` stays read-only: it may call `lessons_for(board, card, budget)` with `budget = min(200, max_tokens - fixed_tokens)` but never `capture`, because `capture` takes the board lock and `brief` runs inside `snapshot()` and the token report. Append `r["text"]` after the Loop section and before the notes, and call `mark_used(board, [x["id"] for x in r["lessons"]])` after the runner starts the agent. Report `r["tokens"]` as the card's injected-token cost.
-4. Automatic capture: until a transcript hook exists, call `raidlock.lore.capture(board)` at delegate time in the runner (before the prompt is rendered) and after its `_finish`, or run `raidlock lore capture` from a hook. Every `lore` command also captures first. Captured lessons still wait for `lore approve`.
-
 ### Managing lessons
 
 `raid lore propose "Lesson text"` proposes a workspace-level lesson without a card.
