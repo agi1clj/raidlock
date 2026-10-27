@@ -40,7 +40,7 @@ EOF
   raid move checkout review --note "python3 -m unittest passed" >/dev/null
 )
 
-RECEIPT="$(lead verify checkout --json --fields all)"
+RECEIPT="$(lead verify checkout --json --fields all)" || { printf 'verify failed: %s\n' "$RECEIPT"; exit 1; }
 printf '%s\n' "$RECEIPT" | python3 -c '
 import json, sys
 r = json.load(sys.stdin)
