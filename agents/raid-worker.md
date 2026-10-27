@@ -1,6 +1,6 @@
 ---
 name: raid-worker
-description: Works one raidlock card end to end inside its leased paths, then hands it to review. Use for a card the lead delegates; the prompt must name the card as `card <id>` (the board-first hook denies a launch without one), plus the team, agent name and checkout.
+description: Works one raidlock card inside its leased paths, then hands it to review. The prompt must include `card <id>`, the team, agent name and checkout.
 tools: Read, Grep, Glob, Edit, Write, NotebookEdit, Bash
 disallowedTools: Agent
 background: true

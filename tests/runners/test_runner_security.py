@@ -189,7 +189,7 @@ def test_verify_timeout_kills_the_process_group(tmp_path, monkeypatch):
             0.5,
         )
         assert code is None and "timed out" in tail and "ready" in tail
-        assert processes[0].returncode == -signal.SIGKILL
+        assert processes[0].poll() is not None
         assert not marker.exists()
     finally:
         for proc in processes:

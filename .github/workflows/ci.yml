@@ -59,7 +59,7 @@ jobs:
           enable-cache: true
           python-version: ${{ matrix.python }}
       - name: Run tests
-        run: uv run --locked pytest --ignore=tests/web
+        run: uv run --locked --with pytest-xdist==3.8.0 pytest -n auto --ignore=tests/web
 
   playwright:
     name: web UI (Playwright)
@@ -82,7 +82,7 @@ jobs:
           uv sync --locked --extra ui-test
           uv run --locked playwright install --with-deps chromium
       - name: Run web tests
-        run: uv run --locked pytest tests/web
+        run: uv run --locked --with pytest-xdist==3.8.0 pytest -n auto tests/web
       - name: Upload traces on failure
         if: failure()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
@@ -139,6 +139,10 @@ jobs:
           if [ -e /proc/sys/kernel/apparmor_restrict_unprivileged_userns ]; then
             sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
           fi
+      - name: Show namespace support
+        run: |
+          docker version --format 'docker {{.Server.Version}}'
+          sysctl kernel.apparmor_restrict_unprivileged_userns user.max_user_namespaces 2>/dev/null || true
       - name: Smoke test in a hardened container
         run: |
           docker run --rm --read-only --cap-drop ALL --security-opt no-new-privileges \
