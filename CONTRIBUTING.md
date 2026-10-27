@@ -122,7 +122,7 @@ actionlint 1.7.12 is downloaded in CI from its GitHub release and checked agains
 
 ## Releases
 
-Maintainers create `v0.1.0` as the first manual tag. After that, release-please opens and updates a release PR from Conventional Commits on `main`. It bumps `pyproject.toml`, the changelog, plugin manifests and release manifest. Before merging, synchronize `src/raidlock/__init__.py` and `uv.lock` with the proposed version and review the generated notes. Merging creates the tag and GitHub release; the tag triggers `uv build` and PyPI trusted publishing with PEP 740 attestations through the `pypi` environment.
+Releases are automated. release-please keeps a release PR open from the Conventional Commits on `main` and bumps every version file (`pyproject.toml`, `src/raidlock/__init__.py`, `uv.lock`, plugin manifests, changelog). A maintainer merges it; the release workflow then tags the version, publishes to PyPI with attestations, attaches Sigstore-signed distributions to the GitHub release, and pushes a signed multi-arch image to `ghcr.io/agi1clj/raidlock`. See [docs/RELEASING.md](docs/RELEASING.md).
 
 See [the release guide](docs/RELEASING.md) for publication gates, token setup, version checks and the initial tag procedure.
 

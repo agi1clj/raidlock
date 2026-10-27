@@ -9,19 +9,19 @@ The image runs `raid` as a fixed non-root user (uid and gid 10001), with `RAIDLO
 From a release:
 
 ```bash
-docker pull ghcr.io/agi1clj/raidlock:0.1.0
-cosign verify ghcr.io/agi1clj/raidlock:0.1.0 \
+docker pull ghcr.io/agi1clj/raidlock:latest
+cosign verify ghcr.io/agi1clj/raidlock:latest \
   --certificate-identity-regexp '^https://github.com/agi1clj/raidlock/' \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com
 ```
 
-Release images are built for `linux/amd64` and `linux/arm64`, carry an SBOM and build provenance, and are signed keyless with cosign. Or build from a checkout:
+`latest` is the newest release; pin a version tag such as `:0.1.1` for reproducible setups. Release images are built for `linux/amd64` and `linux/arm64`, carry an SBOM and build provenance, and are signed keyless with cosign. Or build from a checkout:
 
 ```bash
 docker build -t raidlock .
 ```
 
-The examples below use the local tag `raidlock`; substitute `ghcr.io/agi1clj/raidlock:0.1.0` for a release image.
+The examples below use the local tag `raidlock`; substitute `ghcr.io/agi1clj/raidlock:latest` for a release image.
 
 ## Hardened run flags
 

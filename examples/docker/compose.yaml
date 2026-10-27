@@ -1,7 +1,7 @@
 name: raidlock
 
 x-hardened: &hardened
-  image: ${RAIDLOCK_IMAGE:-ghcr.io/agi1clj/raidlock:0.1.0}
+  image: ${RAIDLOCK_IMAGE:-ghcr.io/agi1clj/raidlock:latest}
   read_only: true
   cap_drop: [ALL]
   security_opt: [no-new-privileges:true]
