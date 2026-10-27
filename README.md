@@ -18,6 +18,12 @@
 
 <p align="center"><img src="docs/assets/demo.webp" alt="raidlock web UI tour" width="960"></p>
 
+<p align="center">
+  🔒 <a href="docs/guides/hooks.md"><b>Edits enforced at the file level</b></a> ·
+  ✅ <a href="docs/guides/verification.md"><b>Done needs a sandboxed test and a cross-provider review</b></a> ·
+  ⚔️ <a href="docs/guides/ui.md"><b>A live raid board for every project</b></a>
+</p>
+
 Run Claude Code, Codex, Gemini, shell scripts and people on one board. Each piece of work is a card. Claiming a card leases the exact paths it may touch, and hooks refuse edits anywhere else. One lead closes cards, and only after a signed verify receipt exists for the commit and, on a mixed-provider board, a reviewer from another provider has approved. You can follow who is doing what in the terminal or in a raid-themed web UI.
 
 ## Why
