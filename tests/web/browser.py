@@ -20,7 +20,7 @@ def chromium():
 
 
 class Page:
-    def __init__(self, browser, server, width=1280, height=900, **ctx):
+    def __init__(self, browser, server, width=1280, height=900, tour=False, **ctx):
         self.ctx = browser.new_context(viewport={"width": width, "height": height}, **ctx)
         self.page = self.ctx.new_page()
         self.errors = []
@@ -31,6 +31,12 @@ class Page:
             "document.addEventListener('securitypolicyviolation', "
             "e => window.__csp(e.violatedDirective + ' ' + e.blockedURI))"
         )
+        if not tour:
+            self.page.add_init_script(
+                "const _get = Storage.prototype.getItem;"
+                "Storage.prototype.getItem = function (k) {"
+                " return String(k).startsWith('rl.tour.') ? 'off' : _get.call(this, k); };"
+            )
         self.server = server
 
     def open(self, path="/", theme="plain", panels=(), storage=None):

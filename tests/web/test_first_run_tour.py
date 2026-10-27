@@ -51,7 +51,7 @@ def pages(chromium):
     made = []
 
     def make(server, width=1280, **kw):
-        p = Page(chromium, server, width=width, height=900, **kw)
+        p = Page(chromium, server, width=width, height=900, tour=True, **kw)
         made.append(p)
         return p
 
