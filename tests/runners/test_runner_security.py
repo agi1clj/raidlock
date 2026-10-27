@@ -193,7 +193,7 @@ def test_verify_timeout_kills_the_process_group(tmp_path, monkeypatch):
         assert not marker.exists()
     finally:
         for proc in processes:
-            with contextlib.suppress(ProcessLookupError):
+            with contextlib.suppress(ProcessLookupError, PermissionError):
                 os.killpg(proc.pid, signal.SIGKILL)
             proc.communicate(timeout=10)
 
