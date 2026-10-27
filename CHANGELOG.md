@@ -4,6 +4,13 @@ All notable changes to this project are documented here.
 
 The format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/), and the project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.2](https://github.com/agi1clj/raidlock/compare/v0.2.1...v0.2.2) (2026-10-27)
+
+
+### Documentation
+
+* README renders on PyPI; summary matches the headline ([#25](https://github.com/agi1clj/raidlock/issues/25)) ([4786bc6](https://github.com/agi1clj/raidlock/commit/4786bc654e727392672ccd1bb6cc50aec5e27ddb))
+
 ## [0.2.1](https://github.com/agi1clj/raidlock/compare/v0.2.0...v0.2.1) (2026-10-27)
 
 
