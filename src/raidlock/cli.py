@@ -523,8 +523,17 @@ def emit(args, name, result, text, board_dir, mutating, prog="raidlock"):
         print(rename(text, prog))
 
 
+WINDOWS_MESSAGE = (
+    "raidlock does not support native Windows yet; run it inside WSL2: "
+    "https://github.com/agi1clj/raidlock/blob/main/docs/guides/install.md#on-windows"
+)
+
+
 def main(argv=None, prog=None):
     argv = list(sys.argv[1:] if argv is None else argv)
+    if sys.platform == "win32" and argv[:1] not in (["--version"], ["-V"]):
+        print(WINDOWS_MESSAGE, file=sys.stderr)
+        return 3
     if argv[:1] == ["hook"]:
         from .hooks import main as hook_main
 
