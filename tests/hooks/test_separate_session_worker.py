@@ -28,6 +28,7 @@ LEAD_ONLY = (
     "python3 -m raidlock done c1",
     "raidlock reopen c1",
     "raidlock verify c1",
+    "raid land c1",
     "cd app && raidlock --board .. done c1",
     "raidlock msg w-two hi --urgent",
 )

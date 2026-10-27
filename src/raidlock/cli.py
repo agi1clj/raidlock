@@ -158,6 +158,10 @@ FLAG_HELP = {
     ("transcript", "kind"): "only this record kind (msg, note, status, review, verify, handback, run)",
     ("up", "team"): "team to join as a worker",
     ("up", "role"): "role when joining as a worker",
+    ("land", "id"): "delegated card whose latest handed-back patch to land",
+    ("land", "cwd"): "checkout of the card's repo to commit in (default: current directory)",
+    ("land", "message"): "commit message (default: feat(<card>): <title>)",
+    ("land", "timeout"): "seconds before the verify run is stopped",
     ("verify", "id"): "card to verify",
     ("verify", "timeout"): "seconds before the verify run is stopped",
     ("verify", "cwd"): "checkout to verify (default: the worker's recorded checkout, else the workspace)",
@@ -183,6 +187,7 @@ EXAMPLES = {
     "move": ['raidlock move checkout review --note "tests: 14 passed"', "raidlock move checkout blocked"],
     "verify": [f"{LEAD} verify checkout", f"{LEAD} verify checkout --cwd ~/demo/shop/acme-shop"],
     "done": [f"{LEAD} verify checkout", f"{LEAD} done checkout"],
+    "land": [f"{LEAD} land checkout", f"{LEAD} land checkout --cwd ~/demo/shop/acme-shop"],
     "review": [
         'raidlock review checkout --verdict approve --note "read the diff; tests cover empty carts"',
         f"{LEAD} review checkout --assign codex-reviewer",
@@ -470,6 +475,7 @@ MINIMAL = {
     "reopen": ("card", "lane"),
     "review": ("card", "verdict", "lane", "approvals", "reviewers", "warnings"),
     "verify": ("card", "passed", "exit", "tail"),
+    "land": ("card", "commit", "verify", "lane", "next"),
     "msg": ("id", "status", "dropped"),
     "inbox": ("messages", "queued"),
     "wait": ("card", "lane"),
@@ -517,8 +523,17 @@ def emit(args, name, result, text, board_dir, mutating, prog="raidlock"):
         print(rename(text, prog))
 
 
+WINDOWS_MESSAGE = (
+    "raidlock does not support native Windows yet; run it inside WSL2: "
+    "https://github.com/agi1clj/raidlock/blob/main/docs/guides/install.md#on-windows"
+)
+
+
 def main(argv=None, prog=None):
     argv = list(sys.argv[1:] if argv is None else argv)
+    if sys.platform == "win32" and argv[:1] not in (["--version"], ["-V"]):
+        print(WINDOWS_MESSAGE, file=sys.stderr)
+        return 3
     if argv[:1] == ["hook"]:
         from .hooks import main as hook_main
 
@@ -590,6 +605,7 @@ LEAD_COMMANDS = {
     "edit",
     "plan",
     "verify",
+    "land",
     "done",
     "reopen",
     "reap",
@@ -621,7 +637,7 @@ def _lead_session_state(board):
     return bool(status.get("held")), bool(status.get("held")) and bool(sid) and sid == status.get("session")
 
 
-STRICT_LEAD_COMMANDS = {"edit", "verify", "done", "reopen", "reap", "delegate", "duel", "resurrect"}
+STRICT_LEAD_COMMANDS = {"edit", "verify", "land", "done", "reopen", "reap", "delegate", "duel", "resurrect"}
 
 
 def _lead_identity_hint(e, ctx, argv):
@@ -1577,6 +1593,29 @@ def _verify_opts(p):
     p.add_argument("id")
     p.add_argument("--timeout", type=float, default=600)
     p.add_argument("--cwd", "--checkout", default=None, help="clean checkout of the card branch to verify")
+
+
+@command("land", "lead: apply a delegated patch, commit, verify and hand the card to review", mutating=True)
+def cmd_land(ctx, a):
+    from .runners.land import land
+
+    r = land(ctx.board, ctx.caller(), a.id, cwd=a.cwd, message=a.message, timeout=a.timeout)
+    verify = r["verify"]
+    outcome = (
+        f"verify {'passed' if verify['passed'] else 'failed'} (exit {verify['exit']})"
+        if verify
+        else "no verify command on the card"
+    )
+    tail = f"\n{verify['tail']}".rstrip() if verify and not verify["passed"] else ""
+    return r, f"Landed {a.id} as {r['commit'][:12]} ({len(r['paths'])} file(s)); {outcome}.{tail}\nNext: {r['next']}"
+
+
+@options("land")
+def _land_opts(p):
+    p.add_argument("id")
+    p.add_argument("--cwd", "--checkout", default=None)
+    p.add_argument("--message", "-m", default=None)
+    p.add_argument("--timeout", type=float, default=600)
 
 
 @command("msg", "send a message to an agent", mutating=True)
