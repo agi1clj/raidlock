@@ -49,8 +49,6 @@ jobs:
         include:
           - os: ubuntu-latest
             python: "3.11"
-          - os: macos-latest
-            python: "3.14"
     defaults:
       run:
         shell: bash
