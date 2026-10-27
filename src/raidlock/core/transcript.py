@@ -28,7 +28,7 @@ _PATTERNS = [
     re.compile(r"\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\b"),
     re.compile(r"(?i)\bbearer\s+[A-Za-z0-9._~+/\-]{16,}=*"),
     re.compile(
-        r"(?i)\b([A-Za-z0-9_]*(?:password|passwd|secret|token|api[_-]?key|access[_-]?key|AccountKey|RAIDLOCK_CAP)[A-Za-z0-9_]*)"
+        r"(?i)\b([A-Za-z0-9_]*(?:password|passwd|secret|token|api[_-]?key|access[_-]?key|AccountKey|RAIDLOCK_[A-Za-z0-9_]+)[A-Za-z0-9_]*)"
         r"([\"\x27]?\s*[:=]\s*)(['\"]?)[^\s'\",;]{4,}\3"
     ),
 ]

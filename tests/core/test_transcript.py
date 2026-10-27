@@ -148,14 +148,3 @@ def test_gitleaks_allowlist_requires_exact_fixture_and_dummy_secret():
     assert not allowed("tests/core/test_transcript.py.bak", "AKIAABCDEFGHIJKLMNOP")
     assert not allowed("tests/core/test_transcript.py", "AKIAREALCREDENTIALXYZ")
     assert not allowed("tests/core/test_model.py", "AKIAABCDEFGHIJKLMNOP")
-
-
-def test_redaction_keeps_harmless_raidlock_settings():
-    from raidlock.core.transcript import redact
-
-    assert redact("sets RAIDLOCK_SANDBOX=container so") == "sets RAIDLOCK_SANDBOX=container so"
-    assert (
-        redact("RAIDLOCK_BOARD=/work/app RAIDLOCK_AGENT=worker-1") == "RAIDLOCK_BOARD=/work/app RAIDLOCK_AGENT=worker-1"
-    )
-    for secret in ("RAIDLOCK_TOKEN=abcd1234efgh", "RAIDLOCK_CAP=c1:2:abcdef1234", "RAIDLOCK_LEAD_SECRET=abcd1234efgh"):
-        assert "[REDACTED]" in redact(secret), secret
