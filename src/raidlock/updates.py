@@ -13,6 +13,7 @@ from .core import registry
 
 URL = "https://pypi.org/pypi/raidlock/json"
 TTL = 86400
+RETRY = 3600
 TIMEOUT = 2
 UPGRADE = "uv tool upgrade raidlock"
 VERSION_RE = re.compile(r"^\d+(\.\d+){0,3}$")
@@ -60,21 +61,22 @@ def refresh(force=False, persist=True):
         checked = 0
     if not force and time.time() - checked < TTL:
         return data.get("latest") if valid(data.get("latest")) else None
-    latest = None
+    fetched = None
     try:
         with urllib.request.urlopen(URL, timeout=TIMEOUT) as resp:
-            latest = json.load(resp)["info"]["version"]
+            fetched = json.load(resp)["info"]["version"]
     except (OSError, ValueError, KeyError, TypeError):
-        latest = data.get("latest")
-    if not valid(latest):
-        latest = None
+        fetched = None
+    ok = valid(fetched)
+    latest = fetched if ok else (data.get("latest") if valid(data.get("latest")) else None)
+    stamp = time.time() if ok else time.time() - TTL + RETRY
     if not persist:
         return latest
     try:
         os.makedirs(os.path.dirname(_path()), exist_ok=True)
         tmp = _path() + ".tmp"
         with open(tmp, "w", encoding="utf-8") as fh:
-            json.dump({"checked": time.time(), "latest": latest}, fh)
+            json.dump({"checked": stamp, "latest": latest}, fh)
         os.replace(tmp, _path())
     except OSError:
         pass
