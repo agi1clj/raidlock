@@ -554,6 +554,22 @@ def test_sandboxed_verify_runs_the_system_python(tmp_path):
     assert "42" in out
 
 
+@pytest.mark.skipif(SANDBOX != "sandbox-exec", reason="macOS sandbox only")
+def test_sandboxed_verify_cannot_write_the_real_uv_cache(tmp_path):
+    real = tmp_path / "real-uv"
+    real.mkdir()
+    home = tmp_path / "raidlock-home"
+    env = dict(os.environ, HOME=str(tmp_path / "home"), UV_CACHE_DIR=str(real), RAIDLOCK_HOME=str(home))
+    work = tmp_path / "work"
+    work.mkdir()
+    cmd = f'touch "$UV_CACHE_DIR/pwned"; touch {shlex.quote(str(real))}/direct; true'
+    code, _, _ = isolation.run(cmd, str(work), env, 30, kind=SANDBOX, deny_read=isolation.hidden(env))
+    assert code == 0
+    assert not (real / "pwned").exists()
+    assert not (real / "direct").exists()
+    assert (home / "verify" / "uv-cache" / "pwned").exists()
+
+
 def test_closing_a_card_prunes_its_run_clones_and_keeps_the_logs(ws):
     from raidlock.runners.runner import prune_runs
 
