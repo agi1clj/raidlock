@@ -48,6 +48,10 @@ The strip under the header shows, per provider with real data, the context use o
 
 Every empty section says what to run next: no cards (`raid --lead-secret ... new`), nobody working (`raid claim <card>`), no workers (`raid up --join`), no boards (`raid quickstart`). A view that is still loading says so. When the server stops answering, the header says `Start it again with: raid ui`, and the page reconnects on its own once it is back.
 
+### First quest
+
+When the browser first opens a workspace that has no cards, the War room shows a small **First quest** panel (plain theme: **Your first card**) with four steps and a copy button for each command: create a card (`raid --lead-secret FILE new "<title>" --locks <repo>/<path> --verify-cmd "<check>"`), claim it (`raid claim <card>`), verify it, and close it with `done`. Each step ticks off from the live board: a card exists, a card is claimed, a verify receipt or a card in review, a card done. Once the first card is done the panel goes away. The close button hides it for that workspace in this browser. On the overview, the panel shows while every workspace is empty.
+
 ### Ambient motion
 
 The page stays alive: golden motes drift on the breeze over a denser star field, mist bands roll by, embers drift up the background, the logo glows like a torch, quests in progress breathe, avatars bob, primary buttons shimmer, Needs you glows, section icons sway, the XP bar shines, cards lift on hover and views fade in when you switch tabs. When a boss is slain, a victory screen names it, the quest count and who landed the final blow, with a fanfare; Esc or Onward closes it. The header shows the guild's daily streak (days in a row with a finished quest). It is CSS only, and it stops with **Settings > Animations: off** or the system's reduce-motion setting.

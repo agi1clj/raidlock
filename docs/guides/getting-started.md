@@ -22,6 +22,8 @@ raid quickstart --demo
 
 This creates `.board/`, a `core` team, an example card and `acme-shop/`, a git repo whose checkout test fails until carts reject empty input. In your own projects, run `raid up` in the folder that holds your repos.
 
+A board started with `raid up` has no cards yet, so `raid ui` opens it with a **First quest** panel that walks steps 3 to 6 and ticks them off as you go.
+
 `quickstart` prints the path of the lead secret file, never the secret. Keep the path in an unexported shell variable:
 
 ```bash
