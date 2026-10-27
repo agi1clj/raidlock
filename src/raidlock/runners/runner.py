@@ -179,6 +179,15 @@ class Heartbeat(threading.Thread):
             self.join(timeout=30)
 
 
+def _reviewer_runtime(board, card):
+    owner = board.agents().get(card.get("owner") or "", {})
+    taken = owner.get("provider") or I.RUNTIME_PROVIDER.get(owner.get("runtime", ""), "")
+    for runtime in ("codex-cli", "claude-code", "gemini-cli"):
+        if I.RUNTIME_PROVIDER[runtime] != taken:
+            return RUNTIME_SHORT[runtime]
+    return "codex"
+
+
 def preflight(board, card, name):
     """Refuse early, before joining or cloning, when the card cannot be claimed for `name`."""
     cid, lane = card["id"], card["lane"]
@@ -186,7 +195,9 @@ def preflight(board, card, name):
         raise Precondition(
             f"{cid} is in {lane}; a worker cannot take it",
             card=cid,
-            hint=f"raidlock delegate {cid} --to <runtime> --as reviewer" if lane == "review" else "",
+            hint=f"raidlock delegate {cid} --to {_reviewer_runtime(board, card)} --as reviewer"
+            if lane == "review"
+            else "",
         )
     if card["owner"] and card["owner"] != name and lane != "todo":
         raise Denied(
