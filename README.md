@@ -1,15 +1,20 @@
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/brand/raidlock-lockup-dark.svg">
-  <img src="docs/assets/brand/raidlock-lockup.svg" alt="raidlock" width="227" height="42">
-</picture>
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/brand/raidlock-lockup-dark.svg">
+    <img src="docs/assets/brand/raidlock-lockup.svg" alt="raidlock" width="227" height="42">
+  </picture>
+</p>
 
-**raidlock stops parallel coding agents from overwriting each other's files, across Claude Code, Codex and Gemini, and won't accept their work until the tests pass and an agent from another provider signs off.**
+<p align="center"><b>raidlock stops parallel coding agents from overwriting each other's files, across Claude Code, Codex and Gemini, and won't accept their work until the tests pass and an agent from another provider signs off.</b></p>
+
+<p align="center">
+  <a href="https://github.com/agi1clj/raidlock/actions/workflows/ci.yml"><img src="https://github.com/agi1clj/raidlock/actions/workflows/ci.yml/badge.svg?branch=main" alt="CI"></a>
+  <a href="https://pypi.org/project/raidlock/"><img src="https://img.shields.io/pypi/v/raidlock" alt="PyPI"></a>
+  <a href="https://pypi.org/project/raidlock/"><img src="https://img.shields.io/pypi/pyversions/raidlock" alt="Python"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green" alt="License: MIT"></a>
+</p>
 
 <p align="center"><img src="docs/assets/demo.webp" alt="raidlock web UI tour" width="960"></p>
-
-[![CI](https://github.com/agi1clj/raidlock/actions/workflows/ci.yml/badge.svg)](https://github.com/agi1clj/raidlock/actions/workflows/ci.yml)
-[![PyPI](https://img.shields.io/pypi/v/raidlock)](https://pypi.org/project/raidlock/)
-[![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
 Run Claude Code, Codex, Gemini, shell scripts and people on one board. Each piece of work is a card. Claiming a card leases the exact paths it may touch, and hooks refuse edits anywhere else. One lead closes cards, and only after a signed verify receipt exists for the commit and, on a mixed-provider board, a reviewer from another provider has approved. You can follow who is doing what in the terminal or in a raid-themed web UI.
 
