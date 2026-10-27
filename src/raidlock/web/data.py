@@ -330,7 +330,14 @@ def needs_items(payload, rows):
             out.append({"kind": c["lane"], "card": c["id"], "title": c["title"], "reason": reason})
     for r in rows:
         if r["status"] == "stalled":
-            out.append({"kind": "stalled", "card": r["card"], "title": r["title"] or r["card"], "reason": f"{r['name']} went quiet"})
+            out.append(
+                {
+                    "kind": "stalled",
+                    "card": r["card"],
+                    "title": r["title"] or r["card"],
+                    "reason": f"{r['name']} went quiet",
+                }
+            )
     return out
 
 
