@@ -4,6 +4,7 @@ The check runs at most once a day, never from a hook, and is skipped in CI or wh
 
 import json
 import os
+import re
 import time
 import urllib.request
 
@@ -14,6 +15,7 @@ URL = "https://pypi.org/pypi/raidlock/json"
 TTL = 86400
 TIMEOUT = 2
 UPGRADE = "uv tool upgrade raidlock"
+VERSION_RE = re.compile(r"^\d+(\.\d+){0,3}$")
 
 
 def disabled(env=None):
@@ -23,6 +25,10 @@ def disabled(env=None):
 
 def _path():
     return os.path.join(registry.home(), "update-check.json")
+
+
+def valid(text):
+    return isinstance(text, str) and bool(VERSION_RE.match(text))
 
 
 def _version(text):
@@ -48,14 +54,20 @@ def refresh(force=False, persist=True):
     if disabled():
         return None
     data = cached()
-    if not force and time.time() - float(data.get("checked", 0) or 0) < TTL:
-        return data.get("latest")
+    try:
+        checked = float(data.get("checked", 0) or 0)
+    except (TypeError, ValueError):
+        checked = 0
+    if not force and time.time() - checked < TTL:
+        return data.get("latest") if valid(data.get("latest")) else None
     latest = None
     try:
         with urllib.request.urlopen(URL, timeout=TIMEOUT) as resp:
             latest = json.load(resp)["info"]["version"]
-    except (OSError, ValueError, KeyError):
+    except (OSError, ValueError, KeyError, TypeError):
         latest = data.get("latest")
+    if not valid(latest):
+        latest = None
     if not persist:
         return latest
     try:
@@ -71,7 +83,7 @@ def refresh(force=False, persist=True):
 
 def available(latest=None):
     latest = cached().get("latest") if latest is None else latest
-    if disabled() or not latest or _version(latest) <= _version(__version__):
+    if disabled() or not valid(latest) or _version(latest) <= _version(__version__):
         return None
     return {"current": __version__, "latest": latest, "upgrade": UPGRADE}
 
