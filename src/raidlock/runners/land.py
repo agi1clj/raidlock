@@ -1,5 +1,6 @@
 import json
 import os
+import re
 import shlex
 import subprocess
 
@@ -30,15 +31,51 @@ def landable_run(board, card_id):
     return None, None, None
 
 
-def _git(where, *args):
-    return subprocess.run(
-        [exe.find("git"), "-C", where, "--no-pager", *args],
-        capture_output=True,
-        text=True,
-        encoding="utf-8",
-        errors="replace",
-        check=False,
-    )
+def _git(where, *args, env=None):
+    return W.git_run(where, *args, env=env)
+
+
+def _apply(where, data, *flags):
+    proc = W.git_run(where, "apply", "--index", "--whitespace=nowarn", *flags, "-", binary=True, input=data)
+    out = proc.stdout.decode("utf-8", "surrogateescape")
+    return proc.returncode, out, proc.stderr.decode("utf-8", "replace").strip()
+
+
+def _targets(where, data):
+    """The paths git apply itself will touch, which can differ from what a crafted diff header suggests."""
+    code, out, err = _apply(where, data, "--numstat", "-z")
+    if code != 0:
+        return None, err
+    fields, found, i = out.split("\0"), set(), 0
+    while i < len(fields):
+        parts = fields[i].split("\t", 2)
+        if len(parts) == 3 and parts[2]:
+            found.add(parts[2])
+            i += 1
+        elif len(parts) == 3:
+            found.update(f for f in fields[i + 1 : i + 3] if f)
+            i += 3
+        else:
+            i += 1
+    return found, ""
+
+
+def _identity(where):
+    """The lead's author and committer, read from its own git setup; the commit itself runs without its config."""
+    env = {}
+    for role in ("AUTHOR", "COMMITTER"):
+        proc = subprocess.run(
+            [exe.find("git"), "-C", where, "var", f"GIT_{role}_IDENT"],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            check=False,
+        )
+        match = re.match(r"(.*?) <([^<>]*)> ", proc.stdout)
+        if proc.returncode == 0 and match:
+            env[f"GIT_{role}_NAME"], env[f"GIT_{role}_EMAIL"] = match.groups()
+    return env
 
 
 def _subject(card):
@@ -46,14 +83,20 @@ def _subject(card):
     return f"feat({card['id']}): {title}"[:100]
 
 
-def _check_paths(card, target, data):
-    paths = sorted(_parse(data.decode("utf-8", "surrogateescape"))[0])
+def _check_paths(card, target, data, where):
+    parsed = _parse(data.decode("utf-8", "surrogateescape"))[0]
+    real, err = _targets(where, data)
+    if real is None:
+        return sorted(parsed), [f"that git apply cannot read ({err[:300]})"]
+    paths = sorted(parsed | real)
     found = policy.check(paths, target["rels"], target["ci"], card.get("allow_protected", ()))
     outside = set(found["outside"])
     if card.get("lock_exclusions"):
         excluded = policy.target(target["workspace"], target["board_dir"], card["lock_exclusions"])["rels"]
         outside |= {p for p in paths if policy.contained(p, excluded, target["ci"])}
     problems = []
+    if real - parsed:
+        problems.append("whose diff headers disagree with git apply: " + ", ".join(sorted(real - parsed)[:20]))
     if outside:
         problems.append("outside the card's locks: " + ", ".join(sorted(outside)[:20]))
     if found["denied"]:
@@ -102,27 +145,32 @@ def land(board, caller, card_id, cwd=None, message=None, timeout=600):
     target.update(workspace=board.workspace, board_dir=board.dir)
     with open(patch, "rb") as f:
         data = f.read()
-    paths, problems = _check_paths(card, target, data)
+    paths, problems = _check_paths(card, target, data, where)
     if problems:
         raise Precondition(f"refusing to land {card_id}: changes " + "; ".join(problems), card=card_id)
-    checked = _git(where, "apply", "--check", "--index", "--whitespace=nowarn", patch)
-    if checked.returncode != 0:
+    code, _, err = _apply(where, data, "--check")
+    if code != 0:
         raise Precondition(
-            f"the patch from run {run} does not apply to {where}: {checked.stderr.strip()[:300]}",
+            f"the patch from run {run} does not apply to {where}: {err[:300]}",
             card=card_id,
         )
-    applied = _git(where, "apply", "--index", "--whitespace=nowarn", patch)
-    if applied.returncode != 0:
-        _git(where, "reset", "-q", "--hard", before)
-        raise Precondition(f"git apply failed: {applied.stderr.strip()[:300]}", card=card_id)
-    committed = _git(where, "commit", "-q", "-m", message or _subject(card))
-    if committed.returncode != 0:
-        _git(where, "reset", "-q", "--hard", before)
-        raise Precondition(
-            f"git commit failed, nothing was committed: {(committed.stderr or committed.stdout).strip()[:300]}",
-            card=card_id,
+    with board.lead_write(caller, f"land {card_id}"):
+        if board.card(card_id)["lane"] in ("done", "cancelled", "todo"):
+            raise Precondition(f"{card_id} left review or doing before the patch was applied", card=card_id)
+        code, _, err = _apply(where, data)
+        if code != 0:
+            _git(where, "reset", "-q", "--hard", before)
+            raise Precondition(f"git apply failed: {err[:300]}", card=card_id)
+        committed = _git(
+            where, *W.IDENT, "commit", "-q", "--no-verify", "-m", message or _subject(card), env=_identity(where)
         )
-    sha = W.head(where)
+        if committed.returncode != 0:
+            _git(where, "reset", "-q", "--hard", before)
+            raise Precondition(
+                f"git commit failed, nothing was committed: {(committed.stderr or committed.stdout).strip()[:300]}",
+                card=card_id,
+            )
+        sha = W.head(where)
     verify = None
     if card.get("verify_cmd"):
         try:
@@ -138,10 +186,17 @@ def land(board, caller, card_id, cwd=None, message=None, timeout=600):
     else:
         outcome = "no verify command on the card"
     note = f"landed run {run} as {sha[:12]}; {outcome}"
-    if board.card(card_id)["lane"] == "review":
-        board.note(card_id, caller, note)
-    else:
-        board.move(card_id, "review", caller, note=note)
+    try:
+        if board.card(card_id)["lane"] == "review":
+            board.note(card_id, caller, note)
+        else:
+            board.move(card_id, "review", caller, note=note)
+    except RaidlockError as exc:
+        raise Precondition(
+            f"committed {sha[:12]} in {where}, but the card was not updated: {exc.message}",
+            card=card_id,
+            commit=sha,
+        ) from exc
     if verify and not verify["passed"]:
         blocker = "verify failed; fix the work, commit, then " + lead_cmd(
             board, f"verify {card_id} --cwd {shlex.quote(where)}"

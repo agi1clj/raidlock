@@ -8,8 +8,9 @@ from portable import SH
 from runhelpers import git
 
 from raidlock import cli
-from raidlock.core.errors import IdentityError, Precondition
+from raidlock.core.errors import IdentityError, Precondition, StaleLead
 from raidlock.runners import isolation
+from raidlock.runners import land as land_module
 from raidlock.runners.land import land
 from raidlock.runners.runner import delegate
 
@@ -95,6 +96,38 @@ def test_patch_outside_the_locks_is_refused(ws, tmp_path):
     assert status(ws.repo) == ""
 
 
+def test_crafted_header_that_escapes_the_locks_is_refused(ws):
+    result = handed_back(ws)
+    with open(result["patch"], "w", encoding="utf-8") as f:
+        f.write("diff --git a/src b/src/z b/src b/src/z\nnew file mode 100644\nindex 0000000..e69de29\n")
+    before = head(ws.repo)
+    with pytest.raises(Precondition, match="disagree with git apply: src b/src/z"):
+        land(ws.board, ws.lead, "land", cwd=str(ws.repo))
+    assert head(ws.repo) == before
+    assert status(ws.repo) == ""
+
+
+def test_patch_swapped_after_the_check_is_not_applied(ws, tmp_path, monkeypatch):
+    result = handed_back(ws)
+    other = tmp_path / "other"
+    git(tmp_path, "clone", "-q", str(ws.repo), str(other))
+    (other / "README.md").write_text("swapped\n")
+    git(other, "add", "-A")
+    swapped = git(other, "diff", "--cached", "--binary")
+    real = land_module._check_paths
+
+    def swap(*args, **kwargs):
+        checked = real(*args, **kwargs)
+        with open(result["patch"], "w", encoding="utf-8") as f:
+            f.write(swapped)
+        return checked
+
+    monkeypatch.setattr(land_module, "_check_paths", swap)
+    land(ws.board, ws.lead, "land", cwd=str(ws.repo))
+    assert git(ws.repo, "show", "--name-only", "--format=", "HEAD").split() == ["src/land.txt"]
+    assert (ws.repo / "README.md").read_text() != "swapped\n"
+
+
 def test_apply_failure_leaves_no_commit(ws):
     handed_back(ws)
     (ws.repo / "src" / "land.txt").write_text("conflict")
@@ -110,13 +143,51 @@ def test_apply_failure_leaves_no_commit(ws):
     assert len(ws.board.card("land")["notes"]) == notes
 
 
-def test_commit_failure_rolls_back(ws):
+def test_commit_failure_rolls_back(ws, monkeypatch):
     handed_back(ws)
-    hook = ws.repo / ".git" / "hooks" / "pre-commit"
-    hook.write_text("#!/bin/sh\nexit 1\n")
-    os.chmod(hook, 0o700)
+    real = land_module._git
+
+    def failing(where, *args, **kwargs):
+        if "commit" in args:
+            return subprocess.CompletedProcess(args, 1, "", "refused")
+        return real(where, *args, **kwargs)
+
+    monkeypatch.setattr(land_module, "_git", failing)
     before = head(ws.repo)
     with pytest.raises(Precondition, match="nothing was committed"):
+        land(ws.board, ws.lead, "land", cwd=str(ws.repo))
+    assert head(ws.repo) == before
+    assert status(ws.repo) == ""
+
+
+def test_land_runs_no_repository_hooks(ws, tmp_path):
+    handed_back(ws)
+    marker = tmp_path / "hook-ran"
+    hooks = tmp_path / "hooks"
+    hooks.mkdir()
+    for name in ("pre-commit", "commit-msg", "post-commit", "post-index-change"):
+        hook = hooks / name
+        hook.write_text(f"#!/bin/sh\necho {name} >> {shlex.quote(str(marker))}\n")
+        os.chmod(hook, 0o700)
+    git(ws.repo, "config", "core.hooksPath", str(hooks))
+    before = head(ws.repo)
+    r = land(ws.board, ws.lead, "land", cwd=str(ws.repo))
+    assert r["commit"] == head(ws.repo) != before
+    assert not marker.exists()
+    assert git(ws.repo, "log", "-1", "--format=%an <%ae>").strip() == "t <t@t>"
+
+
+def test_lead_handover_before_apply_refuses_without_committing(ws, monkeypatch):
+    handed_back(ws)
+    real = land_module._check_paths
+
+    def handover(*args, **kwargs):
+        ws.board.lead_handover(ws.lead, "next-session")
+        return real(*args, **kwargs)
+
+    monkeypatch.setattr(land_module, "_check_paths", handover)
+    before = head(ws.repo)
+    with pytest.raises(StaleLead):
         land(ws.board, ws.lead, "land", cwd=str(ws.repo))
     assert head(ws.repo) == before
     assert status(ws.repo) == ""

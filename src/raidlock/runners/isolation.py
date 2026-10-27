@@ -197,6 +197,14 @@ def uv_paths(parent_env):
     return os.path.realpath(cache), [os.path.realpath(p) for p in readable]
 
 
+def verify_cache(parent_env):
+    """The uv cache verify may write: private to raidlock, never the user's real cache, which the lead runs from."""
+    home = parent_env.get("RAIDLOCK_HOME") or os.path.join(
+        parent_env.get("HOME") or os.path.expanduser("~"), ".raidlock"
+    )
+    return os.path.realpath(os.path.join(os.path.abspath(os.path.expanduser(home)), "verify", "uv-cache"))
+
+
 def failure_reason(code, kind):
     if not isinstance(code, int) or code == 0:
         return ""
@@ -213,7 +221,8 @@ def failure_reason(code, kind):
     if kind:
         return (
             f"verify terminated by {name} (exit {code}); likely sandbox denial or process crash; "
-            "for uv, allow UV_CACHE_DIR and Python install paths, or rerun with --unsafe-verify"
+            "for uv, warm UV_CACHE_DIR=<RAIDLOCK_HOME>/verify/uv-cache with uv sync, "
+            "or rerun with --unsafe-verify"
         )
     return f"verify terminated by {name} (exit {code}); inspect the command output and retry"
 
@@ -325,7 +334,9 @@ def run(cmd, cwd, parent_env, timeout, kind=None, agent="", deny_read=(), redact
         env = scrub_env(parent_env, home, agent)
         writable = []
         if kind == "sandbox-exec":
-            cache, uv_readable = uv_paths(parent_env)
+            _, uv_readable = uv_paths(parent_env)
+            cache = verify_cache(parent_env)
+            os.makedirs(cache, mode=0o700, exist_ok=True)
             env.update(UV_CACHE_DIR=cache, UV_PYTHON_INSTALL_DIR=uv_readable[0], UV_OFFLINE="1")
             writable.append(cache)
             readable = [*readable, *uv_readable]
