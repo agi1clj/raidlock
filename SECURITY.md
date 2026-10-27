@@ -57,7 +57,7 @@ Workers never merge, apply, push to protected branches, write tickets or wiki pa
 
 ## Supported host limitation
 
-The current lead-lease implementation supports Linux and macOS process anchors. It fails closed when a session process anchor cannot be established. Windows process-anchor verification (Toolhelp) is not verified; Native Windows is not supported; CI runs the test suite there as a non-blocking job, and known failures remain. On Windows, use WSL2.
+The current lead-lease implementation supports Linux and macOS process anchors. It fails closed when a session process anchor cannot be established. Windows process-anchor verification (Toolhelp) is not verified; Native Windows is not supported and is not tested in CI. On Windows, use WSL2.
 
 Lead secrets must be presented only by the parent lead CLI, never inherited by a worker. Worker launchers scrub lead material; plugin hooks authenticate host bindings before delivering urgent messages or checking leases. Extensions that perform lead writes must use `with board.lead_write(caller, action):` so validation and mutation share one lock interval.
 

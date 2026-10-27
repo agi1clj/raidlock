@@ -17,7 +17,7 @@ Method: [`scripts/overhead_ab.sh`](../../scripts/overhead_ab.sh) sends the same 
 bash scripts/overhead_ab.sh --yes          # optional second argument: model, default haiku
 ```
 
-The numbers depend on the Claude Code version and its listing format. CI instead runs the offline harness below on every push and prints its estimate (128 tokens for the plugin, 752 with the MCP `tools/list` response, at four characters per token) in the job summary of the `idle overhead` job. The offline estimate is about a third below the measured plugin count: it is a characters/4 heuristic rather than Claude's tokenizer, and it leaves out whatever framing Claude Code adds around listings. Quote the measured number; use the estimate to catch regressions.
+The numbers depend on the Claude Code version and its listing format. CI instead runs the offline harness below on every push and prints its estimate (128 tokens for the plugin, 752 with the MCP `tools/list` response, at four characters per token) in the job summary of the `lint, types, overhead` job. The offline estimate is about a third below the measured plugin count: it is a characters/4 heuristic rather than Claude's tokenizer, and it leaves out whatever framing Claude Code adds around listings. Quote the measured number; use the estimate to catch regressions.
 
 ## Offline harness
 
@@ -36,7 +36,7 @@ The script writes JSON to stdout and a Markdown table to stderr. `raid bench` di
 {"idle.estimated_tokens": 154, "hook.pre-write.allow.bytes": 0, "brief.cap_ratio": 1}
 ```
 
-The `idle overhead` CI job prints the summary line and the full table to the job summary. The CI test job collects `tests/bench/test_overhead.py`, including its checked-in budget test. Run it locally with:
+The `lint, types, overhead` CI job prints the summary line and the full table to the job summary. The CI test job collects `tests/bench/test_overhead.py`, including its checked-in budget test. Run it locally with:
 
 ```bash
 python -m pytest -q -p no:cacheprovider -o addopts= tests/bench

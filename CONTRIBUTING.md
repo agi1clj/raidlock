@@ -49,7 +49,7 @@ uv run --locked playwright install chromium
 uv run --locked pytest tests/web
 ```
 
-Tests must pass on Linux and macOS with Python 3.11 to 3.15. The recovered lead lease requires process-anchor verification, which reads Toolhelp on Windows but is not verified there. Windows support is a release limitation; CI also runs on Windows with Python 3.11 to 3.15 to track compatibility.
+Tests must pass on Linux and macOS with Python 3.11 and newer. The recovered lead lease requires process-anchor verification, which reads Toolhelp on Windows but is not verified there, so native Windows is a release limitation; use WSL2.
 
 Every bug fix comes with a test that fails without the fix. Concurrency and path-canonicalization code also gets property tests with Hypothesis.
 
@@ -128,7 +128,7 @@ See [the release guide](docs/RELEASING.md) for publication gates, token setup, v
 
 ## Python checks
 
-CI tests Python 3.11 through 3.15 on Linux, macOS and Windows.
+CI tests the oldest and newest supported Python (3.11 and 3.14) on Linux and macOS, runs the Playwright UI suite, ruff, pyright and actionlint, and builds and scans the container image.
 Run the same static checks locally:
 
 ```bash

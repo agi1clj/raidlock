@@ -42,15 +42,11 @@ jobs:
     name: test (${{ matrix.os }}, py${{ matrix.python }})
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30
-    continue-on-error: ${{ matrix.os == 'windows-latest' }}
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest]
-        python: ["3.11", "3.12", "3.13", "3.14", "3.15"]
-        include:
-          - os: windows-latest
-            python: "3.11"
+        python: ["3.11", "3.14"]
     defaults:
       run:
         shell: bash
@@ -60,6 +56,7 @@ jobs:
           persist-credentials: false
       - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e
         with:
+          enable-cache: true
           python-version: ${{ matrix.python }}
       - name: Run tests
         run: uv run --locked pytest --ignore=tests/web
@@ -74,7 +71,12 @@ jobs:
           persist-credentials: false
       - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e
         with:
+          enable-cache: true
           python-version: "3.13"
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('uv.lock') }}
       - name: Install browser
         run: |
           uv sync --locked --extra ui-test
@@ -90,7 +92,8 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
 
-  lint:
+  checks:
+    name: lint, types, overhead
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -99,42 +102,22 @@ jobs:
           persist-credentials: false
       - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e
         with:
+          enable-cache: true
           python-version: "3.11"
       - name: Ruff lint
         run: uv run --locked --with ruff==0.15.14 ruff check
       - name: Ruff format
         if: always()
         run: uv run --locked --with ruff==0.15.14 ruff format --check
-
-  overhead:
-    name: idle overhead
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-        with:
-          persist-credentials: false
-      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e
-        with:
-          python-version: "3.11"
+      - name: Pyright
+        if: always()
+        run: uv run --locked --with pyright==1.1.408 pyright src/raidlock
       - name: Measure idle overhead
+        if: always()
         run: |
           uv run --locked python scripts/bench_overhead.py --runs 5 --tokenizer estimate > overhead.json 2> overhead.md
           head -n 1 overhead.md
           cat overhead.md >> "$GITHUB_STEP_SUMMARY"
-
-  types:
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-        with:
-          persist-credentials: false
-      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e
-        with:
-          python-version: "3.11"
-      - name: Pyright
-        run: uv run --locked --with pyright==1.1.408 pyright src/raidlock
 
   docker:
     name: docker image
