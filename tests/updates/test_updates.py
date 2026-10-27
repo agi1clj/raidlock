@@ -79,3 +79,19 @@ def test_read_only_refresh_leaves_home_untouched(home, monkeypatch):
     monkeypatch.setattr(updates.urllib.request, "urlopen", lambda *a, **k: Resp())
     assert updates.refresh(persist=False) == "99.0.0"
     assert not (home / "update-check.json").exists()
+
+
+def test_corrupt_cache_does_not_crash(home, monkeypatch):
+    (home / "update-check.json").write_text('{"checked": "x", "latest": "99.0.0"}')
+
+    def offline(*a, **k):
+        raise OSError("offline")
+
+    monkeypatch.setattr(updates.urllib.request, "urlopen", offline)
+    assert updates.refresh() == "99.0.0"
+
+
+def test_untrusted_version_strings_are_ignored(home):
+    for bad in ("0.2.0rc1", "../../evil/repo", "1.0.0<script>", "", None, 3):
+        write(home, bad)
+        assert updates.available() is None and updates.notice() == ""
