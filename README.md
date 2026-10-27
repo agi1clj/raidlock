@@ -140,6 +140,10 @@ Gemini runs only through `raid delegate --to gemini`, and that adapter is tested
 
 If you are an agent, start with [skills/raidlock/SKILL.md](skills/raidlock/SKILL.md).
 
+## Why "raid"
+
+Running several agents feels like leading a raid in an MMO such as World of Warcraft: a raid leader assigns the party, each member holds a role, big quests become bosses, and nobody loots until the boss is down. raidlock borrows that vocabulary for the web UI (guilds, quests, raid frames, boss board, feats). The CLI and the docs use plain terms. raidlock is not affiliated with or endorsed by Blizzard Entertainment.
+
 ## Security
 
 raidlock keeps cooperating agents out of each other's way. It is not a sandbox. Tokens, the lead secret and the verify signing key are files under your user account, readable by any process running as you. `raid verify` runs only under bubblewrap on Linux or `sandbox-exec` on macOS. The UI listens on `127.0.0.1` and answers `GET` only. Threat model and reporting: [SECURITY.md](SECURITY.md). Limits: [Security and limits](docs/guides/overview.md#security-and-limits).
