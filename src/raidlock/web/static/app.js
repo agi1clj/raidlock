@@ -1082,7 +1082,12 @@ function renderBell() {
     $("soundMenu").before(menu);
   }
   const all = state.view === "*";
-  setKids(menu.querySelector("summary"), ["\u{1F514}", unseen ? h("span", {class: "badge bell-count", text: String(unseen)}) : null], JSON.stringify([unseen]));
+  const bell = menu.querySelector("summary");
+  if (state.bellPrev !== undefined && unseen > state.bellPrev && motion()) { bell.classList.remove("ring"); void bell.offsetWidth; bell.classList.add("ring"); }
+  state.bellPrev = unseen;
+  if (state.bellKnown) for (const x of items) if (!state.bellKnown.has(x.key) && !seen.has(x.key)) notify(`${x.guild}: ${x.title}`, x.reason);
+  state.bellKnown = new Set(items.map(x => x.key));
+  setKids(bell, ["\u{1F514}", unseen ? h("span", {class: "badge bell-count", text: String(unseen)}) : null], JSON.stringify([unseen]));
   const body = menu.querySelector(".bell-body");
   const head = h("b", {text: all ? w("Needs you, all workspaces", "The realm needs you") : w(`Needs you in ${state.view}`, `${state.view} needs you`)});
   const rows = items.length ? items.map(x => h("a", {class: "bell-row" + (seen.has(x.key) ? "" : " new"), href: href(x.guild), "data-nav": x.guild},
@@ -1821,6 +1826,7 @@ function select(id) {
   state.view = id; state.board = null; state.cards = {}; state.first = true; state.statusPrev = {}; state.open.clear(); state.msgPrev = null; state.repo = ""; state.q = ""; if ($("q")) $("q").value = ""; statusFilter = ""; workTab = "todo";
   state.details = {}; state.laneLimit = {}; state.todoAll = false; state.needsAll = false; state.doneLimit = 5; state.unknown = ""; state.logFilter = "*"; state.subData = {}; state.sub = subRoute();
   state.fxPrev = null; state.fxPulse = new Map(); state.fxView = {};
+  state.bellPrev = undefined; state.bellKnown = undefined;
   if ($("bellMenu")) renderBell();
   for (const k of Object.keys(state.etag)) if (!k.startsWith("o")) delete state.etag[k];
   for (const el of document.querySelectorAll("[data-sig]")) el.dataset.sig = "";

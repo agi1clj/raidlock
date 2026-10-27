@@ -209,6 +209,12 @@ The score starts at 50. The verify pass rate moves it by up to 30 points either 
 
 **Export snapshot** on a board downloads the same HTML file as `raid snapshot`.
 
+## Notifications
+
+The bell in the header lists what needs the lead: cards ready to close, patches to apply, duels to judge, reviews, blocked quests and agents that went quiet. On the realm page it covers every guild and tags each item with its guild; on a guild page it covers that guild only. The count shows items you have not seen yet and clears when you open the bell; the bell rings when a new item arrives. With **Desktop alerts** on in Settings, each new item also raises a browser notification while the tab is in the background.
+
+When a newer raidlock release exists, an **Update** button appears next to the bell with the upgrade commands to copy.
+
 ## Terminal board
 
 ```bash
