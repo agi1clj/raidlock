@@ -7,6 +7,7 @@ import pytest
 from runhelpers import fake, git
 
 from raidlock import approvals, cli
+from raidlock.approvals import reviewer_runtime
 from raidlock.core.hints import lead_cmd
 from raidlock.lore.approval import propose
 from raidlock.runners import isolation
@@ -47,7 +48,8 @@ def test_review_close_apply_lifecycle(ws):
     items = kinds(ws.board)
     assert items["review:api"]["kind"] == "review"
     assert "raid review api --verdict approve   # as a reviewer agent" in items["review:api"]["commands"]
-    assert lead(ws.board, "delegate api --to <runtime> --as reviewer") in items["review:api"]["commands"]
+    runtime = reviewer_runtime(ws.board, ws.board.card("api"))
+    assert lead(ws.board, f"delegate api --to {runtime} --as reviewer") in items["review:api"]["commands"]
     joined = ws.board.join(ws.lead, agent="rev-one", role="reviewer", provider="openai")
     ws.board.review("api", ws.board.caller(agent="rev-one", token=joined["token"]), "approve")
     items = kinds(ws.board)
