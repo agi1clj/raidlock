@@ -22,14 +22,24 @@ Run Claude Code, Codex, Gemini, shell scripts and people on one board. Each piec
 
 ## Why
 
-Parallel agents fail in predictable ways. Two of them edit the same file. One reports "tests pass" and nobody checks. The lead loses track of who is on what, and a stalled session keeps writing after someone else took over. raidlock is a small local tool that handles each of these:
+Run two coding agents on one repo and the same things go wrong: they overwrite each other's files, one says "tests pass" and nobody checks, and a stalled session keeps writing after someone else took over. raidlock prevents each of these:
 
-- Path leases are atomic, keyed by the repo's git remote, and checked across every project on your machine.
-- A fence number changes with every new owner, so a replaced worker's writes are refused.
-- `raid done` is lead-only and refuses a card until its verify command has passed in a sandbox on the exact commit.
-- Once a second provider joins, `done` also needs an approval from a reviewer on another provider.
-- Board-first by default: the hooks deny edits outside a card you hold, including the lead's, and subagent launches whose prompt names no open card.
-- It runs on your machine with no runtime dependencies. The Claude Code plugin adds about 190 tokens per session ([benchmark](docs/guides/benchmark.md)).
+- **No overwrites.** A card leases the exact paths an agent may change; the hooks refuse edits anywhere else, across every project and clone on your machine.
+- **No stale writers.** When a card changes hands, the old owner's writes are refused.
+- **No unproven "done".** Only the lead closes a card, and only after its check passed in a sandbox on that exact commit and, with mixed providers, an agent from another provider approved it.
+- **No off-board work.** Every edit and every subagent needs a card first, so the board always shows who is doing what.
+- **Local and light.** No server, no runtime dependencies; the Claude Code plugin adds about 190 tokens per session ([benchmark](docs/guides/benchmark.md)).
+
+### How it compares
+
+| Tool | Great at | What raidlock adds |
+|---|---|---|
+| claude-squad, ccmanager, vibe-kanban | running many agent sessions | raidlock doesn't run sessions; it coordinates whichever ones you run, and works alongside these |
+| Claude Code agent teams | native Claude task lists and claims | enforcement on code paths, not just task claims, and it spans Claude, Codex and Gemini |
+| beads | a dependency-aware issue graph for agents | path leases enforced at edit time, plus a verify-and-review gate |
+| mcp_agent_mail | rich agent messaging and file reservations | lead-only done with signed receipts and cross-provider review |
+
+More detail: [Overview](docs/guides/overview.md#compared-with-alternatives).
 
 ## Install with your agent
 
@@ -124,11 +134,12 @@ Use a workstream for a session you watch, and `raid delegate` for unattended or 
 | Path leases with expiry and fencing, across clones, worktrees and workspaces | [Concepts](docs/guides/concepts.md) |
 | Board-first hooks, git pre-commit and pre-push guards, runner diff | [Hooks](docs/guides/hooks.md) |
 | Lead-only done, signed verify receipts, cross-provider review | [Verification](docs/guides/verification.md) |
-| `raid delegate`, `raid next` routing on plan headroom, `raid duel`, `raid resume`, opt-in `raid resurrect` | [Orchestration](docs/guides/orchestration.md) |
+| `raid delegate` and `raid land` (apply, verify and hand back a delegated patch in one command), `raid next` routing on plan headroom, `raid duel`, `raid resume`, opt-in `raid resurrect` | [Orchestration](docs/guides/orchestration.md) |
 | Import a checklist or a spec tool's `tasks.md`, lock suggestions, merge-conflict foresight, a lessons vault | [Planning](docs/guides/planning.md) |
 | Pull requests from a verified commit; merged PRs close cards through the gates | [Pull requests](docs/guides/pr.md) |
 | Spend per card, model, agent and day; delegation budgets | [Operations](docs/guides/operations.md#delegation-budgets) |
-| Live web UI on `127.0.0.1`: Needs you first, quest log, chatter, cost, dependency graph, lease map, replay | [Web UI](docs/guides/ui.md) |
+| Live web UI on `127.0.0.1`: Needs you first, quest log, chatter, cost, dependency graph, lease map, replay, a first-run tour | [Web UI](docs/guides/ui.md) |
+| Notification bell across every project (rings, desktop alerts) and an in-app notice when a new release is out | [Web UI](docs/guides/ui.md#notifications), [Upgrade](docs/guides/install.md#upgrade) |
 | CLI with `--json` and stable exit codes; an MCP server that never acts as lead | [Commands](docs/guides/commands.md), [MCP](docs/guides/mcp.md) |
 | Optional hardened container image for `raid ui`, `raid mcp` and sandboxed verify | [Docker](docs/guides/docker.md) |
 
