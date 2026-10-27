@@ -48,9 +48,18 @@ Tell the user to start a new Claude Code session: the hooks load at session star
 
 Ask the user which folder holds their repos, then run `raid up` there. To try raidlock first, run `raid quickstart --demo` in an empty folder instead. Both print the path of the lead secret file; remember the path, never the contents.
 
-## 6. Explain the board-first rule
+## 6. Confirm board-first enforcement and follow it
 
-Tell the user, in two sentences: every piece of work is a card on the board first; the hooks deny a lead edit inside a git repo without a held card, and a subagent launch whose prompt does not contain `card <id>` for an open card. Either rule turns off with `raid --lead-secret FILE config set require_card_for_lead_edits off` or `raid --lead-secret FILE config set board_first_subagents off`.
+Board-first rules are on by default. Confirm, in the board folder:
+
+```bash
+raid config get require_card_for_lead_edits   # expect true
+raid config get board_first_subagents         # expect true
+```
+
+Explain them to the user in two sentences: every piece of work is a card on the board first; the hooks deny a lead edit inside a git repo without a held card, and a subagent launch whose prompt does not contain `card <id>` for an open card. Only the user can turn a rule off (`raid --lead-secret FILE config set <key> off`); do not do it yourself.
+
+From now on, work board-first yourself: create a card with `raid --lead-secret FILE new "<title>" --locks <repo>/<path>`, claim it before editing, put `card <id>` in every subagent prompt, and close the card with evidence when the work is done.
 
 ## 7. Finish
 

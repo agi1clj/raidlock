@@ -27,6 +27,17 @@ To try everything on a throwaway repo first, follow the [playground](../../examp
 
 An optional hardened container image runs `raid ui`, `raid mcp` and sandboxed `raid verify`, including on Windows through Docker Desktop; the CLI and hooks still install on the host. See [Docker image](docker.md).
 
+## Upgrade
+
+`raid doctor`, `raid up` and `raid ui` check PyPI at most once a day and say when a newer release exists; the web UI shows an "Update" button in the header. Upgrade with:
+
+```bash
+uv tool upgrade raidlock
+claude plugin marketplace update raidlock && claude plugin update raidlock@raidlock
+```
+
+Then start a new Claude Code session so the new hooks load. The check is one HTTPS request to pypi.org, cached in `~/.raidlock/update-check.json`, with a 2-second timeout; hooks never make it. Set `RAIDLOCK_NO_UPDATE_CHECK=1` to turn it off; it is skipped when `CI` is set.
+
 ## Claude Code
 
 Inside Claude Code, install the plugin:

@@ -849,3 +849,7 @@ body[data-tab=chatter] #chatter>summary::-webkit-details-marker{display:none}
 #hudLevel .level .xp{width:min(220px,18vw);height:16px}
 #hudLevel{position:relative}
 #hudLevel .fx-levelup{justify-content:center;padding-left:0}
+.update-chip{border-color:var(--accent);color:var(--accent);font-weight:600;white-space:nowrap}
+@media(max-width:767px){.update-chip .v{display:none}}
+@media(max-width:767px){header .hud{flex-wrap:wrap;justify-content:flex-end;row-gap:6px}}
+.upd-body{min-width:320px}.upd-row{display:flex;flex-direction:column;gap:4px}.upd-row code{font-size:12px;overflow-wrap:anywhere;padding:6px 8px;border:1px solid var(--edge);border-radius:6px}.upd-row .tog{align-self:flex-start}

@@ -7,7 +7,7 @@ import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
 
-from raidlock import party
+from raidlock import party, updates
 from raidlock.core import Board, RaidlockError, clock, db, redact, registry
 from raidlock.core import models as core_models
 from raidlock.core.db import Index
@@ -608,6 +608,7 @@ class Catalog:
             "scorecard": scorecard(srows, names),
             "model_names": names,
             "limits": self.provider_limits(),
+            "update": updates.available(),
             "model_reputation": reputations,
         }
 

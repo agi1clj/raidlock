@@ -96,6 +96,7 @@ ignore = ["S603"]
 "tests/**/*.py" = ["S101", "S104", "S105", "S106", "S108", "S311", "S603", "S607"]
 "tests/**/conftest.py" = ["E402"]
 "src/raidlock/web/cli.py" = ["S104"]
+"src/raidlock/updates.py" = ["S310"]
 
 [tool.pyright]
 include = ["src/raidlock"]
