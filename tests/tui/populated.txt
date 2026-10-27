@@ -1,0 +1,26 @@
+Raidlock | demo | Spend $1.2500
+
+TODO (1)
+  ready | Ready | - | lock -
+
+DOING (2)
+  stalled | A task xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx... | stalled | lock expired
+  worker | A task xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx... | worker | lock 43:00
+
+REVIEW (1)
+  waiter | A task xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx... | waiter | lock 58:00
+
+BLOCKED (1)
+  blocked | A task xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx... | blocked | lock 58:00
+
+DONE (1)
+  finished | Finished | - | lock -
+
+AGENTS (5)
+  blocked | Blocked | [test-model] | blocked
+  lead | Idle | [unknown] | -
+  stalled | Stalled | [test-model] | stalled
+  waiter | Waiting | [test-model] | waiter
+  worker | Working | [test-model] | worker
+
+q / Ctrl-C to exit | countdowns sampled on board changes

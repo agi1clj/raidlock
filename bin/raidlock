@@ -1,0 +1,52 @@
+#!/bin/sh
+ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+HERE=$(CDPATH= cd -P -- "$ROOT/bin" && pwd)
+
+usable() {
+  [ -n "$1" ] && "$1" -I -c 'import sys; sys.exit(sys.version_info < (3, 11))' >/dev/null 2>&1
+}
+
+shebang() {
+  line=$(head -n 1 "$1" 2>/dev/null) || return 1
+  case "$line" in
+    '#!'*) ;;
+    *) return 1 ;;
+  esac
+  set -- ${line#??}
+  case "$1" in
+    */env) command -v "$2" 2>/dev/null ;;
+    *) printf '%s\n' "$1" ;;
+  esac
+}
+
+pick() {
+  if [ -n "${RAIDLOCK_PYTHON:-}" ]; then
+    printf '%s\n' "$RAIDLOCK_PYTHON"
+    return 0
+  fi
+  for name in raidlock raid; do
+    tool=$(command -v "$name" 2>/dev/null) || continue
+    dir=$(CDPATH= cd -P -- "$(dirname -- "$tool")" 2>/dev/null && pwd) || continue
+    [ "$dir" = "$HERE" ] && continue
+    py=$(shebang "$tool") || continue
+    if usable "$py"; then
+      printf '%s\n' "$py"
+      return 0
+    fi
+  done
+  for name in python3.15 python3.14 python3.13 python3.12 python3.11 python3; do
+    py=$(command -v "$name" 2>/dev/null) || continue
+    if usable "$py"; then
+      printf '%s\n' "$py"
+      return 0
+    fi
+  done
+  command -v python3 2>/dev/null
+}
+
+PY=$(pick)
+if [ -z "$PY" ]; then
+  echo "raidlock needs Python 3.11 or newer and found no python3 on PATH. Install raidlock with \`uv tool install raidlock\` or \`pipx install raidlock\`, or set RAIDLOCK_PYTHON." >&2
+  exit 1
+fi
+exec "$PY" -I -c 'import sys; sys.path.insert(0, sys.argv.pop(1)); from raidlock.cli import main; sys.exit(main())' "$ROOT/src" "$@"

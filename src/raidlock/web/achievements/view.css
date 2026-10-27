@@ -1,0 +1,19 @@
+.achs{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,260px),1fr));gap:10px}
+.ach{display:flex;gap:10px;align-items:flex-start;background:var(--panel);border:1px solid var(--edge);border-radius:12px;padding:10px;min-width:0}
+.ach.earned{border-color:var(--accent2)}
+.ach-body{display:flex;flex-direction:column;gap:3px;min-width:0;font-size:14px;overflow-wrap:anywhere}
+.ach-body b{font-size:14px;color:var(--accent)}
+.ach-body small{color:var(--muted)}
+.ach-art{flex:none}
+.ach-art .ring{fill:var(--pill);stroke:var(--edge);stroke-width:2}
+.ach-art .fillc{fill:var(--muted)}
+.ach-art .strokec{stroke:var(--muted);stroke-width:2.5;fill:none;stroke-linecap:round}
+.ach-art .cut{stroke:var(--pill);stroke-width:3;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.ach.earned .ach-art .ring{stroke:var(--accent2)}
+.ach.earned .ach-art .fillc{fill:var(--accent)}
+.ach.earned .ach-art .strokec{stroke:var(--accent)}
+.ach.locked .ach-body b{color:var(--muted)}
+.ach-meter{height:8px;border-radius:4px;background:var(--pill);border:1px solid var(--edge);overflow:hidden}
+.ach-meter i{display:block;height:100%;background:var(--accent)}
+
+.titles{margin:0 0 14px}.titles h3{margin:0 0 6px;font-size:15px;color:var(--accent)}.titles ul{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:6px 14px}.titles li{font-size:14px}.titles b{color:var(--ink)}

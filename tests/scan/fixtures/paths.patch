@@ -1,0 +1,10 @@
+diff --git a/.env b/config.txt
+similarity index 100%
+rename from .env
+rename to config.txt
+diff --git a/.github/workflows/ci.yml b/.github/workflows/ci.yml
+new file mode 100644
+--- /dev/null
++++ b/.github/workflows/ci.yml
+@@ -0,0 +1 @@
++name: test

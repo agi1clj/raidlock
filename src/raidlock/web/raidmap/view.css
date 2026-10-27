@@ -1,0 +1,15 @@
+.view-head{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:baseline}
+.view-head p{margin:0;flex:1 1 220px}
+.zones{display:flex;flex-direction:column;gap:12px}
+.repo-zone{background:var(--panel);border:1px solid var(--edge);border-radius:14px;padding:8px 10px 10px;min-width:0}
+.repo-zone h3{margin:0 0 8px;font-size:14px;color:var(--accent);overflow-wrap:anywhere}
+.tiles{display:flex;flex-wrap:wrap;gap:6px}
+.tile{flex:var(--w,1) 1 9rem;min-width:0;min-height:64px;display:flex;flex-direction:column;gap:3px;padding:6px 8px;border-radius:8px;border:1px solid var(--edge);border-left:6px solid var(--agc,var(--edge));background:color-mix(in srgb,var(--agc,var(--card2)) 22%,var(--card2));font-size:14px;overflow-wrap:anywhere}
+.tile.free{background:var(--card2);border-left-color:var(--edge);color:var(--muted)}
+.tile .p{color:var(--ink);font-size:14px}
+.tile .who{color:var(--muted)}
+.tile .lane-tag{align-self:flex-start;font-size:12px;border:1px solid var(--edge);border-radius:6px;padding:0 6px}
+.tile .flag{align-self:flex-start;font-size:12px;color:var(--blocked);font-weight:bold}
+.tile.contested{border-color:var(--blocked);background-image:repeating-linear-gradient(135deg,transparent 0 8px,color-mix(in srgb,var(--blocked) 18%,transparent) 8px 12px)}
+#viewPane .sw.free-sw{background:var(--card2);border:1px solid var(--edge)}
+#viewPane .sw.hatch{background:repeating-linear-gradient(135deg,var(--card2) 0 3px,var(--blocked) 3px 5px)}

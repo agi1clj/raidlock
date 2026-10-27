@@ -1,0 +1,112 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "raidlock"
+version = "0.1.0"
+description = "Local-first lease-and-review board for coding agents from any provider"
+readme = "README.md"
+requires-python = ">=3.11"
+license = "MIT"
+authors = [{ name = "agi1clj" }]
+keywords = ["agents", "coordination", "leases", "claude-code", "codex", "gemini"]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+  "Programming Language :: Python :: 3.15",
+  "Operating System :: POSIX :: Linux",
+  "Operating System :: MacOS :: MacOS X",
+  "Environment :: Console",
+  "Topic :: Software Development",
+]
+dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/agi1clj/raidlock"
+Documentation = "https://github.com/agi1clj/raidlock/tree/main/docs/guides"
+Repository = "https://github.com/agi1clj/raidlock"
+Issues = "https://github.com/agi1clj/raidlock/issues"
+Changelog = "https://github.com/agi1clj/raidlock/blob/main/CHANGELOG.md"
+
+[project.optional-dependencies]
+test = ["pytest>=8", "hypothesis>=6"]
+ui-test = ["pytest>=8", "pytest-playwright>=0.5"]
+
+[dependency-groups]
+dev = ["pytest>=8", "hypothesis>=6"]
+
+[project.scripts]
+raidlock = "raidlock.cli:main"
+raid = "raidlock.cli:main"
+
+[project.entry-points."raidlock.commands"]
+notify = "raidlock.notify:register_cli"
+snapshot = "raidlock.snapshot:register_cli"
+reputation = "raidlock.reputation:register_cli"
+tui = "raidlock.tui:register_cli"
+recipes = "raidlock.recipes:register_cli"
+guard = "raidlock.guard:register_cli"
+mcp = "raidlock.mcp:register_cli"
+delegate = "raidlock.runners.cli:register_cli"
+ui = "raidlock.web.cli:register_cli"
+suggest-locks = "raidlock.infer:register_cli"
+foresight = "raidlock.foresight:register_cli"
+limits = "raidlock.limits:register_cli"
+lore = "raidlock.lore.cli:register_cli"
+scan = "raidlock.scan:register_cli"
+budget = "raidlock.budgets:register_cli"
+pr = "raidlock.pr:register_cli"
+pr-sync = "raidlock.prsync:register_cli"
+bench = "raidlock.bench:register_cli"
+next = "raidlock.routing:register_cli"
+resume = "raidlock.resume:register_cli"
+duel = "raidlock.duel:register_cli"
+resurrect = "raidlock.resurrect:register_cli"
+approvals = "raidlock.approvals:register_cli"
+map = "raidlock.web.raidmap:register_cli"
+replay = "raidlock.web.replay:register_cli"
+graph = "raidlock.web.graph:register_cli"
+frames = "raidlock.frames:register_cli"
+achievements = "raidlock.achievements:register_cli"
+treasury = "raidlock.treasury:register_cli"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/raidlock"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+pythonpath = ["src"]
+markers = ["slow: scale benchmarks; run with RAIDLOCK_SLOW=1 or -m slow (nightly CI)"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM", "S"]
+ignore = ["S603"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = ["S101", "S104", "S105", "S106", "S108", "S311", "S603", "S607"]
+"tests/**/conftest.py" = ["E402"]
+"src/raidlock/web/cli.py" = ["S104"]
+
+[tool.pyright]
+include = ["src/raidlock"]
+pythonVersion = "3.11"
+typeCheckingMode = "basic"
+reportArgumentType = "warning"
+reportAttributeAccessIssue = "warning"
+reportCallIssue = "warning"
+reportGeneralTypeIssues = "warning"
+reportIndexIssue = "warning"
+reportOperatorIssue = "warning"
+reportOptionalIterable = "warning"
+reportOptionalMemberAccess = "warning"
+reportOptionalSubscript = "warning"

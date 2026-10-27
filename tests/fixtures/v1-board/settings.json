@@ -1,0 +1,7 @@
+{
+  "ttl": 17,
+  "require_review": 2,
+  "require_verify": false,
+  "brief_max_tokens": 777,
+  "old_dashboard": "compact"
+}

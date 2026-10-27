@@ -1,0 +1,74 @@
+title = "Raidlock secret scanning"
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Dummy credentials in tests/core/test_transcript.py"
+condition = "AND"
+regexTarget = "secret"
+paths = ['''^tests/core/test_transcript\.py$''']
+regexes = ['''^(?:AKIAABCDEFGHIJKLMNOP|sk\-ant\-api03\-abcdefghijklmnopqrstuvwxyz|ghp_abcdefghijklmnopqrstuvwxyz0123456789|xoxb\-1234567890\-abcdefghij|eyJhbGciOiJIUzI1NiJ9\.eyJzdWIiOiIxMjM0NTY3ODkwIn0\.abcdefghijklmnop|\-\-\-\-\-BEGIN\ RSA\ PRIVATE\ KEY\-\-\-\-\-|hunter2xyz|abcd1234|supersecretvalue|sk\-proj\-abcdefghijklmnopqrstuvwx)$''']
+
+[[allowlists]]
+description = "Dummy credentials in tests/core/test_model.py"
+condition = "AND"
+regexTarget = "secret"
+paths = ['''^tests/core/test_model\.py$''']
+regexes = ['''^(?:abcd1234secret)$''']
+
+[[allowlists]]
+description = "Dummy credentials in tests/scan/fixtures/secrets.patch"
+condition = "AND"
+regexTarget = "secret"
+paths = ['''^tests/scan/fixtures/secrets\.patch$''']
+regexes = ['''^(?:AKIAABCDEFGHIJKLMNOP|ghp_abcdefghijklmnopqrstuvwxyz0123456789|sk\-proj\-abcdefghijklmnopqrstuvwxyz0123456789|sk\-ant\-api03\-abcdefghijklmnopqrstuvwxyz0123456789|\-\-\-\-\-BEGIN\ RSA\ PRIVATE\ KEY\-\-\-\-\-|aZ9bY8cX7dW6eV5fU4gT3hS2iR1jQ0)$''']
+
+[[allowlists]]
+description = "Dummy credentials in tests/lore/test_lore_capture.py"
+condition = "AND"
+regexTarget = "secret"
+paths = ['''^tests/lore/test_lore_capture\.py$''']
+regexes = ['''^(?:AKIAABCDEFGHIJKLMNOP)$''']
+
+[[allowlists]]
+description = "Dummy credentials in tests/runners/test_recovery_integration.py"
+condition = "AND"
+regexTarget = "secret"
+paths = ['''^tests/runners/test_recovery_integration\.py$''']
+regexes = ['''^(?:AKIAABCDEFGHIJKLMNOP)$''']
+
+[[allowlists]]
+description = "Dummy credentials in tests/runners/test_runner_brief.py"
+condition = "AND"
+regexTarget = "secret"
+paths = ['''^tests/runners/test_runner_brief\.py$''']
+regexes = ['''^(?:abcdefgh1234)$''']
+
+[[allowlists]]
+description = "Dummy credentials in tests/runners/test_runner_security.py"
+condition = "AND"
+regexTarget = "secret"
+paths = ['''^tests/runners/test_runner_security\.py$''']
+regexes = ['''^(?:literal\-secret\-value|board\-token\-xyz123|hunter22)$''']
+
+[[allowlists]]
+description = "Dummy credentials in tests/scan/test_scan.py"
+condition = "AND"
+regexTarget = "secret"
+paths = ['''^tests/scan/test_scan\.py$''']
+regexes = ['''^AKIAABCDEFGHIJKLMNOP$''']
+
+[[allowlists]]
+description = "Dummy credentials in tests/core/test_release_audit.py"
+condition = "AND"
+regexTarget = "secret"
+paths = ['''^tests/core/test_release_audit\.py$''']
+regexes = ['''^(?:sk_live_1234567890|rk_live_1234567890)$''']
+
+[[allowlists]]
+description = "Dummy credentials in tests/resume/test_resume.py"
+condition = "AND"
+regexTarget = "secret"
+paths = ['''^tests/resume/test_resume\.py$''']
+regexes = ['''^AKIAABCDEFGHIJKLMNOP$''']

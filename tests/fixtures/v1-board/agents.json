@@ -1,0 +1,27 @@
+{
+  "lead": {
+    "joined": "2026-01-01T00:00:00Z",
+    "team": "",
+    "role": "worker",
+    "last_seen": "2025-01-01T00:00:00Z"
+  },
+  "w-one": {
+    "card": "first",
+    "joined": "2026-01-01T00:00:00Z",
+    "last_seen": "2026-01-01T00:00:00Z",
+    "role": "worker",
+    "team": "core"
+  },
+  "alpha": {
+    "role": "lead",
+    "last_seen": "2026-01-01T00:00:00Z"
+  },
+  "zeta": {
+    "role": "lead",
+    "last_seen": "2026-01-03T00:00:00Z"
+  },
+  "worker": {
+    "role": "worker",
+    "team": "core"
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "core": {
+    "max": 7,
+    "mission": "Fictional work",
+    "repos": [
+      "app"
+    ]
+  },
+  "uncapped": {
+    "max": null
+  }
+}

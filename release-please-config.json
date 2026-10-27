@@ -1,0 +1,22 @@
+{
+  "packages": {
+    ".": {
+      "release-type": "python",
+      "package-name": "raidlock",
+      "include-component-in-tag": false,
+      "changelog-path": "CHANGELOG.md",
+      "extra-files": [
+        {
+          "type": "json",
+          "path": ".claude-plugin/plugin.json",
+          "jsonpath": "$.version"
+        },
+        {
+          "type": "json",
+          "path": ".claude-plugin/marketplace.json",
+          "jsonpath": "$.plugins[*].version"
+        }
+      ]
+    }
+  }
+}

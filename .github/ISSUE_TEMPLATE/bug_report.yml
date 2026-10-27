@@ -1,0 +1,49 @@
+name: Bug report
+description: Something does not work as documented.
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected and what happened instead.
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      description: Commands, from a fresh board if possible. Do not paste secrets or private transcript content.
+      render: shell
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: raidlock version
+      placeholder: raidlock --version
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: OS
+      options: [Linux, macOS, Windows, Other]
+    validations:
+      required: true
+  - type: input
+    id: python
+    attributes:
+      label: Python version
+  - type: dropdown
+    id: runtime
+    attributes:
+      label: Runtime involved
+      multiple: true
+      options: [Claude Code, Codex CLI, Gemini CLI, shell, web UI, none]
+  - type: textarea
+    id: logs
+    attributes:
+      label: Output
+      description: Error output or `--json` output.
+      render: text

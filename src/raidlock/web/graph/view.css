@@ -1,0 +1,33 @@
+#viewPane>h3{font-size:14px;color:var(--accent);margin:14px 0 4px}
+.dep-svg .edge{fill:none;stroke:var(--muted);stroke-width:1.6}
+.dep-svg .arrow{fill:var(--muted)}
+.dep-svg .gnode rect{fill:var(--card1);stroke:var(--lc,var(--edge));stroke-width:2}
+.dep-svg .gid{fill:var(--ink);font-size:14px;font-weight:bold;font-family:var(--font)}
+.dep-svg .gsub{fill:var(--muted);font-size:12px;font-family:var(--font)}
+.gnode.lane-todo,.lane-sw.lane-todo{--lc:var(--todo)}.gnode.lane-doing,.lane-sw.lane-doing{--lc:var(--doing)}.gnode.lane-review,.lane-sw.lane-review{--lc:var(--review)}
+.gnode.lane-blocked,.lane-sw.lane-blocked{--lc:var(--blocked)}.gnode.lane-done,.lane-sw.lane-done{--lc:var(--done)}
+#viewPane .sw.lane-sw{background:var(--lc)}
+.heat-svg .hday,.heat-svg .hpath{fill:var(--muted);font-size:12px;font-family:var(--font)}
+.heat-svg .hpath{fill:var(--ink)}
+.heat-svg .hnum{fill:var(--ink);font-size:14px;font-weight:bold;font-family:var(--font);pointer-events:none}
+.heat-svg .hcell{stroke:var(--edge);fill:var(--card2)}
+.heat-svg .heat-1{fill:color-mix(in srgb,var(--blocked) 25%,var(--card2))}
+.heat-svg .heat-2{fill:color-mix(in srgb,var(--blocked) 45%,var(--card2))}
+.heat-svg .heat-3{fill:color-mix(in srgb,var(--blocked) 65%,var(--card2))}
+.heat-svg .heat-4{fill:color-mix(in srgb,var(--blocked) 85%,var(--card2))}
+.heat-svg .wait-1{fill:color-mix(in srgb,var(--s-stalled) 30%,var(--card2))}
+.heat-svg .wait-2{fill:color-mix(in srgb,var(--s-stalled) 55%,var(--card2))}
+.heat-svg .wait-3{fill:color-mix(in srgb,var(--s-stalled) 80%,var(--card2))}
+.as-text{margin-top:8px;font-size:14px}
+.as-text summary{cursor:pointer;color:var(--accent)}
+.as-text .warn{color:var(--blocked)}
+
+#viewPane .scrollbox{box-sizing:border-box;width:100%;min-width:0;max-width:100%}
+#viewPane .dep-scroll{max-height:70vh;overflow:auto;overscroll-behavior:contain}
+.dep-svg .gtitle{fill:var(--ink);font-size:14px;font-family:var(--font)}
+.dep-svg .gnode{cursor:pointer;text-decoration:none}
+.dep-svg .gnode:focus rect{stroke:var(--accent);stroke-width:4}
+.dep-svg .lane-missing rect,.dep-svg .missing{stroke-dasharray:5 3}
+.dep-svg .lane-cancelled rect{stroke:var(--muted)}
+#viewPane .as-text{overflow-wrap:anywhere}
+@media(prefers-reduced-motion:reduce){.dep-svg *{animation:none!important;transition:none!important;scroll-behavior:auto!important}}

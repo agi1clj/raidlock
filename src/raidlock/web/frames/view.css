@@ -1,0 +1,25 @@
+.frames{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr));gap:10px}
+.frame{position:relative;background:var(--panel);border:1px solid var(--edge);border-left:5px solid var(--agc,var(--edge));border-radius:12px;padding:8px 10px;min-width:0;display:flex;flex-direction:column;gap:6px}
+.frame.lvl-warning{border-color:var(--s-stalled)}
+.frame.lvl-critical{border-color:var(--blocked)}
+.fhead{display:flex;gap:8px;align-items:center;min-width:0}
+.fhead .av{flex:none;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:var(--pill);border:1px solid var(--agc,var(--edge));font-size:14px}
+.fname{display:flex;flex-direction:column;min-width:0;overflow-wrap:anywhere;font-size:14px}
+.fname .cls{font-size:12px}
+.fwho{display:flex;flex-wrap:wrap;gap:4px 6px;align-items:center;min-width:0}
+.prole{flex:none;padding:1px 8px;border-radius:999px;border:1px solid var(--edge);border-left-width:4px;font-size:12px;font-weight:700;color:var(--ink);background:var(--pill)}
+.prole-tank{border-color:var(--todo)}
+.prole-healer{border-color:var(--done)}
+.prole-dps{border-color:var(--blocked)}
+.fbar{display:grid;grid-template-columns:minmax(0,7.5rem) minmax(0,1fr);gap:2px 8px;align-items:center;font-size:14px}
+.fbar .fl{color:var(--muted)}
+.fbar .fv{grid-column:1/-1;font-size:12px;color:var(--muted);overflow-wrap:anywhere}
+.fbar .track{height:12px;border-radius:6px;background:var(--pill);border:1px solid var(--edge);overflow:hidden}
+.fbar .track i{display:block;height:100%;transform-origin:left center}
+.fbar.hp .track i{background:var(--done)}
+.fbar.hp.lvl-warning .track i{background:var(--s-stalled)}
+.fbar.hp.lvl-critical .track i{background:var(--blocked)}
+.fbar.mp .track i{background:var(--todo)}
+.handoff{margin:0;font-size:14px;padding:6px 8px;border-radius:8px;border:1px solid var(--s-stalled)}
+.handoff.lvl-critical{border-color:var(--blocked)}
+.handoff-sum{font-size:14px;padding:6px 10px;border:1px solid var(--blocked);border-radius:8px;margin:6px 0 10px}

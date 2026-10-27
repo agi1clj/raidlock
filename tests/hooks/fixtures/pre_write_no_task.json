@@ -1,0 +1,1 @@
+{"session_id": "s1", "transcript_path": "$TRANSCRIPT", "cwd": "$WS", "permission_mode": "default", "hook_event_name": "PreToolUse", "agent_id": "a-idle", "agent_type": "general-purpose", "tool_name": "Write", "tool_input": {"file_path": "$WS/app/src/main.py", "content": ""}, "tool_use_id": "t3"}

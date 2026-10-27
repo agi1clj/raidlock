@@ -1,0 +1,34 @@
+{
+  "first": {
+    "agent": "w-one",
+    "expires": "2099-01-01T00:00:00Z",
+    "paths": [
+      "app/src"
+    ],
+    "since": "2026-01-01T00:00:00Z"
+  },
+  "active": {
+    "agent": "worker",
+    "paths": [
+      "app/active"
+    ],
+    "since": "2026-01-02T00:00:00Z",
+    "expires": "2099-01-01T00:00:00Z"
+  },
+  "checking": {
+    "agent": "worker",
+    "paths": [
+      "app/checking"
+    ],
+    "since": "2026-01-02T00:00:00Z",
+    "expires": null
+  },
+  "waiting": {
+    "agent": "worker",
+    "paths": [
+      "app/waiting"
+    ],
+    "since": "2026-01-02T00:00:00Z",
+    "expires": null
+  }
+}

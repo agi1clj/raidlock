@@ -1,0 +1,1 @@
+{"session_id": "s1", "transcript_path": "$TRANSCRIPT", "cwd": "$WS", "permission_mode": "default", "agent_id": "a-one", "agent_type": "raidlock:raid-worker", "hook_event_name": "SubagentStop", "stop_hook_active": false, "agent_transcript_path": "$AGENT_TRANSCRIPT", "last_assistant_message": "Moved c1 to review. Tests: 12 passed. Open: none."}

@@ -1,0 +1,43 @@
+name: Runner adapter request
+description: Ask for raidlock to delegate quests to another agent CLI.
+labels: [runner-adapter]
+body:
+  - type: input
+    id: cli
+    attributes:
+      label: Agent CLI
+      placeholder: name and link
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: CLI version tested
+    validations:
+      required: true
+  - type: textarea
+    id: headless
+    attributes:
+      label: Headless invocation
+      description: How to run it non-interactively with a prompt on stdin, a working directory and a model.
+      render: shell
+    validations:
+      required: true
+  - type: textarea
+    id: sandbox
+    attributes:
+      label: Sandbox and approval modes
+      description: Read-only and write modes, and how to keep approvals on. Links to the CLI's docs.
+    validations:
+      required: true
+  - type: textarea
+    id: events
+    attributes:
+      label: Machine-readable output
+      description: Event stream or JSON output format, structured output support, and where usage (tokens, cost) is reported.
+  - type: checkboxes
+    id: willing
+    attributes:
+      label: Contribution
+      options:
+        - label: I can open a pull request with the adapter and recorded-event tests

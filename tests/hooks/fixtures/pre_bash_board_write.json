@@ -1,0 +1,1 @@
+{"session_id": "s1", "transcript_path": "$TRANSCRIPT", "cwd": "$WS", "permission_mode": "default", "hook_event_name": "PreToolUse", "tool_name": "Bash", "tool_input": {"command": "echo '{}' > .board/cards/c1.json", "description": "edit card"}, "tool_use_id": "t9"}

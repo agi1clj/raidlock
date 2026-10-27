@@ -1,0 +1,1 @@
+{"session_id": "s1", "transcript_path": "$TRANSCRIPT", "cwd": "$WS", "permission_mode": "default", "hook_event_name": "PreToolUse", "tool_name": "Bash", "tool_input": {"command": "ls -la && cat .board/board.json 2>/dev/null", "description": "list"}, "tool_use_id": "t10"}

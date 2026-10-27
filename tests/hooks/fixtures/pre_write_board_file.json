@@ -1,0 +1,1 @@
+{"session_id": "s1", "transcript_path": "$TRANSCRIPT", "cwd": "$WS", "permission_mode": "default", "hook_event_name": "PreToolUse", "tool_name": "Write", "tool_input": {"file_path": "$WS/.board/cards/c1.json", "content": "{}"}, "tool_use_id": "t7"}

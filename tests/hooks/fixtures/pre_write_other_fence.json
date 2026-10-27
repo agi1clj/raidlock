@@ -1,0 +1,1 @@
+{"session_id": "s1", "transcript_path": "$TRANSCRIPT", "cwd": "$WS", "permission_mode": "default", "hook_event_name": "PreToolUse", "agent_id": "a-one", "agent_type": "raidlock:raid-worker", "tool_name": "Write", "tool_input": {"file_path": "$WS/app/docs/guide.md", "content": "x"}, "tool_use_id": "t2"}

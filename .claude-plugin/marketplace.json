@@ -1,0 +1,24 @@
+{
+  "name": "raidlock",
+  "owner": {
+    "name": "agi1clj",
+    "url": "https://github.com/agi1clj"
+  },
+  "metadata": {
+    "description": "raidlock plugin for Claude Code"
+  },
+  "plugins": [
+    {
+      "name": "raidlock",
+      "source": "./",
+      "description": "Lease-and-review board for coding agents: path locks enforced by hooks, a lead-only done gate, heartbeats and handbacks.",
+      "version": "0.1.0",
+      "author": {
+        "name": "agi1clj"
+      },
+      "homepage": "https://github.com/agi1clj/raidlock",
+      "repository": "https://github.com/agi1clj/raidlock",
+      "license": "MIT"
+    }
+  ]
+}

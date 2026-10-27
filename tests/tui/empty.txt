@@ -1,0 +1,21 @@
+Raidlock | demo | Spend $0.0000
+
+TODO (0)
+  (empty)
+
+DOING (0)
+  (empty)
+
+REVIEW (0)
+  (empty)
+
+BLOCKED (0)
+  (empty)
+
+DONE (0)
+  (empty)
+
+AGENTS (1)
+  lead | Idle | [unknown] | -
+
+q / Ctrl-C to exit | countdowns sampled on board changes

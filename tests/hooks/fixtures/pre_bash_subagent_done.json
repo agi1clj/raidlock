@@ -1,0 +1,1 @@
+{"session_id": "s1", "transcript_path": "$TRANSCRIPT", "cwd": "$WS", "permission_mode": "default", "hook_event_name": "PreToolUse", "agent_id": "a-one", "agent_type": "raidlock:raid-worker", "tool_name": "Bash", "tool_input": {"command": "RAIDLOCK_AGENT=w-one raidlock move c1 done", "description": "close card"}, "tool_use_id": "t8"}

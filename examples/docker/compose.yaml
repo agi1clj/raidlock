@@ -1,0 +1,37 @@
+name: raidlock
+
+x-hardened: &hardened
+  image: ${RAIDLOCK_IMAGE:-ghcr.io/agi1clj/raidlock:0.1.0}
+  read_only: true
+  cap_drop: [ALL]
+  security_opt: [no-new-privileges:true]
+  tmpfs:
+    - /tmp:uid=10001,gid=10001,mode=1777
+    - /home/raid:uid=10001,gid=10001,mode=0700
+
+services:
+  ui:
+    <<: *hardened
+    command: [ui, --host, 0.0.0.0, --only]
+    working_dir: /workspace
+    volumes:
+      - ${RAIDLOCK_WORKSPACE:-.}:/workspace
+    ports:
+      - 127.0.0.1:8765:8765
+
+  verify:
+    <<: *hardened
+    profiles: [verify]
+    security_opt: [no-new-privileges:true, apparmor=unconfined]
+    network_mode: none
+    entrypoint: [sh]
+    stdin_open: true
+    tty: true
+    working_dir: /workspace
+    volumes:
+      - verify-workspace:/workspace
+      - verify-home:/home/raid/.raidlock
+
+volumes:
+  verify-workspace:
+  verify-home:
