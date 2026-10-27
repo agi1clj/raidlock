@@ -5,7 +5,9 @@
   </picture>
 </p>
 
-<p align="center"><b>raidlock stops parallel coding agents from overwriting each other's files, across Claude Code, Codex and Gemini, and won't accept their work until the tests pass and an agent from another provider signs off.</b></p>
+<h3 align="center">Many agents. One repo. No collisions.</h3>
+
+<p align="center">raidlock locks the files each agent may change, enforces it at edit time across Claude Code, Codex and Gemini, and accepts work only after the tests pass and another provider reviews it.</p>
 
 <p align="center">
   <a href="https://github.com/agi1clj/raidlock/actions/workflows/ci.yml"><img src="https://github.com/agi1clj/raidlock/actions/workflows/ci.yml/badge.svg?branch=main" alt="CI"></a>
