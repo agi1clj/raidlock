@@ -109,6 +109,11 @@ OUTPUT_OPTIONS = ("--out", "-o", "--output", "--dest", "--export", "--file", "--
 READ_COMMANDS = ("cd", "ls", "cat", "head", "tail", "wc", "pwd", "grep", "rg", "diff")
 WORKER_TYPES = ("raid-worker", "raidlock:raid-worker")
 ENV_ASSIGN = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=")
+RAID_WORD = re.compile(r"(?<![\w.-])raid(lock)?(?![\w/-])", re.I)
+LAUNCH_THROUGH = (*gitguard.LAUNCHERS, *WRAPPERS, "uv", "busybox")
+ARG_LAUNCHERS = ("xargs", "parallel", "find", "fd")
+PACKAGE_OPTIONS = ("--with", "--from", "--spec", "-p", "--package")
+LEAD_PROOF_DENIAL = "only the lead may present the lead secret; subagents hand over with: raidlock move <id> review"
 EXPORT_LINE = re.compile(r"^export RAIDLOCK_(AGENT|FENCE|BOARD)=([^\s#]+)", re.M)
 CLAIMED_LINE = re.compile(r"\bClaimed ([A-Za-z0-9_-]+)[:.]")
 DENY_BYTES = 200
@@ -682,6 +687,96 @@ def raidlock_args(argv):
     return None
 
 
+def is_lead_secret_option(arg):
+    return arg == "--lead-secret" or arg.startswith("--lead-secret=")
+
+
+def lead_only_command(cmd, pos):
+    return (
+        cmd in LEAD_ONLY
+        or (cmd == "move" and len(pos) > 1 and pos[1] == "done")
+        or (cmd in ("routing", "resurrect-policy", "budget") and pos[:1] == ["set"])
+        or (cmd == "bridge" and pos[:1] == ["pool"])
+    )
+
+
+def launched_raidlock(argv, command):
+    """For a launcher segment: why a subagent may not run it, and the raidlock argument lists it reaches."""
+    if not argv or os.path.basename(argv[0]).casefold() not in LAUNCH_THROUGH:
+        return None, []
+    found = []
+    for i, tok in enumerate(argv[1:], 1):
+        base = os.path.basename(tok).casefold()
+        if base in ("raid", "raidlock") and argv[i - 1] not in PACKAGE_OPTIONS:
+            rest = argv[i + 1 :]
+        elif base.startswith("python") and argv[i + 1 : i + 3] == ["-m", "raidlock"]:
+            rest = argv[i + 3 :]
+        elif gitguard.INTERPRETER.match(base) or base in gitguard.SHELLS + ("eval",):
+            if RAID_WORD.search(command):
+                return f"subagents may not run {base} code that calls raidlock", []
+            continue
+        else:
+            continue
+        if any(os.path.basename(a).casefold() in ARG_LAUNCHERS for a in argv[:i]):
+            return "subagents may not pass raidlock arguments through xargs, parallel, find or fd", []
+        found.append(rest)
+    return None, found
+
+
+def computed_verb(cmd, pos):
+    words = [cmd] + (pos[1:2] if cmd == "move" else [])
+    return any("$" in w or gitguard.SUBST in w for w in words)
+
+
+def raidlock_decision(data, env, board, role, ctx, rl):
+    sub = is_subagent(data)
+    unbound = role == "unbound"
+    guarded_lead = bool(board) and role in ("worker", "unbound") and lead_live(board)
+    cmd, pos, opts = parse_raidlock(rl)
+    if sub and ("--lead-secret" in opts or ctx.get("RAIDLOCK_LEAD_SECRET")):
+        return deny(LEAD_PROOF_DENIAL)
+    if (sub or role in ("worker", "unbound")) and computed_verb(cmd, pos):
+        return deny("cannot determine the raidlock command; spell it out literally")
+    lead_only = lead_only_command(cmd, pos)
+    restricted = lead_only or opts.get("--for") or opts.get("--urgent")
+    if guarded_lead and (opts.get("--lead-secret") or ctx.get("RAIDLOCK_LEAD_SECRET")):
+        return deny(
+            "only the lead session may present the lead secret; "
+            "raidlock lead status shows which session holds the lease"
+        )
+    worker = (
+        sub or (restricted and role in ("worker", "unbound")) or (restricted and session_worker(data, env, ctx, opts))
+    )
+    if worker and lead_only:
+        return deny(f"only the lead can run raidlock {cmd}. Hand over with: raidlock move <id> review")
+    if worker and (opts.get("--for") or opts.get("--urgent")):
+        return deny("--for and --urgent are lead-only")
+    recovering = unbound and cmd == "lead" and not lead_live(board)
+    named = sub or (unbound and not recovering)
+    if named and cmd not in READ_ONLY and "--help" not in opts and "-h" not in opts:
+        name = next(
+            (
+                v
+                for v in (
+                    opts.get("--agent"),
+                    opts.get("--from"),
+                    opts.get("--by"),
+                    ctx.get("RAIDLOCK_AGENT_ID"),
+                    ctx.get("RAIDLOCK_AGENT"),
+                )
+                if isinstance(v, str) and v
+            ),
+            "",
+        )
+        if not name:
+            return deny(
+                f"name yourself on every board command: RAIDLOCK_AGENT=<name> RAIDLOCK_TOKEN=<token> raidlock {cmd} ..."
+            )
+        if name == board_lead(data, load_binding(env, data.get("session_id", ""), agent_key(data)).get("board", "")):
+            return deny("subagents and unbound sessions cannot act as the lead")
+    return None
+
+
 def parse_raidlock(args):
     opts, pos, i = {}, [], 0
     while i < len(args):
@@ -919,6 +1014,10 @@ def pre_bash(data, env):
             or gitguard.SUBST in verb
             or (argv and "/" in argv[0] and verb not in READ_COMMANDS + WRITE_VERBS + ("git", "printf", "echo"))
         )
+        if sub and ctx.get("RAIDLOCK_LEAD_SECRET"):
+            return deny(LEAD_PROOF_DENIAL)
+        if sub and opaque and RAID_WORD.search(command):
+            return deny(f"subagents may not run {verb or 'computed'} code that calls raidlock")
         if opaque and role in ("worker", "unbound"):
             if unbound:
                 return deny("unbound sessions may not execute opaque interpreters or scripts")
@@ -947,55 +1046,16 @@ def pre_bash(data, env):
                 return deny("cannot determine the target directory")
             targets.extend(os.path.normpath(os.path.join(c, os.path.expanduser(target))) for c in op["cwds"])
         rl = raidlock_args(argv)
+        reached = [rl] if rl is not None else []
+        if sub and rl is None:
+            why, reached = launched_raidlock(argv, command)
+            if why:
+                return deny(why)
+        for found in reached:
+            result = raidlock_decision(data, env, board, role, ctx, found)
+            if result:
+                return result
         if rl is not None:
-            cmd, pos, opts = parse_raidlock(rl)
-            lead_only = (
-                cmd in LEAD_ONLY
-                or (cmd == "move" and len(pos) > 1 and pos[1] == "done")
-                or (cmd in ("routing", "resurrect-policy", "budget") and pos[:1] == ["set"])
-                or (cmd == "bridge" and pos[:1] == ["pool"])
-            )
-            restricted = lead_only or opts.get("--for") or opts.get("--urgent")
-            if guarded_lead and (opts.get("--lead-secret") or ctx.get("RAIDLOCK_LEAD_SECRET")):
-                return deny(
-                    "only the lead session may present the lead secret; "
-                    "raidlock lead status shows which session holds the lease"
-                )
-            worker = (
-                sub
-                or (restricted and role in ("worker", "unbound"))
-                or (restricted and session_worker(data, env, ctx, opts))
-            )
-            if worker and lead_only:
-                return deny(f"only the lead can run raidlock {cmd}. Hand over with: raidlock move <id> review")
-            if worker and (opts.get("--for") or opts.get("--urgent")):
-                return deny("--for and --urgent are lead-only")
-            recovering = unbound and cmd == "lead" and not lead_live(board)
-            named = sub or (unbound and not recovering)
-            if named and cmd not in READ_ONLY and "--help" not in opts and "-h" not in opts:
-                name = next(
-                    (
-                        v
-                        for v in (
-                            opts.get("--agent"),
-                            opts.get("--from"),
-                            opts.get("--by"),
-                            ctx.get("RAIDLOCK_AGENT_ID"),
-                            ctx.get("RAIDLOCK_AGENT"),
-                        )
-                        if isinstance(v, str) and v
-                    ),
-                    "",
-                )
-                if not name:
-                    return deny(
-                        "name yourself on every board command: RAIDLOCK_AGENT=<name> RAIDLOCK_TOKEN=<token> "
-                        f"raidlock {cmd} ..."
-                    )
-                if name == board_lead(
-                    data, load_binding(env, data.get("session_id", ""), agent_key(data)).get("board", "")
-                ):
-                    return deny("subagents and unbound sessions cannot act as the lead")
             continue
         if exports_only(argv):
             continue
