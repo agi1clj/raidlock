@@ -1062,6 +1062,39 @@ function renderAgents(cards) {
   setKids($("agents"), kids, sig);
 }
 
+const BELL_ICON = {close: "\u2705", apply: "\u{1FA79}", duel: "\u2694\uFE0F", review: "\u{1F989}", blocked: "\u{1F480}", stalled: "\u231B"};
+function bellItems() {
+  const ps = (state.projects || []).filter(p => state.view === "*" || p.name === state.view);
+  return ps.flatMap(p => (p.needs || []).map(n => ({...n, guild: p.name, key: `${p.name}:${n.kind}:${n.card}`})));
+}
+function bellSeen() { try { return new Set(JSON.parse(recall("rl.bell.seen") || "[]")); } catch (_) { return new Set(); } }
+function renderBell() {
+  const items = bellItems(), seen = bellSeen();
+  const unseen = items.filter(x => !seen.has(x.key)).length;
+  let menu = $("bellMenu");
+  if (!menu) {
+    menu = h("details", {id: "bellMenu", class: "menu"}, h("summary", {class: "tog bell", "aria-label": "Notifications"}), h("div", {class: "menu-body bell-body"}));
+    menu.addEventListener("toggle", () => {
+      if (!menu.open) return;
+      store("rl.bell.seen", JSON.stringify([...new Set([...bellSeen(), ...bellItems().map(x => x.key)])]));
+      renderBell();
+    });
+    $("soundMenu").before(menu);
+  }
+  const all = state.view === "*";
+  const bell = menu.querySelector("summary");
+  if (state.bellPrev !== undefined && unseen > state.bellPrev && motion()) { bell.classList.remove("ring"); void bell.offsetWidth; bell.classList.add("ring"); }
+  state.bellPrev = unseen;
+  if (state.bellKnown) for (const x of items) if (!state.bellKnown.has(x.key) && !seen.has(x.key)) notify(`${x.guild}: ${x.title}`, x.reason);
+  state.bellKnown = new Set(items.map(x => x.key));
+  setKids(bell, ["\u{1F514}", unseen ? h("span", {class: "badge bell-count", text: String(unseen)}) : null], JSON.stringify([unseen]));
+  const body = menu.querySelector(".bell-body");
+  const head = h("b", {text: all ? w("Needs you, all workspaces", "The realm needs you") : w(`Needs you in ${state.view}`, `${state.view} needs you`)});
+  const rows = items.length ? items.map(x => h("a", {class: "bell-row" + (seen.has(x.key) ? "" : " new"), href: href(x.guild), "data-nav": x.guild},
+    h("span", {class: "bell-ico", text: BELL_ICON[x.kind] || "\u2022"}),
+    h("span", {class: "bell-text"}, h("span", {class: "bell-title", text: x.title}), h("span", {class: "cls", text: all ? `${x.guild} \u00b7 ${x.reason}` : x.reason})))) : [h("span", {class: "cls", text: w("Nothing needs you.", "All is quiet.")})];
+  setKids(body, [head, ...rows], JSON.stringify([items.map(x => x.key), [...seen].length, state.view, state.theme]));
+}
 function renderUpdate(u) {
   const old = $("updateMenu");
   if (!u) { if (old) old.remove(); return; }
@@ -1793,6 +1826,8 @@ function select(id) {
   state.view = id; state.board = null; state.cards = {}; state.first = true; state.statusPrev = {}; state.open.clear(); state.msgPrev = null; state.repo = ""; state.q = ""; if ($("q")) $("q").value = ""; statusFilter = ""; workTab = "todo";
   state.details = {}; state.laneLimit = {}; state.todoAll = false; state.needsAll = false; state.doneLimit = 5; state.unknown = ""; state.logFilter = "*"; state.subData = {}; state.sub = subRoute();
   state.fxPrev = null; state.fxPulse = new Map(); state.fxView = {};
+  state.bellPrev = undefined; state.bellKnown = undefined;
+  if ($("bellMenu")) renderBell();
   for (const k of Object.keys(state.etag)) if (!k.startsWith("o")) delete state.etag[k];
   for (const el of document.querySelectorAll("[data-sig]")) el.dataset.sig = "";
   applyView();
@@ -1832,7 +1867,7 @@ async function tick() {
     const names = state.projects.map(p => p.name);
     if (state.mode !== "all" && !names.includes(state.view) && names.length) { state.view = names[0]; applyView(); }
     else if (state.view !== "*" && !names.includes(state.view)) { state.unknown = state.view; state.view = "*"; applyView(); }
-    if (changed || wasError) { renderTabs(); renderCrumbs(); chatEvents(); renderLimits(state.overview.limits); renderUpdate(state.overview.update); }
+    if (changed || wasError) { renderTabs(); renderCrumbs(); chatEvents(); renderLimits(state.overview.limits); renderUpdate(state.overview.update); renderBell(); }
     if (state.view === "*") { if (changed || state.first || wasError) { renderOverview(); renderChat(); state.first = false; } return; }
     const ws = state.view;
     const b = await getJSON(api("board", ws), "b:" + ws);

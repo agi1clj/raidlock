@@ -315,6 +315,32 @@ def needs_count(payload):
     return len(items) + len(extra)
 
 
+def needs_items(payload, rows):
+    titles = {c["id"]: c["title"] for c in payload["cards"]}
+    out, seen = [], set()
+    labels = {"close": "Ready to close", "apply": "Patch to apply", "duel": "Duel to judge"}
+    for x in (payload.get("approvals") or {}).get("items", []):
+        if x.get("kind") in labels:
+            card = x.get("card", "")
+            seen.add(card)
+            out.append({"kind": x["kind"], "card": card, "title": titles.get(card, card), "reason": labels[x["kind"]]})
+    for c in payload["cards"]:
+        if c["lane"] in ("review", "blocked") and c["id"] not in seen:
+            reason = "Review awaiting lead" if c["lane"] == "review" else "Blocked"
+            out.append({"kind": c["lane"], "card": c["id"], "title": c["title"], "reason": reason})
+    for r in rows:
+        if r["status"] == "stalled":
+            out.append(
+                {
+                    "kind": "stalled",
+                    "card": r["card"],
+                    "title": r["title"] or r["card"],
+                    "reason": f"{r['name']} went quiet",
+                }
+            )
+    return out
+
+
 def summary_of(name, payload, chat):
     titles = {c["id"]: c["title"] for c in payload["cards"]}
     rows = []
@@ -348,6 +374,7 @@ def summary_of(name, payload, chat):
         "repos": payload["repos"],
         "today": payload["today"],
         "review": needs_count(payload),
+        "needs": needs_items(payload, rows),
         "chat": [dict(r, workspace=name) for r in chat],
         "warnings": payload["warnings"],
     }

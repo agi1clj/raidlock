@@ -24,6 +24,7 @@ jobs:
     outputs:
       release_created: ${{ steps.rp.outputs.release_created }}
       tag_name: ${{ steps.rp.outputs.tag_name }}
+      pr: ${{ steps.rp.outputs.pr }}
     steps:
       - id: rp
         uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7
@@ -31,6 +32,21 @@ jobs:
           token: ${{ github.token }}
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
+
+  release-pr-ci:
+    name: Test the release PR
+    needs: release-please
+    if: needs.release-please.outputs.pr != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      actions: write
+    steps:
+      - name: Start CI on the release branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BRANCH: ${{ fromJSON(needs.release-please.outputs.pr).headBranchName }}
+        run: gh workflow run ci.yml --repo "$GITHUB_REPOSITORY" --ref "$BRANCH"
 
   publish:
     name: PyPI and signed release assets
