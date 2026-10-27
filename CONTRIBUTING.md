@@ -41,7 +41,7 @@ uv tool install --force dist/raidlock-*.whl
 uv run --locked pytest --ignore=tests/web
 ```
 
-Web UI tests use Playwright and run separately:
+UI changes reuse the tokens and components in [docs/guides/design.md](docs/guides/design.md). Web UI tests use Playwright and run separately:
 
 ```bash
 uv sync --locked --extra ui-test
@@ -128,7 +128,7 @@ See [the release guide](docs/RELEASING.md) for publication gates, token setup, v
 
 ## Python checks
 
-CI tests the oldest supported Python (3.11) on Linux and the newest (3.14) on macOS, and runs ruff, pyright and actionlint. The Playwright UI suite runs when the web UI changes; the container build, smoke test and Trivy scan run when the image inputs change and weekly.
+CI tests the oldest supported Python (3.11) on Linux and the newest (3.14) on macOS, and runs ruff, pyright and actionlint. The Playwright UI suite runs when the web UI changes; the container build and Trivy scan run when the image inputs change and weekly.
 Run the same static checks locally:
 
 ```bash
