@@ -36,7 +36,7 @@ An optional hardened container image runs `raid ui`, `raid mcp` and sandboxed `r
 
 ## Upgrade
 
-`raid doctor`, `raid up` and `raid ui` check PyPI at most once a day and say when a newer release exists; the web UI shows an "Update" button in the header. Upgrade with:
+`raid doctor`, `raid up` and `raid ui` check PyPI at most every ten minutes and say when a newer release exists; the web UI shows an "Update" button in the header. Upgrade with:
 
 ```bash
 uv tool upgrade raidlock

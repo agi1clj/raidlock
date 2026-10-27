@@ -1,6 +1,7 @@
 """Tell the user when a newer raidlock release exists on PyPI.
 
-The check runs at most once a day, never from a hook, and is skipped in CI or when RAIDLOCK_NO_UPDATE_CHECK is set."""
+The check runs at most every ten minutes, never from a hook,
+and is skipped in CI or when RAIDLOCK_NO_UPDATE_CHECK is set."""
 
 import json
 import os
@@ -12,8 +13,7 @@ from . import __version__
 from .core import registry
 
 URL = "https://pypi.org/pypi/raidlock/json"
-TTL = 86400
-RETRY = 3600
+TTL = 600
 TIMEOUT = 2
 UPGRADE = "uv tool upgrade raidlock"
 VERSION_RE = re.compile(r"^\d+(\.\d+){0,3}$")
@@ -69,18 +69,23 @@ def refresh(force=False, persist=True):
         fetched = None
     ok = valid(fetched)
     latest = fetched if ok else (data.get("latest") if valid(data.get("latest")) else None)
-    stamp = time.time() if ok else time.time() - TTL + RETRY
     if not persist:
         return latest
     try:
         os.makedirs(os.path.dirname(_path()), exist_ok=True)
         tmp = _path() + ".tmp"
         with open(tmp, "w", encoding="utf-8") as fh:
-            json.dump({"checked": stamp, "latest": latest}, fh)
+            json.dump({"checked": time.time(), "latest": latest}, fh)
         os.replace(tmp, _path())
     except OSError:
         pass
     return latest
+
+
+def watch():
+    while True:
+        refresh()
+        time.sleep(TTL)
 
 
 def available(latest=None):

@@ -1,3 +1,4 @@
+import io
 import json
 import time
 
@@ -45,9 +46,7 @@ def test_stale_cache_refetches_and_offline_keeps_the_old_answer(home, monkeypatc
 
     monkeypatch.setattr(updates.urllib.request, "urlopen", offline)
     assert updates.refresh() == "99.0.0"
-    assert (
-        json.loads((home / "update-check.json").read_text())["checked"] < time.time() - updates.TTL + updates.RETRY + 5
-    )
+    assert json.loads((home / "update-check.json").read_text())["checked"] > time.time() - 5
 
 
 def test_opt_out_and_ci_disable_the_check(home, monkeypatch):
@@ -99,24 +98,34 @@ def test_untrusted_version_strings_are_ignored(home):
         assert updates.available() is None and updates.notice() == ""
 
 
-def test_failed_fetch_retries_within_the_hour_and_keeps_the_last_answer(home, monkeypatch):
-    write(home, "99.0.0", age=updates.TTL + 1)
-
-    def offline(*a, **k):
-        raise OSError("offline")
-
-    monkeypatch.setattr(updates.urllib.request, "urlopen", offline)
+def test_checks_again_after_ten_minutes(home, monkeypatch):
+    assert updates.TTL == 600
+    write(home, "0.0.1", age=updates.TTL + 1)
+    body = b'{"info": {"version": "99.0.0"}}'
+    monkeypatch.setattr(updates.urllib.request, "urlopen", lambda *a, **k: io.BytesIO(body))
     assert updates.refresh() == "99.0.0"
-    checked = json.loads((home / "update-check.json").read_text())["checked"]
-    retry_at = checked + updates.TTL
-    assert time.time() + updates.RETRY - 5 <= retry_at <= time.time() + updates.RETRY + 5
 
 
-def test_failed_first_fetch_does_not_silence_checks_for_a_day(home, monkeypatch):
-    def offline(*a, **k):
-        raise OSError("offline")
+def test_running_ui_keeps_checking(monkeypatch):
+    calls = []
 
-    monkeypatch.setattr(updates.urllib.request, "urlopen", offline)
-    assert updates.refresh() is None
-    checked = json.loads((home / "update-check.json").read_text())["checked"]
-    assert time.time() - checked > updates.TTL - updates.RETRY - 5
+    def stop(seconds):
+        assert seconds == updates.TTL
+        if len(calls) == 3:
+            raise SystemExit
+
+    monkeypatch.setattr(updates, "refresh", lambda: calls.append(1))
+    monkeypatch.setattr(updates.time, "sleep", stop)
+    with pytest.raises(SystemExit):
+        updates.watch()
+    assert len(calls) == 3
+
+
+def test_new_release_changes_the_overview_etag(home):
+    from raidlock.web import data
+
+    catalog = data.Catalog(home=str(home))
+    write(home, "0.0.1")
+    before = catalog.overview_key()
+    write(home, "99.0.0")
+    assert catalog.overview_key() != before

@@ -581,7 +581,7 @@ class Catalog:
                 parts.append((ws.name, ws.key_now()))
             except (RaidlockError, OSError, ValueError):
                 parts.append((ws.name, None))
-        return etag_of("overview", self.mode(), parts, self.provider_limits())
+        return etag_of("overview", self.mode(), parts, self.provider_limits(), updates.available())
 
     def overview(self):
         projects, srows, names, agents, first = [], [], {}, {}, None
