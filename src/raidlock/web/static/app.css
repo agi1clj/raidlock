@@ -853,3 +853,4 @@ body[data-tab=chatter] #chatter>summary::-webkit-details-marker{display:none}
 @media(max-width:767px){.update-chip .v{display:none}}
 @media(max-width:767px){header .hud{flex-wrap:wrap;justify-content:flex-end;row-gap:6px}}
 .upd-body{min-width:320px}.upd-row{display:flex;flex-direction:column;gap:4px}.upd-row code{font-size:12px;overflow-wrap:anywhere;padding:6px 8px;border:1px solid var(--edge);border-radius:6px}.upd-row .tog{align-self:flex-start}
+.bell{position:relative}.bell-count{margin-left:4px;background:var(--accent);color:#1b1230;border-radius:9px;padding:0 6px;font-size:12px;font-weight:700}.bell-body{min-width:320px}.bell-row{display:flex;gap:8px;align-items:flex-start;text-decoration:none;color:var(--ink);padding:6px;border-radius:8px}.bell-row:hover{background:var(--btn)}.bell-row.new .bell-title{font-weight:700}.bell-text{display:flex;flex-direction:column;min-width:0}.bell-title{overflow-wrap:anywhere}
