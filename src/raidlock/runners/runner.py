@@ -180,12 +180,9 @@ class Heartbeat(threading.Thread):
 
 
 def _reviewer_runtime(board, card):
-    owner = board.agents().get(card.get("owner") or "", {})
-    taken = owner.get("provider") or I.RUNTIME_PROVIDER.get(owner.get("runtime", ""), "")
-    for runtime in ("codex-cli", "claude-code", "gemini-cli"):
-        if I.RUNTIME_PROVIDER[runtime] != taken:
-            return RUNTIME_SHORT[runtime]
-    return "codex"
+    from ..approvals import reviewer_runtime
+
+    return reviewer_runtime(board, card)
 
 
 def preflight(board, card, name):
