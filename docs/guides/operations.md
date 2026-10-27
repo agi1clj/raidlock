@@ -26,6 +26,8 @@ It prints `Healthy.` and exits 0, or lists the problems and exits 3.
 
 raidlock cleans up after itself. `done`, `close`, `cancel` and `pr-sync` delete a card's delegated clones and agent homes and keep only its logs, patches and run records. The verify cache keeps the 8 most recent checkouts. Clones of cards still open stay until the card closes; cancel abandoned cards to free them.
 
+An `update` line reports whether a newer raidlock release exists; see [Upgrade](install.md#upgrade).
+
 ## Lead session handover
 
 The lead lease binds the lead secret to one runtime session, an ancestor process and its start time. To move the lead to another session, run this from the current lead session:
