@@ -45,7 +45,9 @@ def test_stale_cache_refetches_and_offline_keeps_the_old_answer(home, monkeypatc
 
     monkeypatch.setattr(updates.urllib.request, "urlopen", offline)
     assert updates.refresh() == "99.0.0"
-    assert json.loads((home / "update-check.json").read_text())["checked"] < time.time() - updates.TTL + updates.RETRY + 5
+    assert (
+        json.loads((home / "update-check.json").read_text())["checked"] < time.time() - updates.TTL + updates.RETRY + 5
+    )
 
 
 def test_opt_out_and_ci_disable_the_check(home, monkeypatch):
