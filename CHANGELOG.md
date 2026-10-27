@@ -4,6 +4,22 @@ All notable changes to this project are documented here.
 
 The format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/), and the project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.1](https://github.com/agi1clj/raidlock/compare/v0.1.0...v0.1.1) (2026-10-27)
+
+
+### Bug Fixes
+
+* **types:** treat a missing lease age as zero ([af86a4d](https://github.com/agi1clj/raidlock/commit/af86a4dc34f2833a4d9c21a57398f2a0c0141c45))
+
+
+### Documentation
+
+* centered header with badges under the pitch ([501cdc2](https://github.com/agi1clj/raidlock/commit/501cdc2063fc16ebe59ec5c6de230da973d2d75d))
+* one title, the logo ([4ce8f35](https://github.com/agi1clj/raidlock/commit/4ce8f3572375ff3f98d4768b7aeda9e8cb85ee9a))
+* raid theme note; gold logo, favicon and social preview ([7bfbb13](https://github.com/agi1clj/raidlock/commit/7bfbb1338668b1b3b2b5d361e94324fa493095ec))
+* sharper UI tour as animated WebP ([6aee151](https://github.com/agi1clj/raidlock/commit/6aee151dd2b95f785e510b2b65d8d5990c079e8a))
+* short PR template ([14402b9](https://github.com/agi1clj/raidlock/commit/14402b92dee168bf5bdbcffa7d2d69917e9d988f))
+
 ## [Unreleased]
 
 ## [0.1.0] - 2026-10-27
