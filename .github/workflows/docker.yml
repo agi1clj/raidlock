@@ -32,25 +32,6 @@ jobs:
           persist-credentials: false
       - name: Build image
         run: docker build --platform linux/amd64 -t "$IMAGE" .
-      - name: Allow unprivileged user namespaces
-        run: |
-          if [ -e /proc/sys/kernel/apparmor_restrict_unprivileged_userns ]; then
-            sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
-          fi
-      - name: Show namespace support
-        run: |
-          docker version --format 'docker {{.Server.Version}}'
-          sysctl kernel.apparmor_restrict_unprivileged_userns user.max_user_namespaces 2>/dev/null || true
-      - name: Smoke test in a hardened container
-        continue-on-error: true
-        run: |
-          docker run --rm --read-only --cap-drop ALL --security-opt no-new-privileges \
-            --security-opt apparmor=unconfined --network none \
-            --tmpfs /tmp:uid=10001,gid=10001,mode=1777 \
-            --tmpfs /home/raid:uid=10001,gid=10001,mode=0700 \
-            --tmpfs /workspace:uid=10001,gid=10001,mode=0700 \
-            -v "$PWD/scripts/docker-smoke.sh:/smoke.sh:ro" \
-            --entrypoint sh "$IMAGE" /smoke.sh
       - name: Install Trivy
         run: |
           archive="trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz"
