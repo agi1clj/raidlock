@@ -221,7 +221,8 @@ def failure_reason(code, kind):
     if kind:
         return (
             f"verify terminated by {name} (exit {code}); likely sandbox denial or process crash; "
-            "for uv, allow UV_CACHE_DIR and Python install paths, or rerun with --unsafe-verify"
+            "for uv, warm UV_CACHE_DIR=<RAIDLOCK_HOME>/verify/uv-cache with uv sync, "
+            "or rerun with --unsafe-verify"
         )
     return f"verify terminated by {name} (exit {code}); inspect the command output and retry"
 
