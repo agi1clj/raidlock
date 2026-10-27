@@ -4,6 +4,41 @@ All notable changes to this project are documented here.
 
 The format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/), and the project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0](https://github.com/agi1clj/raidlock/compare/v0.1.1...v0.2.0) (2026-10-27)
+
+
+### Features
+
+* raid land applies a delegated patch, verifies and hands it to review ([#11](https://github.com/agi1clj/raidlock/issues/11)) ([b98a108](https://github.com/agi1clj/raidlock/commit/b98a1080bb2e81efeba1ad7096a16fa54bb66fc9))
+* tell users when a newer release exists ([#4](https://github.com/agi1clj/raidlock/issues/4)) ([f1ef8dc](https://github.com/agi1clj/raidlock/commit/f1ef8dcfe8d1b4012aff7bcb0dace0d5579b3cd6))
+* **ui:** first-run tour on an empty board ([#10](https://github.com/agi1clj/raidlock/issues/10)) ([cc034dd](https://github.com/agi1clj/raidlock/commit/cc034ddf849b97ffe1634f6e77e37623bf83b57a))
+* **ui:** notification bell scoped to realm or guild ([#5](https://github.com/agi1clj/raidlock/issues/5)) ([72cbc20](https://github.com/agi1clj/raidlock/commit/72cbc200da6e418d1d4b4816c91ad0245e88a8b1))
+
+
+### Bug Fixes
+
+* hooks deny lead commands from subagents behind wrappers; Windows hooks fail closed ([#17](https://github.com/agi1clj/raidlock/issues/17)) ([b97eb4b](https://github.com/agi1clj/raidlock/commit/b97eb4b667a1bafdab633fc33eb82c322e441be2))
+* redaction keeps harmless RAIDLOCK_ settings visible ([#15](https://github.com/agi1clj/raidlock/issues/15)) ([99d5925](https://github.com/agi1clj/raidlock/commit/99d592535a4637496f7481172be22954b0ee4eef))
+* review hints name a reviewer runtime from another provider ([#6](https://github.com/agi1clj/raidlock/issues/6)) ([9e6ecdb](https://github.com/agi1clj/raidlock/commit/9e6ecdb1327cd7e5022e085a9bf489c2d684152e))
+* SHA-256 lesson IDs; Python badge shows 3.11+ ([#12](https://github.com/agi1clj/raidlock/issues/12)) ([57dbd8c](https://github.com/agi1clj/raidlock/commit/57dbd8c6ec7e01405444a540f0a97ab97ccd55bc))
+* **ui:** boss board explains bosses named by the raid leader ([#9](https://github.com/agi1clj/raidlock/issues/9)) ([f2341c3](https://github.com/agi1clj/raidlock/commit/f2341c347cc19e10b6c6c6c872a6f3c4cde1df6d))
+* update check accepts only plain release versions and survives a corrupt cache ([#13](https://github.com/agi1clj/raidlock/issues/13)) ([7092a6b](https://github.com/agi1clj/raidlock/commit/7092a6b176f5eb7fbdb9cf944194328acafafce0))
+* verify gets a private uv cache; raid land runs without git hooks ([#16](https://github.com/agi1clj/raidlock/issues/16)) ([4b353af](https://github.com/agi1clj/raidlock/commit/4b353afb699afb1f45a05bf44dbf1b6ec4acc6d5))
+
+
+### Documentation
+
+* agent install guide that installs or upgrades to the latest release ([660951e](https://github.com/agi1clj/raidlock/commit/660951e2fb92470161962b3ee285ec3573e44218))
+* align guides, examples and agent docs with the code ([#20](https://github.com/agi1clj/raidlock/issues/20)) ([1702d51](https://github.com/agi1clj/raidlock/commit/1702d51751d5101b6529806f8a8712f2cd6a8f7a))
+* design tokens and shared UI components ([#7](https://github.com/agi1clj/raidlock/issues/7)) ([fe0ddbf](https://github.com/agi1clj/raidlock/commit/fe0ddbf721f4f6ae35bfacbde72d595ee8bf243b))
+* headline Many agents. One repo. No collisions. ([#19](https://github.com/agi1clj/raidlock/issues/19)) ([fb98827](https://github.com/agi1clj/raidlock/commit/fb98827332452fa6941b96ef57cba89d2a15a85f))
+* latest image tag by default; automated release flow ([689618b](https://github.com/agi1clj/raidlock/commit/689618b7be672e9e9c771101330147dd64f4b0cf))
+* On Windows, with the WSL2 and Docker Desktop paths ([#8](https://github.com/agi1clj/raidlock/issues/8)) ([b7a3623](https://github.com/agi1clj/raidlock/commit/b7a362384500cbb338da95ff2075d663d4827371))
+* OpenSSF Best Practices badge ([5b29132](https://github.com/agi1clj/raidlock/commit/5b2913218ba6fb20286926e9140abb8c464325ce))
+* overview covers Codex hooks and current Gemini status ([#18](https://github.com/agi1clj/raidlock/issues/18)) ([43ad506](https://github.com/agi1clj/raidlock/commit/43ad506dafdf64ef7170ba7e589f8964713cc3ed))
+* README leads with outcomes, a comparison table and the new features ([#14](https://github.com/agi1clj/raidlock/issues/14)) ([49af2eb](https://github.com/agi1clj/raidlock/commit/49af2ebc32c6841e0b884109e8b4ed481ab63a1f))
+* social preview with the current message ([7f7316d](https://github.com/agi1clj/raidlock/commit/7f7316d95ac07e169e9fdbc283df4d6a3817b5f6))
+
 ## [0.1.1](https://github.com/agi1clj/raidlock/compare/v0.1.0...v0.1.1) (2026-10-27)
 
 
