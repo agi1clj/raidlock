@@ -9,8 +9,8 @@
 
 <p align="center">
   <a href="https://github.com/agi1clj/raidlock/actions/workflows/ci.yml"><img src="https://github.com/agi1clj/raidlock/actions/workflows/ci.yml/badge.svg?branch=main" alt="CI"></a>
-  <a href="https://pypi.org/project/raidlock/"><img src="https://img.shields.io/pypi/v/raidlock" alt="PyPI"></a>
-  <a href="https://pypi.org/project/raidlock/"><img src="https://img.shields.io/pypi/pyversions/raidlock" alt="Python"></a>
+  <a href="https://pypi.org/project/raidlock/"><img src="https://img.shields.io/pypi/v/raidlock?label=PyPI" alt="PyPI"></a>
+  <a href="https://pypi.org/project/raidlock/"><img src="https://img.shields.io/pypi/pyversions/raidlock?label=Python" alt="Python"></a>
   <a href="https://scorecard.dev/viewer/?uri=github.com/agi1clj/raidlock"><img src="https://api.scorecard.dev/projects/github.com/agi1clj/raidlock/badge" alt="OpenSSF Scorecard"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green" alt="License: MIT"></a>
 </p>
