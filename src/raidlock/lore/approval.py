@@ -37,7 +37,7 @@ def propose(board, caller, text, card_id="", paths=None):
     agent = board.agents().get(caller.name, {})
     key = f"{board.uid}:{caller.name}:{card_id}:{text}".encode()
     lesson = {
-        "id": hashlib.sha1(key, usedforsecurity=False).hexdigest()[:12],
+        "id": hashlib.sha256(key).hexdigest()[:12],
         "created": now,
         "workspace": board.name,
         "workspace_uid": board.uid,

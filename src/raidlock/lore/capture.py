@@ -50,7 +50,7 @@ def classify(rec):
 
 
 def lesson_id(board, rec):
-    return hashlib.sha1(f"{board.uid}:{rec.get('messageId', '')}".encode(), usedforsecurity=False).hexdigest()[:12]
+    return hashlib.sha256(f"{board.uid}:{rec.get('messageId', '')}".encode()).hexdigest()[:12]
 
 
 def _canon(paths):
