@@ -9,7 +9,7 @@ uv tool install raidlock        # or: pipx install raidlock
 raid --version
 ```
 
-Before a release exists, install from a raidlock checkout instead, and add the plugin from that checkout: see [Before the first release](../../CONTRIBUTING.md#before-the-first-release).
+To try an unreleased change, install from a raidlock checkout and add the plugin from it: see [Install from a checkout](../../CONTRIBUTING.md#install-from-a-checkout).
 
 Install the Claude Code plugin (skill, `raid-worker` agent and hooks) inside any Claude Code session:
 

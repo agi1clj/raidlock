@@ -82,7 +82,7 @@ packages = ["src/raidlock"]
 testpaths = ["tests"]
 addopts = "-q"
 pythonpath = ["src"]
-markers = ["slow: scale benchmarks; run with RAIDLOCK_SLOW=1 or -m slow (nightly CI)"]
+markers = ["slow: scale benchmarks; run manually with RAIDLOCK_SLOW=1 or -m slow"]
 
 [tool.ruff]
 target-version = "py311"

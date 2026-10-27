@@ -27,6 +27,8 @@ raid --lead-secret "$LEAD_SECRET_FILE" new "Paginate orders" --id orders --team 
   --verify "Order tests pass" --verify-cmd "uv run pytest tests/orders"
 ```
 
+On macOS, `raid verify` runs these `uv run` commands offline; warm its cache once as shown in [Verification](verification.md#the-verify-gate).
+
 ## Assign workers
 
 Start a `raid-worker` Claude subagent on `checkout`, in its own checkout. It joins with `--runtime claude-code`, exports its own worker identity/token, claims, then uses the returned card capability and fence. It never receives the lead secret. See the exact CLI sequence in [Getting started](getting-started.md).
@@ -65,4 +67,11 @@ raid --lead-secret "$LEAD_SECRET_FILE" verify checkout --cwd /absolute/path/to/r
 raid --lead-secret "$LEAD_SECRET_FILE" done checkout
 ```
 
-Repeat for `orders`. Keep the [worker contract](install.md#codex-workers) in `AGENTS.md` for other providers.
+`orders` was delegated, so land its patch instead of releasing and verifying by hand. `land` applies and commits the patch, verifies that commit and prints the next step:
+
+```bash
+raid --lead-secret "$LEAD_SECRET_FILE" land orders --cwd ~/demo/shop/acme-shop
+raid --lead-secret "$LEAD_SECRET_FILE" done orders
+```
+
+Keep the [worker contract](install.md#codex-workers) in `AGENTS.md` for other providers.

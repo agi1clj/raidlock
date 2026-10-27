@@ -3,13 +3,13 @@
 | When | Check | Outcome |
 |---|---|---|
 | Edit, Write, NotebookEdit, Codex `apply_patch` | Is the file inside a live lease you hold with your current fence? | Silent allow, or deny with one line |
-| Bash | `raidlock done`, `move <id> done`, `reopen`, `verify`, `--for`, `--urgent` from a subagent or any session that is not the lead's | Deny |
+| Bash | `raidlock done`, `move <id> done`, `reopen`, `verify`, `land`, `delegate`, `pr`, other lead-only commands, `--for`, `--urgent` from a subagent or any session that is not the lead's, also behind wrappers | Deny |
 | Bash | A subagent's or unbound session's `raidlock` write command without its own `RAIDLOCK_AGENT=`/`--agent`, or with the lead's name | Deny |
 | Bash | Any write into `.board/` (redirect, `tee`, `rm`, `mv`, `cp`, `sed -i`, ...) | Deny |
 | Bash | Redirect or `tee` into a repo file | Same rule as Edit |
 | Bash | Reading `~/.raidlock/tokens` or presenting the lead secret from a session that is not the lead's | Deny |
 | Read, Glob, Grep | The lead secret and agent tokens, including aliases | Deny except in the lead's session |
-| Task, Agent | The prompt or description names a card that is not done or cancelled (`board_first_subagents`, on by default) | Silent allow, or deny |
+| Task, Agent | The prompt or description contains `card <id>` for a card that is not done or cancelled (`board_first_subagents`, on by default) | Silent allow, or deny |
 | Before any tool | Pending urgent messages for the authenticated caller | Deliver bounded quoted context once; silent when empty |
 | After each tool | Lease heartbeat for your card | At most once per 5 minutes, in the background |
 | Subagent stops | Its last message | Appended to the board transcript as a handback |

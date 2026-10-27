@@ -125,7 +125,7 @@ raid limits --json
 | Claude Code | context use from the session transcript (automatic with the plugin); plan usage only through the statusline: `raid limits --install-statusline` |
 | Gemini CLI | not supported; no local source |
 
-Every field, where it comes from and how fresh it stays: [Limits](limits.md). Readings show their age ("updated 4 min ago"); routing treats a reading older than six hours as unknown. raidlock does not fail over between providers.
+Every field, where it comes from and how fresh it stays: [Limits](limits.md). Readings show their age ("updated 4 min ago"); routing treats a reading older than six hours as unknown. Credentials never fail over; routing fallbacks and opt-in `resurrect --sweep` choose another provider only by rule.
 
 ## Patch safety scan
 

@@ -11,6 +11,8 @@ raid --lead-secret "$LEAD_SECRET_FILE" new "Validate cart at checkout" --id chec
   --verify "Checkout tests pass" --verify-cmd "uv run pytest tests/checkout"
 ```
 
+On macOS, `raid verify` runs a `uv run` command offline; warm its cache once as shown in [Verification](verification.md#the-verify-gate).
+
 `--depends a,b` holds the quest until those quests are done, `--reviewers` names reviewers up front and `--ticket` links an issue. See [Command reference](commands.md#plan) for every flag.
 
 ## Suggest locks

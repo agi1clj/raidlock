@@ -50,7 +50,7 @@ Every empty section says what to run next: no cards (`raid --lead-secret ... new
 
 ### First quest
 
-When the browser first opens a workspace that has no cards, the War room shows a small **First quest** panel (plain theme: **Your first card**) with four steps and a copy button for each command: create a card (`raid --lead-secret FILE new "<title>" --locks <repo>/<path> --verify-cmd "<check>"`), claim it (`raid claim <card>`), verify it, and close it with `done`. Each step ticks off from the live board: a card exists, a card is claimed, a verify receipt or a card in review, a card done. Once the first card is done the panel goes away. The close button hides it for that workspace in this browser. On the overview, the panel shows while every workspace is empty.
+When the browser first opens a workspace that has no cards, the War room shows a small **First quest** panel with four steps and a copy button for each command: create a card (`raid --lead-secret FILE new "<title>" --locks <repo>/<path> --verify-cmd "<check>"`), claim it (`raid claim <card>`), verify it, and close it with `done`. Each step ticks off from the live board: a card exists, a card is claimed, a verify receipt or a card in review, a card done. Once the first card is done the panel goes away. The close button hides it for that workspace in this browser. On the overview, the panel shows while every workspace is empty.
 
 ### Ambient motion
 
@@ -62,7 +62,7 @@ The UI follows WCAG 2.2 AA: text and controls meet contrast in light and dark co
 
 ### Views
 
-The tabs under the workspace status line switch between **Focus**, **All cards** and four read-only views. Each view has its own address, `/<workspace>?view=<name>`, so the back button and bookmarks work. A view is drawn only while it is open. Every view has a matching command with `--json` output.
+The ten view tabs in the workspace header are War room (Focus), Quest log (All cards), Tavern chatter, Quest web, War map, Raid frames, Treasury, Chronicle, Boss board and Feats. Five of them are the read-only views below. Each has its own address, `/<workspace>?view=<name>`, so the back button and bookmarks work, and a matching command with `--json` output. A view is drawn only while it is open.
 
 | View | `?view=` | Command | API |
 |---|---|---|---|

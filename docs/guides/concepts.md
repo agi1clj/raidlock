@@ -28,11 +28,11 @@ The only unit agents coordinate on. A quest has one owner, a lane, a scope in wo
 
 ## Review (inspector)
 
-A reviewer reads a quest in `review` and records a verdict: `approve`, `changes` or `comment`. Reviewers hold no lease and edit nothing. The board setting `require_review` sets how many approvals `move done` needs. The recommended setting is one approval from a different provider than the owner, so a Claude-built change is checked by Codex and the other way round.
+A reviewer reads a quest in `review` and records a verdict: `approve`, `changes` or `comment`. Reviewers hold no lease and edit nothing. The board setting `require_review` sets how many approvals `raid done` needs. The recommended setting is one approval from a different provider than the owner, so a Claude-built change is checked by Codex and the other way round.
 
 ## Lease (raid lock)
 
-Claiming a quest leases all its lock paths at once, or none. Paths are canonicalized first, so `repo/./src`, `REPO/src` on a case-insensitive disk and `repo\src` are the same path. Two paths conflict when one contains the other. A lease lasts 45 minutes and is renewed by the owner's activity. It stays through `review` and `blocked`, and is released on `done`, `todo` or `release`.
+Claiming a quest leases all its lock paths at once, or none. Paths are canonicalized first, so `repo/./src`, `REPO/src` on a case-insensitive disk and `repo\src` are the same path. Two paths conflict when one contains the other. A lease lasts 45 minutes (`ttl_minutes`) and is renewed by the owner's activity. In `review` and `blocked` it becomes an advisory hold for `hold_minutes` (default 60): its paths stay visible and overlapping claims print a warning, but it never authorizes writes. `raid reap` drops expired holds and keeps the quest's lane. The lease is released on `done`, `todo` or `release`.
 
 ## Fencing
 
