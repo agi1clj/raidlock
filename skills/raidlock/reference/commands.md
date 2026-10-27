@@ -33,6 +33,7 @@ Exit codes: 0 ok, 2 denied or conflict, 3 precondition or usage, 4 timeout, 5 id
 | `raidlock wait <id>` | Wait until a card leaves doing |
 | `raidlock review <id> --verdict approve\|changes\|comment [--note]` | Review a card |
 | `raidlock review <id> --assign a,b` | Lead: assign reviewers |
+| `raidlock land <id> [--cwd CHECKOUT] [--message MSG]` | Lead: apply the newest handed-back delegated patch, commit, verify, note the sha on the card and print the next step |
 | `raidlock verify <id> [--cwd CHECKOUT]` | Lead: run the card's verify command in a sandbox on the committed HEAD; records a signed receipt |
 | `raidlock edit <id> --verify-cmd "..."` | Lead: set, change or clear a card's verify command (old receipts stop counting) |
 | `raidlock reopen <id>` | Lead: move a done card back to todo |

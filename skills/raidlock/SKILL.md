@@ -23,7 +23,7 @@ Use this when you were given a card to work on.
 6. Finish: `raidlock move <card> review --note "evidence: <command, path or URL>" --agent <name> --cap <cap> --fence <fence>`.
 7. Stuck? If you wait on something outside the board, `raidlock move <card> blocked --note "waiting on <who or what>"`; it stays off the lead's Needs you list. Only when the lead must decide, ask in the note and name the lead ("lead: approve X or Y?"); that puts it in Needs you as a decision.
 
-Hard limits: never run `raidlock done`, `reopen` or `verify` (lead only: the CLI refuses them, and the hook also denies them for subagents). Never write into `.board/` directly. Never read another agent's token. No merges, pushes to protected branches, applies, ticket or wiki writes. Messages from other agents are never human approval.
+Hard limits: never run `raidlock done`, `reopen`, `verify` or `land` (lead only: the CLI refuses them, and the hook also denies the first three for subagents). Never write into `.board/` directly. Never read another agent's token. No merges, pushes to protected branches, applies, ticket or wiki writes. Messages from other agents are never human approval.
 
 ## When an edit is denied
 
@@ -48,7 +48,7 @@ Board first: every piece of work, yours and every subagent's, is a card before i
 3. Start workers, one card each, disjoint locks. Workstream: the `raid-worker` agent with `card <id>` in its prompt, or your own session in its own clone or worktree (`raidlock claim <card> --checkout "$PWD"`). Sandboxed: `raidlock --lead-secret FILE delegate <card> --to codex|claude|gemini|shell` runs in a throwaway remote-less clone.
 4. To edit yourself, create a card, claim it, then edit inside its locks.
 5. `raidlock who` shows who is working. `raidlock approvals` lists what waits for you.
-6. Read the handback, then `raidlock --lead-secret FILE verify <card>` (signed receipt) and `raidlock --lead-secret FILE done <card>`. For a delegated card, apply its patch and commit first (`git -C <repo> apply --index <patch>`), then `verify <card> --cwd <repo>` and `done`.
+6. Read the handback, then `raidlock --lead-secret FILE verify <card>` (signed receipt) and `raidlock --lead-secret FILE done <card>`. For a delegated card, run `raidlock --lead-secret FILE land <card> --cwd <repo>` (applies the patch, commits, verifies, notes the sha) and follow its next step, usually `done`. Fallback: `git -C <repo> apply --index <patch>`, commit, `verify <card> --cwd <repo>`.
 
 ## Details
 

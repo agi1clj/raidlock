@@ -39,15 +39,15 @@ Leases map through the git remote, so every clone and worktree of a repo shares 
 
 `raid delegate CARD --to codex|claude|gemini|shell` claims the card for the agent and runs its CLI in a throwaway clone with no remote, committed files only and a cleared environment. The clone shares git objects, so it costs only the checkout. The agent runs with its own sandbox mode (`--sandbox workspace-write` for workers, `read-only` for reviewers) and never gets your push credentials or git hooks. Afterwards raidlock rejects any change outside the card's locks or anything that looks like a secret, and hands back a patch.
 
-The lead lands the patch, verifies that commit (the verify command runs under bubblewrap or `sandbox-exec`) and closes the card:
+The lead lands the patch with `raid land`, which applies it, commits, verifies that commit (the verify command runs under bubblewrap or `sandbox-exec`) and notes the sha and verify result on the card in review. Then the lead closes the card:
 
 ```bash
 raid --lead-secret "$LEAD_SECRET_FILE" delegate checkout --to codex
-git -C ~/code/shop/storefront apply --index ~/.raidlock/runs/shop/checkout/1/changes.patch
-git -C ~/code/shop/storefront commit -m "Reject empty carts"
-raid --lead-secret "$LEAD_SECRET_FILE" verify checkout --cwd ~/code/shop/storefront
+raid --lead-secret "$LEAD_SECRET_FILE" land checkout --cwd ~/code/shop/storefront
 raid --lead-secret "$LEAD_SECRET_FILE" done checkout
 ```
+
+`land` takes the patch of the newest worker run that handed back to review. It refuses, before touching anything, when the checkout is not the card's repo, has uncommitted or untracked files, does not descend from the run's base commit, or when the patch touches paths outside the card's locks. If the patch does not apply or the commit fails (a pre-commit hook, say), the checkout is reset to where it was and nothing is committed. Apply and commit use your own git config, so your identity, signing and hooks apply. The commit message defaults to `feat(<card>): <title>`; pass `--message` to change it. `land` ends with one next step: `raid done <card>`, or what still blocks it (a failed verify, a missing approval). Manual fallback: `git -C <repo> apply --index <patch>`, `git -C <repo> commit`, then `raid verify <card> --cwd <repo>`.
 
 The handback prints the patch path. Once a second provider has joined, `done` also needs an approval from a reviewer on another provider, for example `raid --lead-secret "$LEAD_SECRET_FILE" delegate checkout --to claude --as reviewer`. On `done`, `close` or `cancel`, raidlock deletes the card's clones and keeps the logs and patch under `~/.raidlock/runs/`.
 

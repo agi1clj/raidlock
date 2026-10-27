@@ -15,7 +15,7 @@ TAIL_BYTES = 65536
 HANDBACK_CHARS = 8000
 URGENT_CHARS = 8000
 PLUGIN_ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..")
-LEAD_ONLY = ("migrate", "done", "reopen", "verify", "pr", "pr-link", "pr-sync", "delegate", "duel", "resurrect")
+LEAD_ONLY = ("migrate", "done", "reopen", "verify", "land", "pr", "pr-link", "pr-sync", "delegate", "duel", "resurrect")
 READ_ONLY = (
     "",
     "show",
