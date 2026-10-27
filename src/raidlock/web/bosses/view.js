@@ -32,7 +32,7 @@
       const ranked = bags.slice().sort((a, b) => best(b) - best(a) || b.items.length - a.items.length || a.agent.localeCompare(b.agent));
       c.setKids(pane, [
         c.h("div", {class: "view-head"}, c.h("h2", null, "Boss board", c.raidSub ? c.raidSub("Big quests and loot") : null),
-          c.h("p", {class: "cls", text: `A quest that ${d.boss_dependents} or more others wait on is a boss. Its HP is the share of it and its dependents still open. Every finished quest drops one item for the agent who closed it.`})),
+          c.h("p", {class: "cls", text: `A quest that ${d.boss_dependents} or more others wait on, or that the raid leader names, is a boss. Its HP is the share of it and its dependents still open. Every finished quest drops one item for the agent who closed it.`})),
         bosses.length ? c.h("ul", {class: "bosses"}, bosses.map(b => boss(c, b)))
           : c.h("p", {class: "empty", text: `No bosses roam this realm yet. A quest becomes a boss once ${d.boss_dependents} others wait on it, or when the raid leader names it one.`}),
         c.h("h3", {class: "loot-head", text: `Loot bags · ${drops} ${drops === 1 ? "drop" : "drops"}`}),
