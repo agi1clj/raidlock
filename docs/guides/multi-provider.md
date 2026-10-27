@@ -59,7 +59,9 @@ raid review checkout --by codex-reviewer-checkout --verdict approve --note "empt
 
 With the cross-provider review requirement enabled, the lead cannot close work until the required independent approval exists. A `changes` verdict returns the card to its owner in `doing`.
 
-The requirement stays on after the second provider leaves. A blocked close names the ways out: assign a reviewer, close merged work with `raid --lead-secret FILE close ID --evidence <PR URL or SHA> --note <text>`, or stop requiring reviews with `raid --lead-secret FILE config set require_review 0`. Cards that touch protected paths always need the cross-provider review.
+Gates switched on automatically follow the providers present. A provider counts while one of its agents was seen within the lease TTL (`ttl_minutes`) or holds a live lease. When only one provider is left, the next close relaxes the review and verify gates back to the defaults and records a `gate_defaults_relaxed` event; they switch on again when a second provider returns. Values you set with `raid config set` never change on their own, so set `require_review` yourself to keep a review gate on a mixed team. Cards that touch protected paths always need the cross-provider review.
+
+A blocked close names the ways out: assign a reviewer, close merged work with `raid --lead-secret FILE close ID --evidence <PR URL or SHA> --note <text>`, or never require reviews with `raid --lead-secret FILE config set require_review 0`.
 
 After inspecting and integrating the intended changes, release the worker's lease if it still points at the worker's clone, then verify from the lead session, using the checkout that contains those changes:
 

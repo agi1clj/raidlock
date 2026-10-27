@@ -118,7 +118,7 @@ Many projects. Each workspace has its own `.board/`, and every board registers i
 
 Many sessions. Separate Claude Code or Codex sessions join the same board with `raid up --join`, each in its own clone or worktree. Leases map through the git remote, so every checkout of a repo shares one lock space.
 
-Mixed providers. When an agent from a second provider joins, raidlock turns on the verify gate and the cross-provider review gate and records the change. Values you set yourself with `raid config set` are kept. The gates stay on after that agent leaves. Claude Code alone is enough; to go back to one provider, run `raid --lead-secret FILE config set require_review 0`, or close merged work with `raid close ID --evidence <PR URL> --note <text>`.
+Mixed providers. When an agent from a second provider joins, raidlock turns on the verify gate and the cross-provider review gate and records the change. Values you set yourself with `raid config set` are kept. They stay on only while both providers are present (seen within the lease TTL, or holding a lease); when one leaves, the next close relaxes them back to the defaults. Claude Code alone is enough.
 
 Board-first enforcement, on by default. The Claude Code hooks deny edits outside the card you hold, and that includes the lead: a lead edit inside a git repo needs a card the lead holds (`require_card_for_lead_edits`). A `Task` or `Agent` launch is denied unless its prompt names an open card as `card <id>` (`board_first_subagents`). Turn either off with `raid --lead-secret FILE config set <key> off`. The git commit guard checks other agents' leases either way.
 

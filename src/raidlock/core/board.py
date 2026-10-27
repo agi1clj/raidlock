@@ -565,6 +565,50 @@ class Board:
         if caller.is_lead:
             self._lead_write(caller)
 
+    def _live_providers(self, agents):
+        """Providers with an agent present now: the lead, an agent seen within the lease TTL, or a live lease holder."""
+        now = clock.iso()
+        holders = {lease["agent"] for lease in self.index.leases(self.uid).values() if lease["expires"] > now}
+        seen = self.index.last_seen(self.uid)
+        ttl = self.ttl_seconds()
+        live = set()
+        for name, agent in agents.items():
+            provider = agent.get("provider")
+            if provider in (None, "", "human"):
+                continue
+            age = clock.age_seconds(seen.get(name) or agent.get("last_seen", ""))
+            if name == self.lead or name in holders or (age is not None and age <= ttl):
+                live.add(provider)
+        return live
+
+    def _sync_gate_defaults(self, actor, agents=None):
+        """Review and verify gates the lead never set follow the providers present: on while two or more are live,
+        back to the defaults when only one is left. Values set with `config set` are kept either way."""
+        agents = self.agents() if agents is None else agents
+        multi = len(self._live_providers(agents)) >= 2
+        meta = store.read_json(self._p("board.json"))
+        settings = copy.deepcopy(meta.get("settings", {}))
+        explicit = meta.get("explicit_settings", [])
+        review = normalize_review_setting(settings.get("require_review"))
+        base = DEFAULT_SETTINGS["require_review"]
+        if "require_review.count" not in explicit:
+            review["count"] = max(1, base["count"]) if multi else base["count"]
+        if "require_review.other_provider" not in explicit:
+            review["other_provider"] = multi or base["other_provider"]
+        settings["require_review"] = review
+        if "require_verify" not in explicit:
+            settings["require_verify"] = multi or DEFAULT_SETTINGS["require_verify"]
+        if settings != meta.get("settings"):
+            meta["settings"] = settings
+            store.write_json(self._p("board.json"), meta)
+            self._record(
+                "status",
+                actor,
+                "multi-provider review and verify defaults " + ("enabled" if multi else "relaxed: one provider left"),
+                data={"event": "gate_defaults" if multi else "gate_defaults_relaxed", "settings": settings},
+            )
+        self.meta = meta
+
     def _touch(self, name):
         self.index.touch_agent(self.uid, name)
 
@@ -607,30 +651,8 @@ class Board:
         record["display"] = f"{name} · {models.display(record['model'], self.home)} · {runtime}"
         agents[name] = record
         self._save_agents(agents)
-        providers = {a.get("provider") for a in agents.values()} - {None, "", "human"}
-        if len(providers) >= 2:
-            meta = store.read_json(self._p("board.json"))
-            settings = copy.deepcopy(meta.get("settings", {}))
-            explicit = meta.get("explicit_settings", [])
-            review = normalize_review_setting(settings.get("require_review"))
-            if "require_review.count" not in explicit:
-                review["count"] = max(1, review["count"])
-            if "require_review.other_provider" not in explicit:
-                review["other_provider"] = True
-            settings["require_review"] = review
-            if "require_verify" not in explicit:
-                settings["require_verify"] = True
-            if settings != meta.get("settings"):
-                meta["settings"] = settings
-                store.write_json(self._p("board.json"), meta)
-                self._record(
-                    "status",
-                    name,
-                    "multi-provider review and verify defaults enabled",
-                    data={"event": "gate_defaults", "settings": settings},
-                )
-            self.meta = meta
         self.index.put_agent(self.uid, name, record)
+        self._sync_gate_defaults(name, agents)
         token = I.issue_token(self.home, self.uid, name) if issue else None
         return {"agent": name, "token": token, **record}
 
@@ -1427,6 +1449,7 @@ class Board:
         if lane == "done":
             self._auth(caller)
             self._require_lead(caller, "move a card to done")
+            self._sync_gate_defaults(caller.name)
             self._done_gate(card)
             return "lead"
         if lane in ("review", "blocked") and card["lane"] == "todo":
@@ -1491,7 +1514,7 @@ class Board:
                 + (
                     ""
                     if card.get("allow_protected")
-                    else "; to stop requiring reviews on this board: " + lead_cmd(self, "config set require_review 0")
+                    else "; to never require reviews on this board: " + lead_cmd(self, "config set require_review 0")
                 ),
             )
 
