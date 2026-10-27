@@ -11,7 +11,7 @@ raidlock keeps cooperating agents out of each other's way. It is not a sandbox, 
 - **What is not.** An agent that ignores the hook and edits files directly is caught at commit, push or patch time, not at the moment it writes. Quests in `todo` are not locked.
 - **Verification needs a sandbox.** `raid verify` runs only under bubblewrap on Linux or `sandbox-exec` on macOS, and checks committed code only. A receipt proves the command passed, not that it tests the right thing.
 - **Platforms.** Linux and macOS. On Windows, use WSL2 (expected to work, not yet tested). Native Windows is not supported: lead process-anchor verification is not verified and `raid verify` has no sandbox there.
-- **Providers.** Gemini delegation is experimental. Claude Code plan limits are visible only if you pipe its statusline JSON to `raid limits --ingest-claude`; Gemini limits are not available. raidlock moves work between providers on its own only through `raid resurrect --sweep`, which is off until the lead enables it.
+- **Providers.** Gemini works through `raid delegate --to gemini`; that adapter is tested against recorded Gemini output, not yet against a live Gemini CLI. Claude Code plan limits are visible only if you pipe its statusline JSON to `raid limits --ingest-claude`; Gemini limits are not available. raidlock moves work between providers on its own only through `raid resurrect --sweep`, which is off until the lead enables it.
 - **Numbers.** Cost comes from what each runtime reports, priced from a local file you edit; some default prices are placeholders. Reputation scores are experimental and grant no permissions.
 - **The UI** listens on `127.0.0.1` only (in the [container image](docker.md), `0.0.0.0` inside the container, published on the host's loopback), checks the `Host` header, serves a fixed file list and answers `GET` only. It has no login; anyone with a shell on your machine can read it.
 - **Not a session manager or tracker.** raidlock does not start terminals or agents for you, and a quest can point at a ticket but does not replace your issue tracker.
@@ -20,7 +20,7 @@ raidlock keeps cooperating agents out of each other's way. It is not a sandbox, 
 
 Three layers, so the locks hold whatever the agent's vendor:
 
-1. **Claude Code hooks.** PreToolUse hooks deny file edits on paths the agent does not hold, lead edits in a git repo without a held card, and subagent launches that name no open card (the last two are board-first rules, on by default).
+1. **Claude Code and Codex hooks.** PreToolUse hooks (the Claude Code plugin, or `~/.codex/hooks.json` for Codex) deny file edits on paths the agent does not hold, lead edits in a git repo without a held card, and subagent launches that name no open card (the last two are board-first rules, on by default).
 2. **Git guards.** Pre-commit and pre-push hooks in each checkout refuse commits and pushes that touch paths outside the quest, or carry a stale fence. These cover every provider and humans.
 3. **Runner diff.** Delegated runs (Codex, Gemini, shell) happen in a remote-less clone. Afterwards the runner diffs it and rejects changes outside the quest's locks.
 
@@ -36,7 +36,7 @@ There is no network API.
 | Runtime | How it joins | Enforcement | Cost data |
 |---|---|---|---|
 | Claude Code | Plugin: skill, `raid-worker` agent, hooks, `/raidlock:raid` | Hook + git guards | `claude -p` cost report, or subagent token totals |
-| Codex CLI | MCP server, or `raid delegate <quest> --to codex` | Git guards + runner diff | `codex exec --json` usage events |
+| Codex CLI | MCP server, or `raid delegate <quest> --to codex` | Hooks (via `~/.codex/hooks.json`) + git guards + runner diff | `codex exec --json` usage events |
 | Gemini CLI | `raid delegate <quest> --to gemini` | Git guards + runner diff | When reported |
 | Shell / humans | CLI | Git guards (+ runner diff when delegated) | None |
 
@@ -83,7 +83,7 @@ These tools overlap with raidlock, and several do some things better. Each row w
 
 ## Roadmap
 
-Not in 0.1. Ideas, not promises:
+Not built yet. Ideas, not promises:
 
 - `raid agents-md`, a generator for the AGENTS.md worker snippet (today you paste it from [Install](install.md)).
 - Gemini CLI setup through MCP (delegation with `--to gemini` exists).
