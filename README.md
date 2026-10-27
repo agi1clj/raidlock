@@ -3,10 +3,6 @@
   <img src="docs/assets/brand/raidlock-lockup.svg" alt="raidlock" width="227" height="42">
 </picture>
 
-# raidlock
-
-A lease-and-review board that lets several coding agents work on the same repos without colliding.
-
 **raidlock stops parallel coding agents from overwriting each other's files, across Claude Code, Codex and Gemini, and won't accept their work until the tests pass and an agent from another provider signs off.**
 
 <p align="center"><img src="docs/assets/demo.webp" alt="raidlock web UI tour" width="960"></p>
