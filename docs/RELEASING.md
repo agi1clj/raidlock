@@ -6,7 +6,7 @@ Releases are automated with [release-please](https://github.com/googleapis/relea
 
 1. Merge pull requests with Conventional Commit titles (`feat:`, `fix:`, `docs:`...). The squash commit title becomes the changelog entry.
 2. On every push to `main`, `.github/workflows/release.yml` runs release-please. It opens or updates a PR titled `chore(main): release X.Y.Z` that bumps `pyproject.toml`, `src/raidlock/__init__.py`, `uv.lock`, the plugin manifests, `.release-please-manifest.json` and `CHANGELOG.md`.
-3. Pull requests opened by the Actions token do not start CI. Run it on the release branch before merging: `gh workflow run ci.yml --ref <release branch>`.
+3. The workflow starts CI on the release branch itself (pull requests opened by the Actions token do not trigger CI on their own). Wait for it to pass.
 4. Merge the release PR. The same workflow then creates the `vX.Y.Z` tag and GitHub release, builds the sdist and wheel, publishes them to PyPI through trusted publishing (environment `pypi`, attestations on), signs them with Sigstore and attaches the `.sigstore.json` bundles, and builds, signs and pushes `ghcr.io/agi1clj/raidlock:X.Y.Z` and `:latest` for `linux/amd64` and `linux/arm64` with SBOM and provenance.
 
 ## Check a release
