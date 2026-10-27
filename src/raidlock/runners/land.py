@@ -1,5 +1,6 @@
 import json
 import os
+import re
 import shlex
 import subprocess
 
@@ -30,15 +31,26 @@ def landable_run(board, card_id):
     return None, None, None
 
 
-def _git(where, *args):
-    return subprocess.run(
-        [exe.find("git"), "-C", where, "--no-pager", *args],
-        capture_output=True,
-        text=True,
-        encoding="utf-8",
-        errors="replace",
-        check=False,
-    )
+def _git(where, *args, env=None):
+    return W.git_run(where, *args, env=env)
+
+
+def _identity(where):
+    """The lead's author and committer, read from its own git setup; the commit itself runs without its config."""
+    env = {}
+    for role in ("AUTHOR", "COMMITTER"):
+        proc = subprocess.run(
+            [exe.find("git"), "-C", where, "var", f"GIT_{role}_IDENT"],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            check=False,
+        )
+        match = re.match(r"(.*?) <([^<>]*)> ", proc.stdout)
+        if proc.returncode == 0 and match:
+            env[f"GIT_{role}_NAME"], env[f"GIT_{role}_EMAIL"] = match.groups()
+    return env
 
 
 def _subject(card):
@@ -115,7 +127,9 @@ def land(board, caller, card_id, cwd=None, message=None, timeout=600):
     if applied.returncode != 0:
         _git(where, "reset", "-q", "--hard", before)
         raise Precondition(f"git apply failed: {applied.stderr.strip()[:300]}", card=card_id)
-    committed = _git(where, "commit", "-q", "-m", message or _subject(card))
+    committed = _git(
+        where, *W.IDENT, "commit", "-q", "--no-verify", "-m", message or _subject(card), env=_identity(where)
+    )
     if committed.returncode != 0:
         _git(where, "reset", "-q", "--hard", before)
         raise Precondition(

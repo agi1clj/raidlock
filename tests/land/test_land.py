@@ -10,6 +10,7 @@ from runhelpers import git
 from raidlock import cli
 from raidlock.core.errors import IdentityError, Precondition
 from raidlock.runners import isolation
+from raidlock.runners import land as land_module
 from raidlock.runners.land import land
 from raidlock.runners.runner import delegate
 
@@ -110,16 +111,38 @@ def test_apply_failure_leaves_no_commit(ws):
     assert len(ws.board.card("land")["notes"]) == notes
 
 
-def test_commit_failure_rolls_back(ws):
+def test_commit_failure_rolls_back(ws, monkeypatch):
     handed_back(ws)
-    hook = ws.repo / ".git" / "hooks" / "pre-commit"
-    hook.write_text("#!/bin/sh\nexit 1\n")
-    os.chmod(hook, 0o700)
+    real = land_module._git
+
+    def failing(where, *args, **kwargs):
+        if "commit" in args:
+            return subprocess.CompletedProcess(args, 1, "", "refused")
+        return real(where, *args, **kwargs)
+
+    monkeypatch.setattr(land_module, "_git", failing)
     before = head(ws.repo)
     with pytest.raises(Precondition, match="nothing was committed"):
         land(ws.board, ws.lead, "land", cwd=str(ws.repo))
     assert head(ws.repo) == before
     assert status(ws.repo) == ""
+
+
+def test_land_runs_no_repository_hooks(ws, tmp_path):
+    handed_back(ws)
+    marker = tmp_path / "hook-ran"
+    hooks = tmp_path / "hooks"
+    hooks.mkdir()
+    for name in ("pre-commit", "commit-msg", "post-commit", "post-index-change"):
+        hook = hooks / name
+        hook.write_text(f"#!/bin/sh\necho {name} >> {shlex.quote(str(marker))}\n")
+        os.chmod(hook, 0o700)
+    git(ws.repo, "config", "core.hooksPath", str(hooks))
+    before = head(ws.repo)
+    r = land(ws.board, ws.lead, "land", cwd=str(ws.repo))
+    assert r["commit"] == head(ws.repo) != before
+    assert not marker.exists()
+    assert git(ws.repo, "log", "-1", "--format=%an <%ae>").strip() == "t <t@t>"
 
 
 def test_non_lead_is_refused(ws):
