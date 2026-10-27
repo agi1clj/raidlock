@@ -120,7 +120,7 @@ See [docs/RELEASING.md](docs/RELEASING.md) for the release flow and the settings
 
 ## Python checks
 
-CI tests the oldest supported Python (3.11) on Linux and the newest (3.14) on macOS, and runs ruff, pyright and actionlint. The Playwright UI suite runs when the web UI changes; the container build and Trivy scan run when the image inputs change and weekly.
+CI tests the oldest supported Python (3.11) on Linux on every push and pull request, and the newest (3.14) on macOS when sandbox, runner, hook or core code changes, on every push to main and weekly; and runs ruff, pyright and actionlint. The Playwright UI suite runs when the web UI changes; the container build and Trivy scan run when the image inputs change and weekly.
 Run the same static checks locally:
 
 ```bash
