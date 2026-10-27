@@ -96,6 +96,38 @@ def test_patch_outside_the_locks_is_refused(ws, tmp_path):
     assert status(ws.repo) == ""
 
 
+def test_crafted_header_that_escapes_the_locks_is_refused(ws):
+    result = handed_back(ws)
+    with open(result["patch"], "w", encoding="utf-8") as f:
+        f.write("diff --git a/src b/src/z b/src b/src/z\nnew file mode 100644\nindex 0000000..e69de29\n")
+    before = head(ws.repo)
+    with pytest.raises(Precondition, match="disagree with git apply: src b/src/z"):
+        land(ws.board, ws.lead, "land", cwd=str(ws.repo))
+    assert head(ws.repo) == before
+    assert status(ws.repo) == ""
+
+
+def test_patch_swapped_after_the_check_is_not_applied(ws, tmp_path, monkeypatch):
+    result = handed_back(ws)
+    other = tmp_path / "other"
+    git(tmp_path, "clone", "-q", str(ws.repo), str(other))
+    (other / "README.md").write_text("swapped\n")
+    git(other, "add", "-A")
+    swapped = git(other, "diff", "--cached", "--binary")
+    real = land_module._check_paths
+
+    def swap(*args, **kwargs):
+        checked = real(*args, **kwargs)
+        with open(result["patch"], "w", encoding="utf-8") as f:
+            f.write(swapped)
+        return checked
+
+    monkeypatch.setattr(land_module, "_check_paths", swap)
+    land(ws.board, ws.lead, "land", cwd=str(ws.repo))
+    assert git(ws.repo, "show", "--name-only", "--format=", "HEAD").split() == ["src/land.txt"]
+    assert (ws.repo / "README.md").read_text() != "swapped\n"
+
+
 def test_apply_failure_leaves_no_commit(ws):
     handed_back(ws)
     (ws.repo / "src" / "land.txt").write_text("conflict")
