@@ -41,12 +41,35 @@ jobs:
     timeout-minutes: 5
     permissions:
       actions: write
+      pull-requests: read
     steps:
-      - name: Start CI on the release branch
+      # The Actions token opens the release PR, so GitHub holds its pull_request runs as
+      # action_required. Only those PR-linked runs satisfy the required checks, so approve them.
+      - name: Approve the release PR's held runs
         env:
           GH_TOKEN: ${{ github.token }}
           BRANCH: ${{ fromJSON(needs.release-please.outputs.pr).headBranchName }}
-        run: gh workflow run ci.yml --repo "$GITHUB_REPOSITORY" --ref "$BRANCH"
+          PR: ${{ fromJSON(needs.release-please.outputs.pr).number }}
+        run: |
+          sha=$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PR" --jq .head.sha)
+          approved=0
+          for _ in $(seq 12); do
+            ids=$(gh run list --repo "$GITHUB_REPOSITORY" --branch "$BRANCH" --commit "$sha" \
+              --event pull_request --status action_required --json databaseId --jq '.[].databaseId')
+            for id in $ids; do
+              if gh api -X POST "repos/$GITHUB_REPOSITORY/actions/runs/$id/approve" --silent; then
+                echo "approved run $id"
+                approved=$((approved + 1))
+              else
+                echo "::warning::could not approve run $id"
+              fi
+            done
+            if [ "$approved" -gt 0 ] && [ -z "$ids" ]; then exit 0; fi
+            sleep 10
+          done
+          if [ "$approved" -eq 0 ]; then
+            echo "::warning::no held pull_request runs for $sha on $BRANCH after 2 minutes; approve them on the release PR's Checks tab"
+          fi
 
   publish:
     name: PyPI and signed release assets
