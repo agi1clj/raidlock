@@ -50,6 +50,10 @@ class Page:
         return self.page
 
     def close(self):
+        # A route handler still fetching when its context closes fails the next test's new_page
+        # ("Route.fetch: Request context disposed"); drop the routes first and ignore in-flight handlers.
+        for target in (*self.ctx.pages, self.ctx):
+            target.unroute_all(behavior="ignoreErrors")
         self.ctx.close()
 
 
