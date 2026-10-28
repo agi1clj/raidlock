@@ -154,6 +154,18 @@ def test_web_package_exposes_installed_entrypoint():
     assert raidlock.web.register_cli is register_cli
 
 
+def test_ui_started_inside_a_board_opens_that_board(tmp_path):
+    from types import SimpleNamespace
+
+    from raidlock.web.cli import start_path
+
+    here, other = tmp_path / "my shop" / ".board", tmp_path / "other" / ".board"
+    catalog = SimpleNamespace(entries=lambda: [("my shop", str(here)), ("other", str(other))])
+    assert start_path(catalog, str(here), None) == "my%20shop"
+    assert start_path(catalog, None, None) == ""
+    assert start_path(catalog, str(here), str(here)) == ""
+
+
 def test_duplicate_host_headers_are_denied(server):
     assert server.get("/api/overview", headers={"Host": "evil.example"})[0] == 403
 

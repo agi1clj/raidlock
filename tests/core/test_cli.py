@@ -242,7 +242,7 @@ def test_verify_exit_code(cli):
     cli("new", "V", "--id", "v1", "--verify-cmd", "python3 -c 'import sys; sys.exit(3)'", as_env=cli.lead, expect=0)
     if isolation.mode() is None:
         _, result = cli("verify", "v1", as_env=cli.lead, expect=3)
-        assert "isolated" in result["message"]
+        assert "OS sandbox" in result["message"]
         return
     _, r = cli("verify", "v1", as_env=cli.lead, expect=2)
     assert r["passed"] is False and r["exit"] == 3
