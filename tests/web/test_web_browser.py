@@ -679,3 +679,16 @@ def test_a_slain_boss_brings_the_victory_screen_and_fanfare(cue_lab):
     page.wait_for_timeout(3500)
     assert cue_counts(page).get("levelup") == 1
     assert p.errors == []
+
+
+def test_re_render_keeps_keyboard_focus(browse):
+    p = browse()
+    page = p.open("/weather-api")
+    page.wait_for_selector("#doingList .row[data-id='cache-ttl'] button.details")
+    page.locator("#doingList .row[data-id='cache-ttl'] button.details").focus()
+    old = page.evaluate_handle("document.activeElement")
+    p.server.demos["weather-api"].note("cache-ttl", "gemini-cache", "Focus survives this re-render")
+    page.wait_for_function("old => !old.isConnected", arg=old, timeout=10000)
+    assert page.evaluate("document.activeElement.closest('.row')?.dataset.id") == "cache-ttl"
+    assert page.evaluate("document.activeElement.matches('button.details')")
+    assert p.errors == []
