@@ -4,6 +4,13 @@ All notable changes to this project are documented here.
 
 The format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/), and the project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.10](https://github.com/agi1clj/raidlock/compare/v0.2.9...v0.2.10) (2026-10-28)
+
+
+### Bug Fixes
+
+* a worker session started with only its card capability can edit its lease ([#44](https://github.com/agi1clj/raidlock/issues/44)) ([94c7f81](https://github.com/agi1clj/raidlock/commit/94c7f81496f5b3822a82fb19efec41e1b5fd7b99))
+
 ## [0.2.9](https://github.com/agi1clj/raidlock/compare/v0.2.8...v0.2.9) (2026-10-28)
 
 
