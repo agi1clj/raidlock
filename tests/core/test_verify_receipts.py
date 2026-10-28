@@ -93,8 +93,9 @@ def test_receipt_attacks_refused(world, verification_repo, tmp_path, attack):
 def test_no_isolation_refused(world, monkeypatch):
     world.card("c1", verify_cmd="true")
     monkeypatch.setattr(isolation, "mode", lambda: None)
-    with pytest.raises(Precondition, match="isolated"):
+    with pytest.raises(Precondition, match="OS sandbox") as refused:
         world.board.verify("c1", world.lead)
+    assert refused.value.hint == isolation.missing_hint()
 
 
 def test_provider_defaults_and_logged_override(world):
