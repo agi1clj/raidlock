@@ -1886,7 +1886,7 @@ class Board:
             )
         kind = isolation.mode()
         if kind is None:
-            raise Precondition("verification requires an isolated verification environment")
+            raise Precondition("verification needs an OS sandbox and none was found", hint=isolation.missing_hint())
         where = os.path.realpath(cwd or self._verification_source(card))
         if workspace.git(where, "status", "--porcelain", "--untracked-files=all").strip():
             raise Precondition(

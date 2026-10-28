@@ -240,6 +240,27 @@ def test_doctor_reports_shadowing_raid(tmp_path, monkeypatch, capsys):
     assert '"healthy":true' in capsys.readouterr().out
 
 
+def test_doctor_warns_when_verify_has_no_sandbox(tmp_path, monkeypatch, capsys):
+    from raidlock.runners import isolation
+
+    ws = tmp_path / "ws"
+    make_repo(ws / "app")
+    Board.init(ws)
+    monkeypatch.setattr(isolation, "mode", lambda: None)
+    monkeypatch.setattr(isolation, "missing_hint", lambda: "install bubblewrap: sudo apt install bubblewrap")
+    assert cli.main(["doctor", "--board", str(ws)]) == 0
+    out = capsys.readouterr().out
+    assert "sandbox: WARNING: raid verify cannot run: install bubblewrap: sudo apt install bubblewrap" in out
+
+
+def test_sandbox_hint_names_the_fix_per_platform():
+    from raidlock.runners import isolation
+
+    assert "apt install bubblewrap" in isolation.missing_hint("linux", {})
+    assert "unset it" in isolation.missing_hint("linux", {"RAIDLOCK_SANDBOX": "container"})
+    assert "WSL2" in isolation.missing_hint("win32", {})
+
+
 @pytest.mark.parametrize("kind", ["read-only", "under-a-file"])
 def test_doctor_flags_unwritable_home(tmp_path, monkeypatch, capsys, kind):
     if kind == "read-only" and (os.name != "posix" or os.geteuid() == 0):

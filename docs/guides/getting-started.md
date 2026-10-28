@@ -11,7 +11,7 @@ uv tool install raidlock          # or: pipx install raidlock
 raid doctor
 ```
 
-If `uv` warns that `~/.local/bin` is not on your `PATH`, run `uv tool update-shell` and open a new terminal. `raid` and `raidlock` are the same CLI. You need Python 3.11 or newer, git, and Linux or macOS (on Windows, WSL2). Claude Code plugin, Codex and MCP setup: [Install](install.md).
+If `uv` warns that `~/.local/bin` is not on your `PATH`, run `uv tool update-shell` and open a new terminal. `raid` and `raidlock` are the same CLI. You need Python 3.11 or newer, git, and Linux or macOS (on Windows, WSL2). On Linux, `raid verify` also needs bubblewrap (`sudo apt install bubblewrap`); `raid doctor` warns when it is missing. Claude Code plugin, Codex and MCP setup: [Install](install.md).
 
 ## 2. Create the board (lead terminal)
 

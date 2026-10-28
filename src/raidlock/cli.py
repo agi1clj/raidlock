@@ -2328,6 +2328,14 @@ def cmd_doctor(ctx, a):
         check("database", False, f"cannot open the index in {short(home)}: {e}")
     used = sum(_tree_bytes(os.path.join(home, name)) for name in ("runs", "verify"))
     check("storage", True, f"{used / 1e6:.0f} MB in run clones and the verify cache; closed cards free theirs")
+    from .runners import isolation
+
+    sandbox = isolation.mode()
+    if sandbox:
+        check("sandbox", True, f"{sandbox} for raid verify")
+    else:
+        warnings.append(f"raid verify cannot run: {isolation.missing_hint()}")
+        check("sandbox", True, "WARNING: " + warnings[-1])
     from . import updates
 
     latest = updates.refresh(persist=False)

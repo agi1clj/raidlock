@@ -69,6 +69,19 @@ def mode(platform=None, which=shutil.which, env=None, exists=os.path.exists):
     return None
 
 
+def missing_hint(platform=None, env=None):
+    """What to install or change so mode() finds a sandbox."""
+    platform = platform or sys.platform
+    env = os.environ if env is None else env
+    if env.get("RAIDLOCK_SANDBOX"):
+        return "RAIDLOCK_SANDBOX=container needs bwrap inside a container; unset it on a normal host"
+    if platform.startswith("linux"):
+        return "install bubblewrap: sudo apt install bubblewrap (Debian, Ubuntu) or sudo dnf install bubblewrap (Fedora)"
+    if platform == "darwin":
+        return f"{SANDBOX_EXEC} is missing; it ships with macOS"
+    return "run raidlock in WSL2 or the container image"
+
+
 def scrub_env(parent_env, home, agent=""):
     env = {k: parent_env[k] for k in ENV_KEEP if parent_env.get(k)}
     env.setdefault("PATH", os.defpath)

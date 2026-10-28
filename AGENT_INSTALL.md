@@ -15,9 +15,10 @@ You are a coding agent (Claude Code, Codex, Gemini CLI or similar) asked to inst
 python3 --version   # needs 3.11 or newer
 git --version
 uv --version || pipx --version
+command -v bwrap   # Linux only: raid verify runs under bubblewrap
 ```
 
-If neither `uv` nor `pipx` exists, ask the user before installing uv (`curl -LsSf https://astral.sh/uv/install.sh | sh`). On Windows, stop and tell the user to run everything inside WSL2.
+If neither `uv` nor `pipx` exists, ask the user before installing uv (`curl -LsSf https://astral.sh/uv/install.sh | sh`). On Linux without `bwrap`, ask the user before installing bubblewrap (`sudo apt install bubblewrap`, or `sudo dnf install bubblewrap`); everything except `raid verify` works without it. On Windows, stop and tell the user to run everything inside WSL2.
 
 ## 2. Install or upgrade the CLI
 
@@ -34,7 +35,7 @@ raid --version
 raid doctor
 ```
 
-`raid doctor` must end with `Healthy.` Fix what it reports, or tell the user what you cannot fix.
+`raid doctor` must end with `Healthy.` Fix what it reports, or tell the user what you cannot fix. A `sandbox: WARNING` line means `raid verify` cannot run yet; it names what to install.
 
 ## 4. Add or update the Claude Code plugin (Claude Code only)
 
