@@ -32,7 +32,8 @@ Turn either off with `raid --lead-secret FILE config set <key> off`. The git com
 ## Watch
 
 - Read the board, not worker output: `raid show`, `raid who`, `raid approvals`, or `raid ui --open`.
-- A stalled agent has an expired lease or no heartbeat for 45 minutes. Message it, `raid --lead-secret FILE reap`, and let another worker `raid claim CARD --take-over`.
+- A stalled agent has an expired lease or no heartbeat for 45 minutes. Message it, `raid --lead-secret FILE reap` (`raid ui` reaps every 5 minutes anyway), and let another worker `raid claim CARD --take-over`.
+- `raid --lead-secret FILE tidy` is the one-shot cleanup: reap, close merged linked PRs, and list what still waits on you with copy-ready commands.
 - `raid --lead-secret FILE msg --to WORKER --card CARD --urgent "..."` reaches a Claude Code worker at its next tool call. CLI workers read `raid inbox`.
 
 ## Review and close

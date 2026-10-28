@@ -104,6 +104,16 @@ raid --lead-secret "$LEAD_SECRET_FILE" lead takeover
 
 Takeover requires the current secret and an expired lease, rotates the secret and fence, and records an alert. A live lead cannot be displaced this way. File secrets and session IDs are a cooperative same-UID boundary, not an OS sandbox.
 
+Most of this is automatic in Claude Code:
+
+- When the lead's session ends, the SessionEnd hook frees its lease at once (`lead_released` in the transcript), so the next session can run `lead takeover` without waiting out `ttl_minutes`.
+- When that same session comes back (`--resume`, or the next turn of a headless `claude -p --resume` lead), SessionStart re-arms its lease (`lead_rearmed`) unless someone took over in between. Nothing to run.
+- A session that starts while the lease is free is told so, with the exact takeover command.
+- SessionStart exports `RAIDLOCK_SESSION` set to the session ID the hooks see. A resumed session keeps an old `CLAUDE_CODE_SESSION_ID` in its shell; this keeps the CLI and the hooks agreeing on one ID, so handover to a resumed session works.
+- A refusal names the session holding the lease, its expiry, this session's ID, and the exact `lead handover --to <this session>` and `lead takeover` commands. `raid lead status` works from any session.
+
+On hosts without `CLAUDE_ENV_FILE` (Codex, Gemini), prefix the takeover with the session ID the refusal printed: `RAIDLOCK_SESSION=<id> raid --lead-secret "$LEAD_SECRET_FILE" lead takeover`.
+
 ### Ready prompt: lead in Claude Code or Codex
 
 ```text

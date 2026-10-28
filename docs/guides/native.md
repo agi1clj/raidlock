@@ -9,17 +9,18 @@ Every hook call is classified before any rule runs:
 | Role | How the hook decides |
 |---|---|
 | subagent | the payload carries `agent_id` |
-| lead | no `agent_id`, and the payload `session_id` matches the live lead lease; a stored lead binding must also match its session and fence (`raidlock lead status`) |
+| lead | no `agent_id`, and the payload `session_id` matches the live lead lease (`raidlock lead status`); the lease decides, so a binding left from an older fence never outranks it |
 | worker | no `agent_id`, and the session has a validated worker binding, or its environment names a joined worker (`RAIDLOCK_AGENT`, `RAIDLOCK_AGENT_ID`, `RAIDLOCK_CAP`) |
 | unbound | any other session inside a raidlock workspace |
 
-Claude Code exports `CLAUDE_CODE_SESSION_ID` to the shell, and raidlock binds the lead lease to that id. The lead's own session is therefore recognized from its first lead write without exporting anything. Naming the lead in the environment (`RAIDLOCK_AGENT=<lead>`) does not make a session the lead.
+Claude Code exports `CLAUDE_CODE_SESSION_ID` to the shell, and raidlock binds the lead lease to that id. SessionStart also exports `RAIDLOCK_SESSION` with the id the hooks see, which wins: a resumed session keeps its old `CLAUDE_CODE_SESSION_ID` in the shell, and without the pin the CLI and the hooks would disagree on who holds the lease. The lead's own session is therefore recognized from its first lead write without exporting anything. Naming the lead in the environment (`RAIDLOCK_AGENT=<lead>`) does not make a session the lead.
 
-If the lease was bound somewhere else, for example `raid quickstart` or the first `lead heartbeat` ran in a plain terminal, the lead's Claude Code session is unbound to the hooks and gets `only the lead session may present the lead secret`. `raid lead status` shows the bound session. Fix it from the holder of the lease with `raid --lead-secret "$LEAD_SECRET_FILE" lead handover --to <Claude Code session id>`, or wait for the lease to expire and run `lead takeover` from the Claude Code session.
+If the lease was bound somewhere else, for example `raid quickstart` or the first `lead heartbeat` ran in a plain terminal, the lead's Claude Code session is unbound to the hooks. The refusal names the session holding the lease, its expiry and this session's id, and prints the two ways out ready to paste: `lead handover --to <this session>` from the holder, or `lead takeover` here once the lease expires. When the lead's Claude Code session ends, its lease is freed at once, so takeover does not wait for the TTL.
 
 What an unbound session may do:
 
-- Write inside a git repo: never inside another agent's lease. Unleased paths only when the board runs with `auth off`; on a token board (the default) every repo write is denied until the session claims a card.
+- Write inside the workspace's repos (any clone of them, wherever it lives): never inside another agent's lease. Unleased paths only when the board runs with `auth off`; on a token board (the default) these writes are denied until the session claims a card.
+- Write anywhere else (its scratchpad, `/tmp`, other repos): allowed, except raidlock's own state (`$RAIDLOCK_HOME`, the plugin data folder) and `.board/`.
 - Lead actions: none. `done`, `reopen`, `verify`, `move <id> done`, `land`, `delegate`, `pr` and other lead-only commands, `--for` and `--urgent` are denied, and so is presenting the lead secret (`--lead-secret`, `RAIDLOCK_LEAD_SECRET`) while the lead lease is live.
 - Secrets: reading the lead secret, the token folder or any agent token is denied, through Read, Glob, Grep and Bash.
 - Board commands other than the read-only ones must name an agent that is not the lead, and a literal `$RAIDLOCK_TOKEN` is denied, so an inherited token cannot be borrowed.

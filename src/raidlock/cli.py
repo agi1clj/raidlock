@@ -14,7 +14,7 @@ from .core import Board, Usage, clock, model, registry
 from .core import paths as P
 from .core.db import Index
 from .core.errors import IdentityError, Precondition, RaidlockError
-from .core.hints import lead_cmd, lead_secret_src, quote_path
+from .core.hints import lead_cmd, lead_secret_src, prog_name, quote_path
 from .core.identity import detect_runtime, long_runtime, token_path
 from .core.leases import describe, is_live
 from .core.model import LANES
@@ -107,7 +107,7 @@ FLAG_HELP = {
     ("join", "session"): "session id of the agent (default: from the runtime's environment)",
     ("lead", "action"): "status, heartbeat (renew), handover to another session, or takeover an expired lease",
     ("lock", "id"): "your card",
-    ("lock", "paths"): "comma-separated <repo>/<path> locks to add",
+    ("lock", "paths"): "<repo>/<path> locks to add, space- or comma-separated",
     ("move", "id"): "card to move",
     ("move", "lane"): "target lane (doing is reached by claim, done by raid done)",
     ("msg", "text"): "message text",
@@ -287,6 +287,8 @@ def _entry_points():
 def load_extensions(debug=False):
     import importlib
 
+    global _EXTENSIONS_LOADED
+    _EXTENSIONS_LOADED = True
     for module in EXTENSION_MODULES:
         try:
             mod = importlib.import_module(module)
@@ -328,34 +330,24 @@ def hhmm(ts):
 
 
 GLOBAL_DESTS = ("board", "json", "agent", "token", "fence", "fields", "debug", "lead_secret", "cap")
-PROGS = ("raid", "raidlock")
-_COMMAND_WORD = re.compile(r"(?<![\w./-])raidlock (?=[a-z-])")
+_EXTENSIONS_LOADED = False
 
 
-def prog_name(argv0=None):
-    base = os.path.basename(argv0 if argv0 is not None else (sys.argv[0] if sys.argv else ""))
-    base = base[:-4] if base.lower().endswith(".exe") else base
-    return base if base in PROGS else "raidlock"
+def _command_word():
+    """`raidlock ` followed by a real subcommand or an option: a command to rewrite, never prose such as
+    "raidlock identity" or a workspace named raidlock."""
+    if not _EXTENSIONS_LOADED:
+        load_extensions()
+    names = sorted(set(COMMANDS) | {"ui", "hook"}, key=len, reverse=True)
+    return re.compile(r"(?<![\w./\[-])raidlock (?=--|(?:" + "|".join(map(re.escape, names)) + r")(?![\w-]))")
 
 
 def rename(text, prog):
-    """Rewrite command hints in `text` to the name the user invoked: the part of a line after Next:/next:, and lines
-    that start with a raidlock command."""
+    """Rewrite every raidlock command in `text` to the name the user invoked (`raid` and `raidlock` are the same
+    command)."""
     if prog == "raidlock" or not text:
         return text
-    out = []
-    for line in text.split("\n"):
-        body = line.lstrip()
-        if body.startswith("raidlock "):
-            line = line[: len(line) - len(body)] + _COMMAND_WORD.sub(prog + " ", body)
-        else:
-            for marker in ("Next:", "next:", "Warning:"):
-                i = line.find(marker)
-                if i >= 0:
-                    line = line[:i] + _COMMAND_WORD.sub(prog + " ", line[i:])
-                    break
-        out.append(line)
-    return "\n".join(out)
+    return _command_word().sub(prog + " ", text)
 
 
 def _common_args(p):
@@ -595,8 +587,7 @@ def main(argv=None, prog=None):
         return code
     except RaidlockError as e:
         _lead_identity_hint(e, locals().get("ctx"), argv)
-        if e.hint:
-            e.hint = _COMMAND_WORD.sub(prog + " ", e.hint) if prog != "raidlock" else e.hint
+        e.message, e.hint = rename(e.message, prog), rename(e.hint, prog)
         if want_json:
             print(json.dumps(e.to_dict(), sort_keys=True, ensure_ascii=False, separators=(",", ":"), default=str))
         else:
@@ -1405,14 +1396,15 @@ def _note_opts(p):
 
 @command("lock", "add paths to a card's locks", mutating=True)
 def cmd_lock(ctx, a):
-    r = ctx.board.lock_paths(a.id, ctx.caller(), a.replace or a.paths, replace=a.replace is not None)
+    paths = ",".join(a.paths)
+    r = ctx.board.lock_paths(a.id, ctx.caller(), a.replace or paths, replace=a.replace is not None)
     return r, f"{a.id} now locks {', '.join(r['locks'])}."
 
 
 @options("lock")
 def _lock_opts(p):
     p.add_argument("id")
-    p.add_argument("paths", nargs="?", default="")
+    p.add_argument("paths", nargs="*", default=[])
     p.add_argument("--replace", default=None, help="lead: replace all locks with these paths")
 
 
@@ -1850,12 +1842,20 @@ def cmd_lead(ctx, a):
     if a.action == "status":
         r = b.lead_status()
         if not r["held"]:
-            return r, f"No lead lease on {b.name}. Next: raidlock lead takeover --lead-secret <file>"
+            return r, f"No lead lease on {b.name}. Next: {lead_cmd(b, 'lead takeover')}"
         state = "live" if r["live"] else "EXPIRED"
-        return r, (
+        mine = _env_session()
+        text = (
             f"Lead {r['lead']}: session {r['session'] or '-'}, fence {r['fence']}, {state} until "
-            f"{hhmm(r['expires'])}, secret in {r['store']}" + (" (handover pending)" if r.get("pending") else "")
+            f"{hhmm(r['expires'])}, secret: {lead_secret_src(b)}" + (" (handover pending)" if r.get("pending") else "")
         )
+        if not r["live"]:
+            text += f"\nThe lease is free. Next: {lead_cmd(b, 'lead takeover')}"
+        elif mine and mine != r["session"]:
+            text += f"\nThis session is {mine}, not the lead. To lead from here, the lead session runs: " + lead_cmd(
+                b, f"lead handover --to {mine}"
+            )
+        return r, text
     if a.action == "heartbeat":
         r = b.lead_heartbeat(ctx.caller())
         return r, f"Lead lease renewed until {hhmm(r['expires'])} (fence {r['fence']})."

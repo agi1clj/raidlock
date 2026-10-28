@@ -38,7 +38,7 @@ raid --lead-secret "$LEAD_SECRET_FILE" lead handover --to "destination-session-i
 
 The receiving session presents the same secret file path; the handover rotated the secret inside it, and the new session binds on its first authenticated command. `raid lead status` and `raid who` show the current session and fence. After a crash, when the lease has expired, `raid --lead-secret "$LEAD_SECRET_FILE" lead takeover` recovers it, rotates the secret and fence, and records an alert. A live lead cannot be taken over. Details and the ready-made lead prompts are in [Install](install.md#lead-session-handover).
 
-Session ids come from `RAIDLOCK_SESSION`, then the runtime's own variable (`CLAUDE_CODE_SESSION_ID`, `CODEX_SESSION_ID` and similar). The [demo](../../examples/demo/README.md) hands over between two scripted sessions.
+Session ids come from `RAIDLOCK_SESSION`, then the runtime's own variable (`CLAUDE_CODE_SESSION_ID`, `CODEX_SESSION_ID` and similar). In Claude Code the SessionStart hook sets `RAIDLOCK_SESSION` to the id the hooks see, so a resumed session (whose shell keeps the old `CLAUDE_CODE_SESSION_ID`) can still receive a handover. When the lead's Claude Code session ends, its lease is freed at once and the next session's start says so with the takeover command; no one waits out `ttl_minutes`. If the same session comes back first, its lease is re-armed automatically. The [demo](../../examples/demo/README.md) hands over between two scripted sessions.
 
 ## Migrate a legacy board
 
@@ -160,7 +160,7 @@ When scanning a patch containing symlinks, use `raid scan PATCH --card CARD` to 
 
 Review and blocked leases become advisory immediately. Their paths remain visible, and overlapping claims print a warning, including across registered workspaces. An advisory hold never authorizes hook-protected writes. Returning a card to doing reacquires its locks atomically; if another worker holds them, the card stays blocked.
 
-`hold_minutes` limits advisory holds to 60 minutes by default. Heartbeats, lock edits, and moves between review and blocked do not extend that deadline. Expired holds no longer generate warnings; `raid reap` removes them while preserving the card's lane. Existing indefinite holds become advisory when their board opens, with their deadline measured from their last renewal.
+`hold_minutes` limits advisory holds to 60 minutes by default. Heartbeats, lock edits, and moves between review and blocked do not extend that deadline. Expired holds no longer generate warnings; `raid reap` removes them while preserving the card's lane. `raid ui` reaps every 5 minutes on its own, and `raid --lead-secret FILE tidy` does the whole sweep at once: reap, close cards whose linked PR merged (through the gates), and list each card still waiting on a lead decision with the commands that resolve it. The lead's session start names those cards. Existing indefinite holds become advisory when their board opens, with their deadline measured from their last renewal.
 
 ```bash
 raid --lead-secret "$LEAD_SECRET_FILE" config set hold_minutes 30

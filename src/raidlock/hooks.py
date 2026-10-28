@@ -249,6 +249,25 @@ def lead_live(board):
     return bool(summary.get("held") and summary.get("live") and summary.get("session"))
 
 
+def lead_refusal(board, data, what, prog=None):
+    """Why this session is not the lead, with the exact commands that make it the lead, in the name the agent typed."""
+    from .core.hints import lead_cmd
+
+    if not prog:
+        command = (data.get("tool_input") or {}).get("command") or ""
+        prog = "raid" if re.search(r"(?:^|[\s;&|(/])raid\s", command) else "raidlock"
+    status = board.lead_status()
+    sid = str(data.get("session_id") or "") or "unknown"
+    return (
+        f"only the lead session may {what}. The lead lease is held by session {status.get('session') or 'none'} "
+        f"until {status.get('expires') or 'unknown'}; this session is {sid}. "
+        f"From the lead session run: {lead_cmd(board, f'lead handover --to {sid}', prog)}. "
+        f"Or, once the lease expires, run here: RAIDLOCK_SESSION={sid} {lead_cmd(board, 'lead takeover', prog)} "
+        "(the prefix pins the session id the hooks see, which a resumed session's shell may not report). "
+        f"{prog} lead status shows the lease."
+    )
+
+
 def session_role(data, env, board, binding):
     """Classify host sessions against the current lead lease."""
     if is_subagent(data):
@@ -256,17 +275,11 @@ def session_role(data, env, board, binding):
     name = binding.get("name", "")
     sid = str(data.get("session_id") or "")
     lease = board.leadlease().lease()
-    if name == board.lead:
-        if (
-            lead_live(board)
-            and sid == lease.get("session")
-            and binding.get("lead_session") == sid
-            and binding.get("lead_fence") == lease.get("fence")
-        ):
-            return "lead"
-        return "unbound"
+    # The lease decides: a binding left from an older fence (handover, takeover) must not outrank it.
     if sid and sid == lease.get("session") and lead_live(board):
         return "lead"
+    if name == board.lead:
+        return "unbound"
     if name:
         return "worker"
     if env.get("RAIDLOCK_AGENT_ID") or env.get("RAIDLOCK_CAP"):
@@ -349,6 +362,22 @@ def deny(reason):
     }
 
 
+def inside(path, root):
+    path, root = os.path.realpath(path).casefold(), os.path.realpath(root).casefold()
+    try:
+        return os.path.commonpath((path, root)) == root
+    except ValueError:
+        return False
+
+
+def workspace_repo(board, loc):
+    """Whether `loc` (from repos.locate) is a checkout of one of the workspace's repos, wherever it lives."""
+    from .core import repos
+
+    found = repos.discover(os.path.dirname(board.dir), repos.declared_repos(board.dir)).values()
+    return loc["id"] in {(repos.locate(root) or {}).get("id") for root in found if os.path.isdir(root)}
+
+
 def write_decision(data, env, path):
     if not path:
         return None
@@ -375,6 +404,11 @@ def write_decision(data, env, path):
                     "Ask the lead or pick another card."
                 )
     if lead_owned:
+        return None
+    if role == "unbound" and not (loc and workspace_repo(board, loc)):
+        # Board-first guards the workspace's repos (any clone of them); a scratchpad or /tmp is free.
+        if inside(full, board.home) or inside(full, state_dir(env)):
+            return deny("raidlock state (tokens, bindings) is written only by the raidlock CLI")
         return None
     if role == "lead" and loc and board.settings.get("require_card_for_lead_edits"):
         from .core.board import LEAD_CARD_RULE
@@ -477,10 +511,7 @@ def read_guard(data, env):
         if ancestor or in_tokens or real == secret or (reachable and reaches_credentials(path, tokens, secret)):
             if role == "subagent":
                 raise IdentityError("subagents may not read the lead secret or agent tokens")
-            raise IdentityError(
-                "only the lead session may read the lead secret or agent tokens; "
-                "raidlock lead status shows which session holds the lease"
-            )
+            raise IdentityError(lead_refusal(board, data, "read the lead secret or agent tokens"))
 
 
 def reaches_credentials(path, tokens, secret):
@@ -741,11 +772,13 @@ def computed_verb(cmd, pos):
     return any("$" in w or gitguard.SUBST in w for w in words)
 
 
-def raidlock_decision(data, env, board, role, ctx, rl):
+def raidlock_decision(data, env, board, role, ctx, rl, prog="raidlock"):
     sub = is_subagent(data)
     unbound = role == "unbound"
     guarded_lead = bool(board) and role in ("worker", "unbound") and lead_live(board)
     cmd, pos, opts = parse_raidlock(rl)
+    if cmd == "hook":
+        return deny(f"{prog} hook runs only from the host's hook configuration, never from a tool call")
     if sub and ("--lead-secret" in opts or ctx.get("RAIDLOCK_LEAD_SECRET")):
         return deny(LEAD_PROOF_DENIAL)
     if (sub or role in ("worker", "unbound")) and computed_verb(cmd, pos):
@@ -753,20 +786,18 @@ def raidlock_decision(data, env, board, role, ctx, rl):
     lead_only = lead_only_command(cmd, pos)
     restricted = lead_only or opts.get("--for") or opts.get("--urgent")
     if guarded_lead and (opts.get("--lead-secret") or ctx.get("RAIDLOCK_LEAD_SECRET")):
-        return deny(
-            "only the lead session may present the lead secret; "
-            "raidlock lead status shows which session holds the lease"
-        )
+        return deny(lead_refusal(board, data, "present the lead secret", prog))
     worker = (
         sub or (restricted and role in ("worker", "unbound")) or (restricted and session_worker(data, env, ctx, opts))
     )
     if worker and lead_only:
-        return deny(f"only the lead can run raidlock {cmd}. Hand over with: raidlock move <id> review")
+        return deny(f"only the lead can run {prog} {cmd}. Hand over with: {prog} move <id> review")
     if worker and (opts.get("--for") or opts.get("--urgent")):
         return deny("--for and --urgent are lead-only")
     recovering = unbound and cmd == "lead" and not lead_live(board)
     named = sub or (unbound and not recovering)
-    if named and cmd not in READ_ONLY and "--help" not in opts and "-h" not in opts:
+    read_only = cmd in READ_ONLY or (cmd == "lead" and pos[:1] == ["status"])
+    if named and not read_only and "--help" not in opts and "-h" not in opts:
         name = next(
             (
                 v
@@ -783,7 +814,7 @@ def raidlock_decision(data, env, board, role, ctx, rl):
         )
         if not name:
             return deny(
-                f"name yourself on every board command: RAIDLOCK_AGENT=<name> RAIDLOCK_TOKEN=<token> raidlock {cmd} ..."
+                f"name yourself on every board command: RAIDLOCK_AGENT=<name> RAIDLOCK_TOKEN=<token> {prog} {cmd} ..."
             )
         if name == board_lead(data, load_binding(env, data.get("session_id", ""), agent_key(data)).get("board", "")):
             return deny("subagents and unbound sessions cannot act as the lead")
@@ -846,8 +877,24 @@ def written_paths(argv):
     if verb in WRITE_VERBS:
         return rest
     if verb in IN_PLACE and any(a == "-i" or a.startswith("-i") or a == "--in-place" for a in argv[1:]):
-        return rest
+        return in_place_files(argv[1:])
     return []
+
+
+def in_place_files(args):
+    """The files `sed -i` / `perl -i` edit: not the script, not an -e/-f value, not BSD sed's empty `-i ''` suffix."""
+    files, script_given, skip = [], False, False
+    for a in args:
+        if skip:
+            skip = False
+            continue
+        if a in ("-e", "-f", "--expression", "--file"):
+            script_given, skip = True, True
+        elif a.startswith(("-e", "-f", "--expression=", "--file=")):
+            script_given = True
+        elif a and not a.startswith("-"):
+            files.append(a)
+    return files if script_given else files[1:]
 
 
 def lease_check(data, env, board, caller, full):
@@ -1064,8 +1111,9 @@ def pre_bash(data, env):
             why, reached = launched_raidlock(argv, command)
             if why:
                 return deny(why)
+        prog = "raid" if verb in ("raid", "raid.exe") else "raidlock"
         for found in reached:
-            result = raidlock_decision(data, env, board, role, ctx, found)
+            result = raidlock_decision(data, env, board, role, ctx, found, prog)
             if result:
                 return result
         if rl is not None:
@@ -1402,8 +1450,14 @@ def _native_join(data, env, board_dir, board):
             bridge.free(state_dir(env), board.uid, session)
             binding = {}
             save_binding(env, session, "main", binding)
+    board.lead_session_resumed(session)
     role = session_role(data, env, board, binding)
+    if session:
+        # A resumed session keeps its old CLAUDE_CODE_SESSION_ID in the shell while hooks see the new id; pin the
+        # CLI to the id the hooks (and the lead lease) use.
+        write_env_file(env, [f"export RAIDLOCK_SESSION={shlex.quote(session)}"])
     if role == "lead":
+        from .core.hints import lead_cmd
         from .tidy import decisions
 
         waiting = decisions(board)
@@ -1412,7 +1466,7 @@ def _native_join(data, env, board_dir, board):
         text = (
             f"raidlock: {len(waiting)} card(s) in {board.name} wait on the lead "
             f"({', '.join(d['card'] for d in waiting[:5])}{', ...' if len(waiting) > 5 else ''}). "
-            "Run raidlock --lead-secret <lead secret file> tidy to resolve them."
+            f"Run {lead_cmd(board, 'tidy')} to resolve them."
         )
         return {"hookSpecificOutput": {"hookEventName": "SessionStart", "additionalContext": text}}
     name = token = ""
@@ -1426,6 +1480,14 @@ def _native_join(data, env, board_dir, board):
             bridge.free(state_dir(env), board.uid, session)
             name = ""
     write_env_file(env, env_file_lines(env, role, name, token, board_dir))
+    if not name and role == "unbound" and not lead_live(board):
+        from .core.hints import lead_cmd
+
+        text = (
+            f"raidlock: the lead lease of workspace {board.name} is free (the last lead session ended or its lease "
+            f"expired). If this session should lead, run: RAIDLOCK_SESSION={session} {lead_cmd(board, 'lead takeover')}"
+        )
+        return {"hookSpecificOutput": {"hookEventName": "SessionStart", "additionalContext": text}}
     if not name:
         return None
     binding.update(
@@ -1453,6 +1515,7 @@ def session_end(data, env):
     with bridge.pool_lock(state_dir(env), board.uid):
         bridge.free(state_dir(env), board.uid, data.get("session_id", ""))
         save_binding(env, data.get("session_id", ""), "main", {})
+    board.lead_session_ended(data.get("session_id", ""))
     return None
 
 

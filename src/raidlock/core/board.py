@@ -321,6 +321,13 @@ class Board:
             return self.leadlease().check(secret, sid, any_session=any_session, pid=pid, start=start)
         except (LD.ForeignLead, StaleLead) as e:
             event = "lead_stale_fence" if isinstance(e, StaleLead) else "lead_foreign_session"
+            holder = e.details.get("lead_session", "")
+            if isinstance(e, LD.ForeignLead) and sid and holder and holder != sid:
+                expires = self.leadlease().lease().get("expires", "")
+                e.hint = (
+                    f"from the lead session run: {lead_cmd(self, f'lead handover --to {sid}')}; "
+                    f"or, once its lease expires ({expires}), run here: {lead_cmd(self, 'lead takeover')}"
+                )
             with self.lock():
                 self._record(
                     "status",
@@ -384,6 +391,48 @@ class Board:
         """The lead lease without its secret: session, fence, expiry, liveness and store."""
         lease = self.leadlease()
         return {"lead": self.lead, **lease.summary(), "secret_file": I.token_path(self.home, self.uid, self.lead)}
+
+    def lead_session_resumed(self, session):
+        """The session the lease names started again (resume, or the next headless turn) after its lease lapsed:
+        re-arm it as a pending lease, as a handover would, so its process binds on the next authenticated use. Nobody
+        took over in between, or the lease would name another session."""
+        with self.lock():
+            lead = self.leadlease()
+            lease = lead.lease()
+            if not session or lease.get("session") != session or not lead.expired(lease):
+                return False
+            lease.update(pid=None, pid_start=None, renewed=clock.iso(), expires=clock.later(lead.ttl_s))
+            lead._save(lease)
+            self._record(
+                "status",
+                self.lead,
+                f"lead session {session} is back; its lead lease is live again",
+                data={"event": "lead_rearmed", "session": session, "lead_fence": lease.get("fence", 0)},
+            )
+            return True
+
+    def lead_session_ended(self, session):
+        """The lead's host session ended: expire its lease now, so the next session can take over without waiting out
+        the TTL. Only the session the lease names releases it, and only from inside the lease's own process tree (the
+        host's SessionEnd hook), so another session that learned the id cannot. A pending handover keeps its TTL. The
+        secret and fence stay until a takeover rotates them."""
+        with self.lock():
+            lead = self.leadlease()
+            lease = lead.lease()
+            if not session or lease.get("session") != session or not lease.get("pid") or lead.expired(lease):
+                return False
+            anchor = (lease["pid"], lease.get("pid_start"))
+            if not any((pid, start) == anchor for pid, start, _ in LD.ancestors(self._table())):
+                return False
+            lease["expires"] = clock.iso()
+            lead._save(lease)
+            self._record(
+                "status",
+                self.lead,
+                f"lead session {session} ended; the lead lease is free for takeover",
+                data={"event": "lead_released", "session": session, "lead_fence": lease.get("fence", 0)},
+            )
+            return True
 
     @serialized_write
     def lead_heartbeat(self, caller):
@@ -1017,12 +1066,13 @@ class Board:
 
     def _owner_or_lead(self, card, caller):
         self._auth(caller, card["id"])
-        if card["owner"] and caller.name == card["owner"]:
+        # The lead may act on any card, so a lead that owns one needs no fence unless it passes one.
+        if card["owner"] and caller.name == card["owner"] and (caller.fence or not caller.is_lead):
             if not caller.fence:
                 raise Precondition(
-                    f"no fence given for {card['id']}",
+                    f"no fence given for {card['id']}; your claim's fence is {card['fence']}",
                     card=card["id"],
-                    hint="export RAIDLOCK_FENCE=<fence printed by raidlock claim>",
+                    hint=f"add --fence {card['fence']}, or export RAIDLOCK_FENCE={card['fence']}",
                 )
             if caller.fence != card["fence"]:
                 self._record(

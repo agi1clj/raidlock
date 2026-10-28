@@ -462,7 +462,7 @@ def test_resumed_pooled_session_gets_its_identity_again(scene, tmp_path):
 def test_lead_session_never_takes_a_pool_identity(scene, tmp_path):
     join_pool(scene, "mate-1")
     out, text = start(scene, tmp_path, LEAD_SESSION)
-    assert out is None and text == ""
+    assert out is None and text == f"export RAIDLOCK_SESSION={LEAD_SESSION}\n"
     assert not hooks.load_binding(scene.env, LEAD_SESSION, "main").get("pooled")
 
 
@@ -540,14 +540,12 @@ def test_lead_lease_bound_elsewhere_leaves_the_claude_session_unbound(scene):
     assert "raidlock lead status" in text
 
 
-@pytest.mark.parametrize("binding_kind", ["name-only", "stale-generation", "handover"])
-def test_lead_binding_requires_current_session_and_generation(scene, binding_kind):
+@pytest.mark.parametrize("binding_kind", ["name-only", "handover"])
+def test_lead_binding_requires_the_lease_session(scene, binding_kind):
     session = LEAD_SESSION if binding_kind != "name-only" else TEAMMATE
     binding = {"name": scene.board.lead, "board": scene.board.dir}
     if binding_kind != "name-only":
         binding.update(lead_session=session, lead_fence=scene.board.lead_status()["fence"])
-    if binding_kind == "stale-generation":
-        binding["lead_fence"] -= 1
     hooks.save_binding(scene.env, session, "main", binding)
     if binding_kind == "handover":
         scene.board.lead_handover(scene.lead, CODEX)

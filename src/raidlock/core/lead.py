@@ -724,7 +724,8 @@ class Lead:
                 f"the lead lease of session {lease.get('session', '')} is live until {lease.get('expires')}",
                 lead_session=lease.get("session", ""),
                 expires=lease.get("expires"),
-                hint="ask the lead to run: raidlock lead handover --to <your session>",
+                hint=f"ask the lead session to run: raidlock lead handover --to {session}; "
+                "or run lead takeover again once the lease expires",
             )
         fence = int(lease.get("fence", 0)) + 1
         secret = mint(fence)

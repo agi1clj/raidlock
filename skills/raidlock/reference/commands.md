@@ -41,7 +41,10 @@ Exit codes: 0 ok, 2 denied or conflict, 3 precondition or usage, 4 timeout, 5 id
 | `raidlock config [get\|set] <key> [value]` | Board settings: auth, ttl_minutes, require_review, require_verify, require_card_for_lead_edits, board_first_subagents |
 | `raidlock cost [<id>]` | Record or show usage |
 | `raidlock transcript` | The conversation log |
-| `raidlock reap` | Move expired doing cards to blocked |
+| `raidlock reap` | Move expired doing cards to blocked (`raidlock ui` does this every 5 minutes) |
+| `raidlock tidy` | Lead: reap, close cards whose linked PR merged, list what waits on the lead with copy-ready commands |
+| `raidlock lead status\|heartbeat\|handover --to <session>\|takeover` | The lead lease; `status` works from any session, and a lease frees itself when the lead's session ends |
+| `raidlock upgrade` | Upgrade the CLI and the Claude Code plugin to the latest release |
 | `raidlock workspaces` | Registered boards on this machine |
 | `raidlock install-commands [--uninstall]` | Add (or remove) a personal bare `/raid` skill in `~/.claude/skills/raid/SKILL.md`; the plugin's own is `/raidlock:raid` |
 
