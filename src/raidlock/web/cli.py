@@ -1,6 +1,7 @@
 import os
 import threading
 import webbrowser
+from urllib.parse import quote
 
 from raidlock.core import find_board_dir
 from raidlock.core.errors import Precondition
@@ -28,6 +29,15 @@ def setup(parser):
     )
     parser.add_argument("--only", action="store_true", help="show only this board, not every registered workspace")
     parser.add_argument("--open", action="store_true", help="open the page in your browser")
+
+
+def start_path(catalog, here, single):
+    """Run inside a board, the page opens on that board; the realm stays one click away."""
+    if not here or single:
+        return ""
+    real = os.path.realpath(here)
+    name = next((n for n, d in catalog.entries() if os.path.realpath(d) == real), "")
+    return quote(name)
 
 
 def handler(ctx, args):
@@ -76,8 +86,13 @@ def handler(ctx, args):
 
             srv.service_actions = heartbeat
     port = srv.server_address[1]
-    url = f"http://127.0.0.1:{port}/"
-    where = os.path.basename(os.path.dirname(single)) if single else "every registered workspace"
+    url = f"http://127.0.0.1:{port}/" + start_path(srv.catalog, here, single)
+    if single:
+        where = os.path.basename(os.path.dirname(single))
+    elif url.endswith("/"):
+        where = "every registered workspace"
+    else:
+        where = "this board (the realm view lists every registered workspace)"
     print(f"raidlock ui: {where} at {url}\nNext: open {url} (Ctrl+C stops it)", flush=True)
     if args.open:
         webbrowser.open(url)
