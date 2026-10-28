@@ -29,7 +29,7 @@
   function badge(c, a) {
     const p = a.progress;
     const status = a.earned ? `Earned${a.by ? " by " + a.by : ""}${a.at ? ", " + c.ago(a.at) + " ago" : ""}${a.detail ? " · " + a.detail : ""}`
-      : p ? `Locked · ${p.value}/${p.goal}` : "Locked";
+      : p ? `Not earned yet · ${p.value}/${p.goal}` : "Not earned yet";
     let meter = null;
     if (!a.earned && p) {
       const fill = c.h("i");
@@ -49,7 +49,7 @@
       const titles = Object.entries(d.titles || {});
       c.setKids(pane, [
         c.h("div", {class: "view-head"}, c.h("h2", null, "Feats", c.raidSub("Achievements")),
-          c.h("p", {class: "cls", text: `${d.incomplete_history ? "Incomplete history (latest sequence " + d.last + "). " : ""}${d.earned} of ${d.total} earned, from recorded events only. Turn them off in Settings.`})),
+          c.h("p", {class: "cls", text: `${d.incomplete_history ? "History is incomplete (newest record read: #" + d.last + "). " : ""}${d.earned} of ${d.total} earned, from recorded events only. Turn them off in Settings.`})),
         titles.length ? c.h("section", {class: "titles", "aria-label": "Titles earned"}, c.h("h3", {text: "Titles earned"}),
           c.h("ul", null, titles.map(([who, title]) => c.h("li", null, c.h("b", {text: who}), " " + title)))) : null,
         c.h("div", {class: "achs"}, (d.achievements || []).map(a => badge(c, a)))], JSON.stringify([d, Math.floor(Date.now() / 60000)]));

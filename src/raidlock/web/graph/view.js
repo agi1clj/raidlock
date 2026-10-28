@@ -19,7 +19,7 @@
     const drawn = nodes.filter(n => linked.has(n.id));
     const loose = nodes.length - drawn.length;
     const looseNote = loose ? c.h("p", {class: "cls", text: `${loose} ${loose === 1 ? "card has" : "cards have"} no dependencies; they are listed under Dependencies as text.`}) : null;
-    if (!drawn.length) return c.h("div", null, c.h("p", {class: "empty", text: "No quest chains yet. Link quests with raid edit <card> --depends <other>."}), looseNote);
+    if (!drawn.length) return c.h("div", null, c.h("p", {class: "empty", text: "No quest chains yet. From the lead terminal: raid --lead-secret <file> edit <card> --depends <other>"}), looseNote);
     const at = new Map(), rowAt = {};
     let rows = 0;
     for (const n of drawn) {

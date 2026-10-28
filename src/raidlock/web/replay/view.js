@@ -40,9 +40,9 @@
     const notes = [];
     if (d.untracked) notes.push(`${d.untracked} cards have no creation record in the transcript and appear once they are first mentioned.`);
     if (d.truncated) notes.push(`Only the newest ${st.marks.length} records are on the slider; older slider entries are omitted.`);
-    if (d.incomplete_history) notes.push(`Incomplete history: reconstruction stops at ${d.at}; true latest sequence is ${d.last}.`);
-    if (d.non_core_records) notes.push("Non-core or unknown records were skipped.");
-    if (map && map.error) notes.push("Incomplete territory: " + map.error);
+    if (d.incomplete_history) notes.push(`History is incomplete: the board is rebuilt up to record #${d.at}; the newest record is #${d.last}.`);
+    if (d.non_core_records) notes.push("Some records from plugins or newer raidlock versions were skipped.");
+    if (map && map.error) notes.push("Locks at this point may be incomplete: the history was too long to scan.");
     const mapDef = c.def("map");
     c.setKids(st.body, [
       c.h("p", {class: "cls rp-sum", text: `${d.total} records · lock denials ${ev.lock_denied || 0} · write violations ${ev.lock_violation || 0} so far`}),

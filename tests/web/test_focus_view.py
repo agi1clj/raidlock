@@ -375,11 +375,13 @@ def test_waiting_times_are_readable(view, width):
     page.goto(p.server.url + "/orbit-ops?view=all")
     pill = page.locator(".noclaim").filter(has_text="Waiting for cart-api")
     pill.wait_for()
-    assert "lock frees in 38 min" in pill.inner_text()
+    assert "Waiting for cart-api (opus-checkout): lock frees in 38 min" in pill.inner_text()
     assert "apps/cart overlaps apps" in pill.get_attribute("title")
     assert "2026-10-25T11:38:00Z" in pill.get_attribute("title")
     pill.locator("xpath=ancestor::li").locator("button.details").click()
     assert page.locator("time[datetime='2026-10-25T11:38:00Z']").count() > 0
+    drawer = page.locator("#drawerBody").inner_text()
+    assert not any(old in drawer for old in ("Party: ", "Proof: ", "Proof of deed: ", "Vouched for by: "))
     assert "2026-10-25T11:38:00Z" not in page.locator("#lanes").inner_text()
     assert no_hscroll(page)["scroll"] <= width
     assert p.errors == []
