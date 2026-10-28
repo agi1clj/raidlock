@@ -667,6 +667,21 @@ def test_worker_interpreter_write_is_caught_at_commit(scene, monkeypatch):
     assert "w-two" in result.stderr
 
 
+def test_worker_started_with_only_its_cap_writes_inside_its_lease(scene):
+    claimed = scene.board.claim("c1", scene.caller("w-one"))
+    env = {
+        **scene.env,
+        "RAIDLOCK_AGENT": "w-one",
+        "RAIDLOCK_CAP": claimed["cap"],
+        "RAIDLOCK_FENCE": str(claimed["fence"]),
+    }
+    hooks.run("session-start", session_start(scene), env)
+    assert hooks.run("pre-write", write(scene, "app/src/main.py"), env) is None
+    denied = hooks.run("pre-write", write(scene, "app/docs/x.md"), env)
+    assert denied["hookSpecificOutput"]["permissionDecision"] == "deny"
+    assert "authentication proof" not in denied["hookSpecificOutput"]["permissionDecisionReason"]
+
+
 @pytest.mark.parametrize("same_session", [False, True])
 def test_pool_concurrent_stale_reclamation_is_atomic(scene, same_session, monkeypatch):
     from concurrent.futures import ThreadPoolExecutor
