@@ -2,7 +2,7 @@
 
 import sys
 
-__version__ = "0.2.4"
+__version__ = "0.2.5"
 MINIMUM_PYTHON = (3, 11)
 
 if sys.version_info < MINIMUM_PYTHON:
