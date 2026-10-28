@@ -4,6 +4,14 @@ All notable changes to this project are documented here.
 
 The format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/), and the project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.9](https://github.com/agi1clj/raidlock/compare/v0.2.8...v0.2.9) (2026-10-28)
+
+
+### Bug Fixes
+
+* clearer wording in the web UI and lead lease status ([#43](https://github.com/agi1clj/raidlock/issues/43)) ([3d6f081](https://github.com/agi1clj/raidlock/commit/3d6f081052cdb3b6e29cf0f29d821f03e0cea51f))
+* first install and upgrade work from any setup ([#41](https://github.com/agi1clj/raidlock/issues/41)) ([f48d84b](https://github.com/agi1clj/raidlock/commit/f48d84bc46d3dfe58cbcf501f91400000839b1dc))
+
 ## [0.2.8](https://github.com/agi1clj/raidlock/compare/v0.2.7...v0.2.8) (2026-10-28)
 
 
