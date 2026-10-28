@@ -1,4 +1,5 @@
 import builtins
+import datetime
 import io
 import json
 import re
@@ -10,7 +11,7 @@ from pathlib import Path
 import pytest
 
 from raidlock import cli, hooks, infer, limits
-from raidlock.core import Precondition
+from raidlock.core import Precondition, clock
 from raidlock.core.tokens import estimate
 from raidlock.core.transcript import make
 from raidlock.lore import lessons_for
@@ -314,3 +315,83 @@ def test_p11_lore_must_not_exceed_brief_cap_with_oversized_required_fields(world
         assert re.search("cap|budget|token", str(error), re.I)
     else:
         assert estimate(brief["text"]) <= 300, "Brief returned oversized required fields"
+
+
+def _go_stale(board, name):
+    old = clock.iso(clock.now() - datetime.timedelta(seconds=board.ttl_seconds() + 60))
+    with board.index.write() as conn:
+        conn.execute("UPDATE agents SET last_seen = ? WHERE ws = ? AND name = ?", (old, board.uid, name))
+
+
+def _gate_events(board):
+    parts = [p for r in board.transcript.read(kind="status") for p in r["parts"] if p.get("kind") == "data"]
+    events = [p["data"].get("event") for p in parts]
+    return [e for e in events if e in ("gate_defaults", "gate_defaults_relaxed")]
+
+
+DEFAULT_REVIEW = {"count": 0, "other_provider": False}
+
+
+def test_p5_departed_provider_must_not_keep_blocking_done(world):
+    world.board.join(world.lead, agent="codex", provider="anthropic", role="reviewer")
+    assert world.board.settings["require_review"] == {"count": 1, "other_provider": True}
+    _go_stale(world.board, "codex")
+    assert world.board.move("task", "done", world.lead)["lane"] == "done"
+    assert world.board.settings["require_review"] == DEFAULT_REVIEW
+    assert world.board.settings["require_verify"] is False
+    assert _gate_events(world.board)[-2:] == ["gate_defaults", "gate_defaults_relaxed"]
+
+
+def test_p5_idle_but_present_provider_must_still_gate_done(world):
+    world.board.join(world.lead, agent="codex", provider="anthropic", role="reviewer")
+    with pytest.raises(Precondition, match="review|verif"):
+        world.board.move("task", "done", world.lead)
+    assert world.board.settings["require_review"] == {"count": 1, "other_provider": True}
+
+
+def test_p5_stale_provider_holding_a_live_lease_must_still_gate_done(world):
+    world.board.join(world.lead, agent="codex", provider="anthropic")
+    world.board.new_card(world.lead, "Other", card_id="other", locks="app/other")
+    world.board.claim("other", world.lead, for_agent="codex")
+    _go_stale(world.board, "codex")
+    with pytest.raises(Precondition, match="review|verif"):
+        world.board.move("task", "done", world.lead)
+
+
+def test_p5_explicit_review_setting_must_not_relax(world):
+    world.board.set_setting(world.lead, "require_review", "1")
+    world.board.join(world.lead, agent="codex", provider="anthropic", role="reviewer")
+    _go_stale(world.board, "codex")
+    with pytest.raises(Precondition, match="approving review"):
+        world.board.move("task", "done", world.lead)
+    assert world.board.settings["require_review"]["count"] == 1
+
+
+def test_p5_returning_provider_must_turn_the_gates_back_on(world):
+    world.board.join(world.lead, agent="codex", provider="anthropic", role="reviewer")
+    _go_stale(world.board, "codex")
+    world.board.new_card(world.lead, "Second", card_id="second", locks="app/second")
+    world.board.move("task", "done", world.lead)
+    world.board.join(world.lead, agent="codex", provider="anthropic", role="reviewer")
+    assert world.board.settings["require_review"] == {"count": 1, "other_provider": True}
+    assert _gate_events(world.board)[-1] == "gate_defaults"
+    world.board.claim("second", world.lead, for_agent="worker")
+    with pytest.raises(Precondition, match="review|verif"):
+        world.board.move("second", "done", world.lead)
+
+
+def test_p5_protected_card_must_not_close_without_cross_provider_review_on_one_provider(world):
+    world.board.edit_card(world.lead, "task", allow_protected=".github/workflows")
+    assert world.board.settings["require_review"] == DEFAULT_REVIEW
+    with pytest.raises(Precondition, match="from another provider"):
+        world.board.move("task", "done", world.lead)
+
+
+def test_p5_worker_must_not_relax_the_gates(world):
+    world.board.join(world.lead, agent="codex", provider="anthropic", role="reviewer")
+    _go_stale(world.board, "codex")
+    from raidlock.core.errors import RaidlockError
+
+    with pytest.raises(RaidlockError, match="lead"):
+        world.board.move("task", "done", world.worker)
+    assert world.board.settings["require_review"] == {"count": 1, "other_provider": True}

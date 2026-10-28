@@ -18,6 +18,13 @@ by xfail (only assertion failures qualify).
 | P5: do not change defaults for single-provider boards | `p5_gate_defaults_must_not_change_single_provider_boards` | covered |
 | P5: second provider must enable cross-provider review | `p5_must_not_allow_done_without_cross_provider_review` | covered |
 | P5: second provider must require verification | `p5_must_not_allow_done_without_verify` | covered |
+| P5: a departed provider must not keep blocking done | `p5_departed_provider_must_not_keep_blocking_done` | covered |
+| P5: an idle but present provider still gates done | `p5_idle_but_present_provider_must_still_gate_done` | covered |
+| P5: a provider holding a live lease still gates done | `p5_stale_provider_holding_a_live_lease_must_still_gate_done` | covered |
+| P5: explicit review settings must not relax | `p5_explicit_review_setting_must_not_relax` | covered |
+| P5: a returning provider turns the gates back on | `p5_returning_provider_must_turn_the_gates_back_on` | covered |
+| P5: protected cards need cross-provider review on one provider | `p5_protected_card_must_not_close_without_cross_provider_review_on_one_provider` | covered |
+| P5: a worker must not relax the gates | `p5_worker_must_not_relax_the_gates` | covered |
 | P6: reputation must not score self-reports | `p6_reputation_must_not_score_agent_self_reports` | covered |
 | P6: duel must require verified evidence | `p6_duel_must_not_select_winner_from_self_reports` | covered |
 | P7: foresight must warn at claim time, never block the claim | `p7_foresight_must_not_block_claim_and_must_warn_before_work` | covered |
