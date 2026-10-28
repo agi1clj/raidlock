@@ -162,9 +162,25 @@ function levelBadge(kind, counts) {
 }
 function setKids(el, kids, sig) {
   if (sig !== undefined) { if (el.dataset.sig === sig) return false; el.dataset.sig = sig; }
+  const focus = focusKey(el);
   el.replaceChildren();
   add(el, Array.isArray(kids) ? kids : [kids]);
+  if (focus) refocus(el, focus);
   return true;
+}
+// A re-render must not drop keyboard focus: remember what had it and focus its replacement.
+function focusKey(el) {
+  const a = document.activeElement;
+  if (!a || a === document.body || !el.contains(a)) return null;
+  return {id: a.id, row: a.closest("[data-id]")?.dataset.id, tag: a.tagName, cls: a.className};
+}
+function refocus(el, k) {
+  let t = k.id ? document.getElementById(k.id) : null;
+  if (!t && k.row) {
+    const row = el.querySelector(`[data-id="${CSS.escape(k.row)}"]`);
+    t = row && [...row.querySelectorAll(k.tag)].find(x => x.className === k.cls);
+  }
+  if (t && el.contains(t)) t.focus({preventScroll: true});
 }
 
 function hash(s) { let x = 0; for (const c of s) x = (x * 31 + c.charCodeAt(0)) >>> 0; return x; }
@@ -1990,7 +2006,9 @@ function init() {
   $("content").append(h("dialog", {id: "cardDrawer", "aria-labelledby": "drawerTitle"},
     h("button", {type: "button", class: "tog", id: "drawerClose", text: "Close details", onclick: closeDrawer}),
     h("h2", {id: "drawerTitle"}), h("div", {id: "drawerBody"})));
-  for (const ev of ["cancel", "close"]) $("cardDrawer").addEventListener(ev, closeDrawer);
+  $("cardDrawer").addEventListener("cancel", closeDrawer);
+  // The close event is queued; a card reopened before it fires must stay open.
+  $("cardDrawer").addEventListener("close", () => { if (!$("cardDrawer").open) closeDrawer(); });
   $("panels").append(h("details", {id: "overviewCosts", class: "block fold"}, h("summary", null, h("h2", {id: "ovCostTitle", text: "Cost"}), h("span", {class: "sub", text: "Usage across all workspaces."}))));
   $("columns").append($("donePanel"));
   $("focus").append(h("aside", {id: "sidebar", "aria-label": "Team communication"}));
