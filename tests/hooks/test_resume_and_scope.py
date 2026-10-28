@@ -266,3 +266,12 @@ def test_git_config_key_read_is_allowed_and_writes_stay_denied(scene):
     assert run("git -C app config user.email") == ""
     assert "can install commands" in run("git -C app config core.hooksPath /tmp/x")
     assert "can install commands" in run("git -C app config --unset user.email")
+
+
+def test_takeover_by_the_holder_says_it_already_leads(scene):
+    import pytest
+
+    from raidlock.core.errors import Precondition
+
+    with pytest.raises(Precondition, match="already holds the lead lease"):
+        scene.fresh().lead_takeover(lead_secret=scene.lead_secret, session=LEAD_SESSION)

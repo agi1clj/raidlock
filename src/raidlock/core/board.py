@@ -493,11 +493,13 @@ class Board:
         return self._cached("teams.json", "teams")
 
     def _cached(self, name, key):
-        if self._cache is None:
+        # One read of self._cache: a runner thread may reach here while the writer clears it.
+        cache = self._cache
+        if cache is None:
             return store.read_doc(self._p(name), key)
-        if name not in self._cache:
-            self._cache[name] = store.read_doc(self._p(name), key)
-        return copy.deepcopy(self._cache[name])
+        if name not in cache:
+            cache[name] = store.read_doc(self._p(name), key)
+        return copy.deepcopy(cache[name])
 
     def leases(self):
         return self.index.leases(self.uid)

@@ -1624,10 +1624,15 @@ def _verify_checkout(board, card, cwd):
             guess = quote_path(policy.target(board.workspace, board.dir, card["locks"])["path"])
         except RaidlockError:
             pass
+    again = lead_cmd(board, f"verify {card['id']} --cwd {guess}")
+    if guess == quote_path(where):
+        # The guess is the folder that just failed: it is a repo without a commit, so say what to do instead.
+        again = f"commit the card's work there (git -C {guess} commit), then: {again}"
     raise Precondition(
-        f"{short(where)} is not a git repository; verify runs a committed checkout of the card's repo",
+        f"{short(where)} has no committed HEAD (not a git repository, or nothing committed yet); "
+        "verify runs a committed checkout of the card's repo",
         card=card["id"],
-        hint=lead_cmd(board, f"verify {card['id']} --cwd {guess}"),
+        hint=again,
     )
 
 
