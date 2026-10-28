@@ -491,6 +491,8 @@ def parse_git(argv):
         if a in GLOBAL_FLAGS:
             i += 1
             continue
+        if a in ("--version", "--help"):  # print and exit; git runs nothing after them
+            return cdirs, "", []
         raise Forbidden(f"git option {a.split('=', 1)[0]} is not allowed")
     if i >= len(argv):
         return cdirs, "", []

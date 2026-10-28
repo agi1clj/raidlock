@@ -947,7 +947,7 @@ class Board:
             if os.path.exists(self._p("cards", cid + ".json")):
                 raise Precondition(f"card {cid} exists", card=cid)
             if team and team not in self.teams():
-                raise Precondition(f"no team {team}", team=team)
+                raise Precondition(f"no team {team}", team=team, hint=f"raidlock team add {team}")
             card = model.new_card(
                 cid,
                 title,
