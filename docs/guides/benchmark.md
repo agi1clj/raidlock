@@ -73,23 +73,25 @@ Measured on Darwin, Python 3.11.15, N=20 after one discarded warmup per hook cas
 | cli.show_card | 568 | 142 |
 | cli.tokens | 796 | 199 |
 | cli.who | 470 | 117 |
-| listing.agent | 184 | 46 |
+| listing.agent | 158 | 40 |
 | listing.skill | 326 | 82 |
 | mcp.tools_list | 2496 | 624 |
 
-Idle total: 128 estimated tokens (listings 128, idle hook output 0); 752 with MCP. Brief: 220 / 1200 estimated tokens.
+Idle total: 122 estimated tokens (listings 122, idle hook output 0); 746 with MCP. Brief: 220 / 1200 estimated tokens.
+
+Measured on macOS, Apple silicon, 20 runs per case. Session start now also writes the `RAIDLOCK_SESSION` line and checks whether to re-arm the lead lease; session end also checks whether to free it. Both stay silent and well inside the budget.
 
 | Hook case | Bytes | p50 ms | p95 ms |
 | --- | ---: | ---: | ---: |
-| post-tool.allow | 0 | 34.831 | 35.957 |
-| pre-bash.allow | 0 | 39.635 | 50.03 |
-| pre-bash.deny | 164 | 38.79 | 41.67 |
-| pre-read.allow | 0 | 38.413 | 43.703 |
-| pre-read.deny | 175 | 39.426 | 41.191 |
-| pre-urgent.allow | 0 | 35.12 | 37.411 |
-| pre-write.allow | 0 | 39.328 | 42.965 |
-| pre-write.deny | 164 | 38.204 | 39.509 |
-| session-end.allow | 0 | 40.015 | 43.471 |
-| session-start.allow | 0 | 39.6 | 42.451 |
-| session-start.unbound | 0 | 38.601 | 43.894 |
-| subagent-stop.allow | 0 | 36.045 | 38.073 |
+| post-tool.allow | 0 | 44.527 | 54.342 |
+| pre-bash.allow | 0 | 47.582 | 51.452 |
+| pre-bash.deny | 164 | 49.007 | 51.576 |
+| pre-read.allow | 0 | 48.141 | 51.276 |
+| pre-read.deny | 175 | 48.945 | 51.297 |
+| pre-urgent.allow | 0 | 45.911 | 52.819 |
+| pre-write.allow | 0 | 48.919 | 55.82 |
+| pre-write.deny | 164 | 47.8 | 51.907 |
+| session-end.allow | 0 | 48.679 | 55.988 |
+| session-start.allow | 0 | 51.702 | 63.35 |
+| session-start.unbound | 0 | 49.342 | 51.596 |
+| subagent-stop.allow | 0 | 44.333 | 47.101 |

@@ -6,36 +6,6 @@ from serving import isolate_env, start
 
 pytest.importorskip("playwright.sync_api")
 
-JARGON = (
-    "Guild",
-    "Hall of",
-    "Legends",
-    "Cursed",
-    "Quest",
-    "Raid frames",
-    "Chronicle",
-    "Treasury",
-    "Tavern",
-    "Raider",
-    "Inspector",
-    "Inspection",
-    "Raid leader",
-    "Party",
-    "War map",
-    "Feats",
-    "Realm",
-    "Lv ",
-    "Oracle",
-    "Wyrmrider",
-    "Moonwarden",
-    "Stormcaller",
-    "Wolfrunner",
-    "Starseer",
-    "Tinkerer",
-    "Pathfinder",
-    "Grovekeeper",
-    "Luckbringer",
-)
 UNKNOWN = ("unknown model", "unknown runtime", "Billing ?", "Trust 50/100", "$0.00", "API-equiv", "stale", "unknown")
 CONTRAST_JS = """() => {
   const lum = c => {
@@ -87,10 +57,10 @@ def fleet(tmp_path_factory):
 def view(chromium, fleet):
     pages = []
 
-    def make(path="/orbit-ops", width=1280, theme="plain", panels=(), **ctx):
+    def make(path="/orbit-ops", width=1280, panels=(), **ctx):
         p = Page(chromium, fleet, width=width, height=900, **ctx)
         pages.append(p)
-        page = p.open(path, theme=theme, panels=panels)
+        page = p.open(path, panels=panels)
         page.wait_for_selector("#focus:not([hidden]) #needsList > li", state="attached")
         page.evaluate("document.getElementById('soundBanner').hidden = true")
         return p, page
@@ -114,10 +84,6 @@ def expand_everything(page):
     page.wait_for_timeout(300)
 
 
-def jargon(text):
-    return [w for w in JARGON if re.search(r"\b" + re.escape(w.strip()) + r"\b", text, re.I)]
-
-
 def visible_text(page):
     return page.evaluate(
         "() => document.body.innerText + '\\n' + [...document.querySelectorAll('[title],[aria-label]')]"
@@ -129,12 +95,11 @@ def visible_text(page):
 def test_focus_view_is_the_default(view):
     p, page = view()
     assert page.url.endswith("/orbit-ops")
-    assert page.evaluate("document.documentElement.dataset.theme") == "plain"
-    assert page.locator("#viewTabs a[aria-current=page]").inner_text() == "Focus"
+    assert page.locator("#viewTabs a[aria-current=page]").inner_text() == "War room"
     assert page.locator("#lanes").is_hidden() and page.locator("#viewPane").is_hidden()
     needs = page.locator("#needsList > li.row")
     assert needs.count() == 5
-    assert page.locator("#needsMore").inner_text().startswith("Show all ")
+    assert page.locator("#needsMore").inner_text().startswith("Unroll all ")
     assert "to close" in page.locator("#needsSub").inner_text()
     page.locator("#needsMore").click()
     page.wait_for_function("() => document.querySelectorAll('#needsList > li.row').length >= 14")
@@ -142,7 +107,7 @@ def test_focus_view_is_the_default(view):
     assert needs.locator("button.primary").count() == needs.count()
     assert page.locator("#needsList .row[data-id=blk-billing] .reason").text_content().startswith("lead: pick one")
     assert page.locator("#needsList .row[data-id=blk-secrets]").count() == 0
-    assert page.locator("#waitingNote").inner_text().startswith("4 blocked cards wait on others")
+    assert page.locator("#waitingNote").inner_text().startswith("4 cursed quests wait on others")
     assert page.locator("#needsList .row[data-lane=review]:not([data-kind=question])").count() == 10
     assert page.locator("#focus > details:not([hidden])").count() == 1
     doing = page.locator("#doingList > li.row")
@@ -150,7 +115,7 @@ def test_focus_view_is_the_default(view):
     for row in doing.all():
         assert row.locator(".pill.ow").count() == 1 and row.locator(".pill.lock").count() == 1
     assert page.locator("#todoList > li.row").count() == 5
-    assert page.locator("#todoMore").inner_text() == "Show all 12"
+    assert page.locator("#todoMore").inner_text() == "Unroll all 12 quests"
     page.locator("#todoMore").click()
     page.wait_for_function("() => document.querySelectorAll('#todoList > li.row').length === 12")
     for panel in PANELS:
@@ -184,7 +149,15 @@ def test_merge_never_labels_a_close(view):
     )
     assert not [x for x in labels if re.search(r"merge", x, re.I)]
     primaries = set(page.locator("button.primary").all_inner_texts())
-    assert primaries and primaries <= {"Close card", "Approve", "Apply patch", "Decide", "Review", "Inspect", "Reply"}
+    assert primaries and primaries <= {
+        "Turn in quest",
+        "Approve",
+        "Apply enchant",
+        "Hold council",
+        "Inspect loot",
+        "Inspect",
+        "Reply",
+    }
     assert p.errors == []
 
 
@@ -216,38 +189,8 @@ def test_keyboard_reaches_the_primary_action(view):
     assert p.errors == []
 
 
-@pytest.mark.parametrize("path", ["/orbit-ops", "/orbit-ops?view=all", "/"])
-def test_no_raid_jargon_in_the_plain_theme(view, path):
+def test_raid_wording_leads(view):
     p, page = view()
-    if path == "/":
-        page.goto(p.server.url + "/")
-        page.wait_for_selector(".proj")
-    elif path != "/orbit-ops":
-        page.goto(p.server.url + path)
-        page.wait_for_selector("#lanes .row")
-    expand_everything(page)
-    text = visible_text(page)
-    found = jargon(text)
-    assert found == [], found
-    assert p.errors == []
-
-
-@pytest.mark.parametrize("sub", ["map", "replay", "graph", "frames"])
-def test_no_raid_jargon_in_plain_views(view, sub):
-    p, page = view()
-    page.goto(p.server.url + f"/orbit-ops?view={sub}")
-    page.wait_for_selector("#viewPane:not([hidden]) .view-head h2")
-    page.wait_for_timeout(800)
-    text = visible_text(page)
-    found = jargon(text)
-    assert found == [], found
-    assert "unknown" not in page.locator("#viewPane").inner_text().lower()
-    assert p.errors == []
-
-
-def test_raid_wording_leads_in_the_raid_theme(view):
-    p, page = view(theme="raid")
-    assert page.evaluate("document.documentElement.dataset.theme") == "raid"
     assert "The raid leader's call" in page.locator("#needsTitle").inner_text()
     assert "Quest board" in page.locator("#todoTitle").inner_text()
     assert page.locator("#todoTitle .raid-sub").inner_text().lower() == "to do"
@@ -311,9 +254,8 @@ def test_takeover_only_on_an_expired_worker_lease(view):
     assert p.errors == []
 
 
-@pytest.mark.parametrize("theme", ["plain", "raid"])
-def test_375px_has_no_horizontal_scroll(view, theme):
-    p, page = view(width=375, theme=theme, is_mobile=True, has_touch=True)
+def test_375px_has_no_horizontal_scroll(view):
+    p, page = view(width=375, is_mobile=True, has_touch=True)
     expand_everything(page)
     page.locator("#needsList .more-menu > summary").first.click()
     page.wait_for_timeout(200)
@@ -324,11 +266,10 @@ def test_375px_has_no_horizontal_scroll(view, theme):
 
 
 def test_contrast_of_primary_text(view):
-    for theme in ("plain", "raid"):
-        p, page = view(theme=theme)
-        ratios = page.evaluate(CONTRAST_JS)
-        assert ratios and min(ratios) >= 4.5, (theme, ratios)
-        assert p.errors == []
+    p, page = view()
+    ratios = page.evaluate(CONTRAST_JS)
+    assert ratios and min(ratios) >= 4.5, ratios
+    assert p.errors == []
 
 
 def test_empty_board_says_what_to_do(view):
@@ -336,7 +277,7 @@ def test_empty_board_says_what_to_do(view):
     page.goto(p.server.url + "/fresh-start")
     page.wait_for_selector("#todoList .empty", state="attached")
     assert page.evaluate("() => ['needs', 'todo', 'doing'].every(id => document.getElementById(id).open)")
-    assert page.locator("#needs").inner_text().strip() == "Nothing needs you"
+    assert page.locator("#needs").inner_text().strip() == "All is quiet in the realm"
     assert "raid claim" in page.locator("#doingList").inner_text()
     todo = page.locator("#todoList").inner_text()
     assert "raid --lead-secret" in todo and " new " in todo
@@ -345,7 +286,7 @@ def test_empty_board_says_what_to_do(view):
         "raid up --join" in page.locator("#agents").inner_text() or "No agent" in page.locator("#agents").inner_text()
     )
     assert "No usage recorded yet" in page.locator("#treasury").inner_text()
-    assert "No card is done yet" in page.locator("#doneList").inner_text()
+    assert "No legends yet" in page.locator("#doneList").inner_text()
     text = visible_text(page)
     assert not [w for w in UNKNOWN if w in text]
     assert no_hscroll(page)["scroll"] <= no_hscroll(page)["client"]
@@ -402,7 +343,7 @@ def test_limits_strip_renders_context_and_plan_usage(chromium, fleet):
     page = p.open("/orbit-ops")
     page.wait_for_selector("#limits .limit")
     text = page.locator("#limits").inner_text()
-    for want in ("Claude Code", "Context 23%", "5h 30%", "Weekly 55%", "resets", "Session $1.25", "updated"):
+    for want in ("Claude Code", "Mana 23%", "5h 30%", "Weekly 55%", "resets", "Session $1.25", "updated"):
         assert want in text, (want, text)
     assert page.locator("#limits .limit").count() == 1
     assert "stale" not in text and "not exposed" not in text and "not supported" not in text
@@ -503,14 +444,8 @@ def test_views_fit_at_both_widths(view, width, sub):
     assert p.errors == []
 
 
-def test_raid_theme_is_the_default(view):
-    p, page = view(theme=None)
-    assert page.evaluate("document.documentElement.dataset.theme") == "raid"
-    assert p.errors == []
-
-
 def test_guild_level_up_shows_a_toast(view):
-    p, page = view(theme="raid")
+    p, page = view()
     bump = {"done": 0}
 
     def board(route):

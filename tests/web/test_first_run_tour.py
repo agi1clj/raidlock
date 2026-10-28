@@ -76,7 +76,7 @@ def wait_marks(page, expected):
 def test_tour_progresses_with_the_board_and_leaves_after_done(pages, tour_server):
     d = tour_server.demos["steps"]
     p = pages(tour_server)
-    page = p.open("/quest-steps", theme="raid")
+    page = p.open("/quest-steps")
     settle(page, "#tour:not([hidden]) .tour-step")
     assert page.locator("#tourTitle").inner_text().lower() == "first quest"
     assert marks(page) == [False, False, False, False]
@@ -103,7 +103,7 @@ def test_tour_progresses_with_the_board_and_leaves_after_done(pages, tour_server
 
 def test_tour_is_hidden_on_a_board_with_cards(pages, tour_server):
     p = pages(tour_server)
-    page = p.open("/quest-busy", theme="raid")
+    page = p.open("/quest-busy")
     settle(page, "#focus:not([hidden]) #todoList .row")
     page.wait_for_timeout(500)
     assert page.locator("#tour").count() == 0 or page.locator("#tour").is_hidden()
@@ -112,25 +112,25 @@ def test_tour_is_hidden_on_a_board_with_cards(pages, tour_server):
 
 def test_dismiss_is_remembered_per_workspace(pages, quiet_server):
     p = pages(quiet_server, width=390)
-    page = p.open("/quest-one", theme="plain")
+    page = p.open("/quest-one")
     settle(page, "#tour:not([hidden]) .tour-step")
-    assert page.locator("#tourTitle").inner_text() == "Your first card"
+    assert page.locator("#tourTitle").inner_text() == "First quest"
     fit = no_hscroll(page)
     assert fit["scroll"] <= fit["client"] and fit["wide"] == [], fit
-    page.get_by_role("button", name="Dismiss the first card guide").click()
+    page.get_by_role("button", name="Dismiss the first quest").click()
     assert page.locator("#tour").is_hidden()
     page.reload()
     settle(page, "#focus:not([hidden])")
     page.wait_for_timeout(500)
     assert page.locator("#tour").is_hidden()
-    page = p.open("/quest-two", theme=None)
+    page = p.open("/quest-two")
     settle(page, "#tour:not([hidden]) .tour-step")
     assert p.errors == []
 
 
 def test_realm_shows_the_tour_when_every_guild_is_empty(pages, quiet_server):
     p = pages(quiet_server)
-    page = p.open("/", theme="raid")
+    page = p.open("/")
     settle(page, "#overview:not([hidden]) #tour:not([hidden]) .tour-step")
     assert marks(page) == [False, False, False, False]
     assert "<card>" in page.locator("#tour").inner_text()

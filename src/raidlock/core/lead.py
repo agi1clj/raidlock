@@ -719,12 +719,19 @@ class Lead:
         if not session or not pid or not start:
             raise IdentityError("cannot take over the lead without a session process anchor")
         lease = self.lease()
+        if lease and not self.expired(lease) and lease.get("session") == session:
+            raise Precondition(
+                f"this session ({session}) already holds the lead lease, live until {lease.get('expires')}; "
+                "nothing to take over",
+                hint="raidlock lead status",
+            )
         if lease and not self.expired(lease):
             raise Denied(
                 f"the lead lease of session {lease.get('session', '')} is live until {lease.get('expires')}",
                 lead_session=lease.get("session", ""),
                 expires=lease.get("expires"),
-                hint="ask the lead to run: raidlock lead handover --to <your session>",
+                hint=f"ask the lead session to run: raidlock lead handover --to {session}; "
+                "or run lead takeover again once the lease expires",
             )
         fence = int(lease.get("fence", 0)) + 1
         secret = mint(fence)

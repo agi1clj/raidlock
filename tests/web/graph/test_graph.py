@@ -73,10 +73,9 @@ def test_cli_graph(tmp_path, capsys):
     assert out["heat"]["rows"][0]["path"].startswith("storefront/api/cart")
 
 
-@pytest.mark.parametrize("theme", ["raid", "plain"])
 @pytest.mark.parametrize("width", [375, 768, 1280, 1440])
-def test_graph_view_draws_inline_svg(browse, theme, width):
-    p, page = open_view(browse, "/acme-shop?view=graph", ".dep-svg", theme=theme, width=width)
+def test_graph_view_draws_inline_svg(browse, width):
+    p, page = open_view(browse, "/acme-shop?view=graph", ".dep-svg", width=width)
     assert page.locator(".dep-svg .gnode").count() == 2
     assert "6 cards have no dependencies" in page.locator("#viewPane").inner_text()
     assert page.locator('.dep-svg .edge[data-from="cart-api"][data-to="promo-codes"]').count() == 1
@@ -198,7 +197,7 @@ def test_large_graph_missing_cycles_bounds_and_poll(browse, width):
     p = browse(width=width)
     page = p.page
     page.route("**/api/graph/acme-shop*", lambda route: route.fulfill(json=payload))
-    p.open("/acme-shop?view=graph", theme="raid")
+    p.open("/acme-shop?view=graph")
     page.wait_for_selector(".dep-svg .gnode")
     assert page.locator(".gnode").count() == 155
     assert "1 card has no dependencies" in page.locator("#viewPane").inner_text()
@@ -238,7 +237,7 @@ def test_graph_keyboard_opens_card(browse):
     assert p.errors == []
 
 
-def test_graph_repo_filter_and_theme(browse):
+def test_graph_repo_filter(browse):
     p, page = open_view(browse, "/acme-shop?view=graph", ".dep-svg")
     page.locator('#repos [data-repo="web"]').click()
     assert page.locator('.gnode[data-id="cart-api"]').count() == 0

@@ -12,7 +12,6 @@ const RAID = {todo: "Quest board", doing: "On a quest", review: "Inspection", bl
   cost: "Treasury", score: "Hall of renown", log: "Raid log", chat: "Tavern chatter", workspaces: "Guilds of the realm"};
 const RAID_PRIMARY = {decision: "Hold council", blocked: "Lift the curse", review: "Inspect loot", question: "Answer", close: "Turn in quest",
   lore: "Inscribe", apply: "Apply enchant", duel: "Judge the duel"};
-function w(plain, raidText) { return raid() ? raidText : plain; }
 const RAID_ICON = {needs: "\u2694\uFE0F", todo: "\u{1F4DC}", doing: "\u{1F525}", review: "\u{1F989}", blocked: "\u{1F480}", done: "\u{1F3C6}"};
 const STATUS = {
   blocked: {icon: "\u{1F480}", raid: "Cursed", label: "Blocked"},
@@ -52,7 +51,7 @@ function canShow(g) {
 
 const state = {view: null, mode: "all", projects: [], overview: null, board: null, cards: {}, first: true, open: new Set(),
   details: {}, laneLimit: {}, todoAll: false, needsAll: false, levels: {}, slain: {}, doneLimit: 5, etag: {}, log: [], cursor: 0, logWs: null, logSel: null,
-  logFilter: "*", statusPrev: {}, warned: new Set(), seenChat: null, seenLog: null, ticks: 0, unknown: "", theme: "plain",
+  logFilter: "*", statusPrev: {}, warned: new Set(), seenChat: null, seenLog: null, ticks: 0, unknown: "",
   sound: true, vol: 80, notify: false, chatFilter: null, treasuryBy: "by_model", busy: false, muted: new Set(), msgPrev: null,
   repo: "", expired: new Set(), sub: "focus", subData: {}, achievements: false, loaded: false, error: "", anim: true, fxPrev: null,
   fxPulse: new Map(), fxView: {}};
@@ -64,8 +63,7 @@ const chatRead = new Map();
 
 function store(k, v) { try { localStorage.setItem(k, String(v)); } catch (_) {} }
 function recall(k) { try { return localStorage.getItem(k); } catch (_) { return null; } }
-function raid() { return state.theme === "raid"; }
-function motion() { return raid() && !RM && state.anim; }
+function motion() { return !RM && state.anim; }
 
 function h(tag, props, ...kids) {
   const el = document.createElement(tag);
@@ -101,8 +99,8 @@ function svg(tag, props, ...kids) {
   for (const k of kids.flat()) if (k !== null && k !== undefined && k !== false) el.appendChild(k instanceof Node ? k : document.createTextNode(String(k)));
   return el;
 }
-function ico(s) { return s && raid() && canShow(s) ? h("span", {class: "ico", "aria-hidden": "true"}, s + " ") : null; }
-function raidSub(key) { return raid() && RAID[key] ? h("small", {class: "raid-sub", text: RAID[key]}) : null; }
+function ico(s) { return s && canShow(s) ? h("span", {class: "ico", "aria-hidden": "true"}, s + " ") : null; }
+function raidSub(key) { return RAID[key] ? h("small", {class: "raid-sub", text: RAID[key]}) : null; }
 const LEVEL_CAP = 60;
 const RANKS = [[60, "Mythic"], [50, "Legend"], [40, "Hero"], [30, "Champion"], [20, "Knight"], [10, "Squire"], [1, "Recruit"]];
 function levelOf(counts) {
@@ -116,7 +114,7 @@ function levelUp(key, kind, counts, el) {
   const x = levelOf(counts);
   const prev = state.levels[key];
   state.levels[key] = x.level;
-  if (!raid() || prev === undefined || x.level <= prev) return false;
+  if (prev === undefined || x.level <= prev) return false;
   toastAs("quest levelup", h("b", {text: `${kind} level ${x.level}!`}), ` ${x.rank}: ${x.closed} of ${x.total} quests completed.`);
   play("levelup");
   if (motion() && el) fxLayer(el, "fx-levelup", 2400, h("span", {class: "ding", text: `Level ${x.level}`}));
@@ -125,7 +123,7 @@ function levelUp(key, kind, counts, el) {
 function victory(key, slain) {
   const seen = state.slain[key];
   state.slain[key] = new Set(slain.map(b => b.id));
-  if (!raid() || !seen) return;
+  if (!seen) return;
   const fresh = slain.filter(b => !seen.has(b.id));
   if (!fresh.length) return;
   const b = fresh[0];
@@ -144,7 +142,7 @@ function victory(key, slain) {
   setTimeout(close, 6000);
 }
 function streakChip(n) {
-  return raid() && n >= 2 ? h("span", {class: "streak", title: `${n} days in a row with a finished quest`}, `\ud83d\udd25 ${n}-day streak`) : null;
+  return n >= 2 ? h("span", {class: "streak", title: `${n} days in a row with a finished quest`}, `\ud83d\udd25 ${n}-day streak`) : null;
 }
 function sumCounts(projects) {
   const out = {};
@@ -152,7 +150,6 @@ function sumCounts(projects) {
   return out;
 }
 function levelBadge(kind, counts) {
-  if (!raid()) return null;
   const x = levelOf(counts);
   const label = `${kind} level ${x.level} of ${LEVEL_CAP}, ${x.rank}: ${x.closed} of ${x.total} quests completed, ${x.open} open`;
   const fill = h("span", {class: "xp-fill"});
@@ -179,7 +176,7 @@ function heroOf(name) {
 }
 function avatar(name) {
   const g = (heroOf(name) || ["?"])[0];
-  if (!raid() || !canShow(g)) return (name || "?").slice(0, 2).toUpperCase();
+  if (!canShow(g)) return (name || "?").slice(0, 2).toUpperCase();
   return g;
 }
 function localTime(t) {
@@ -239,7 +236,7 @@ function modelName(id) {
 }
 function statusBadge(st) {
   const s = STATUS[st] || STATUS.idle;
-  return h("span", {class: "badge", vars: {"--s": `var(--s-${st})`}, title: raid() ? s.raid : null}, ico(s.icon), h("b", {text: s.label}));
+  return h("span", {class: "badge", vars: {"--s": `var(--s-${st})`}, title: s.raid}, ico(s.icon), h("b", {text: s.label}));
 }
 function billBadge(mode) {
   if (!mode || mode === "unknown" || !BILL[mode]) return null;
@@ -670,7 +667,7 @@ function copyCommand(button, text, label) {
     else {
       const row = button.closest("[data-id]");
       if (row) openRow(row, true);
-      toast(`Copy failed: select the command in ${w("Details", "Examine")} and copy it by hand.`);
+      toast("Copy failed: select the command in Examine and copy it by hand.");
     }
     setTimeout(restore, 1500);
   };
@@ -694,10 +691,9 @@ function oldestStalled(agents, titles) {
 }
 function statusLine(o) {
   const seg = (n, label, cls) => n ? h("span", {class: `seg ${cls}`}, h("b", {text: String(n)}), " " + label) : null;
-  const r = raid();
-  const parts = [seg(o.needs, r ? "await the raid leader" : "need you", "s-review"), seg(o.doing, r ? "on a quest" : "in progress", "s-doing"),
-    seg(o.blocked, r ? "cursed" : "blocked", "s-blocked"), seg(o.todo, r ? "on the quest board" : "to do", "s-todo")];
-  if (o.total) parts.push(h("span", {class: "seg s-done"}, h("b", {text: String(o.done)}), r ? ` of ${o.total} quests completed` : ` of ${o.total} done`));
+  const parts = [seg(o.needs, "await the raid leader", "s-review"), seg(o.doing, "on a quest", "s-doing"),
+    seg(o.blocked, "cursed", "s-blocked"), seg(o.todo, "on the quest board", "s-todo")];
+  if (o.total) parts.push(h("span", {class: "seg s-done"}, h("b", {text: String(o.done)}), ` of ${o.total} quests completed`));
   if (o.stalled) {
     const mins = o.stalled.at ? Math.max(1, Math.round((Date.now() - o.stalled.at) / 60000)) : 0;
     const since = !mins ? "" : mins >= 120 ? `${Math.round(mins / 60)} h` : `${mins} min`;
@@ -788,21 +784,21 @@ function cardDetail(c, extra) {
   const rows = [];
   if (extra) rows.push(extra);
   if (cl && !cl.ok && (cl.reasons || []).length) rows.push(h("div", {class: "why"}, h("b", {text: "Not claimable yet: "}), cl.reasons.join("; ")));
-  if (c.team) rows.push(h("div", null, h("b", {text: w("Team: ", "Party: ")}), c.team));
+  if (c.team) rows.push(h("div", null, h("b", {text: "Party: "}), c.team));
   if (c.ticket) rows.push(h("div", null, h("b", {text: "Ticket: "}), c.ticket));
   if ((c.allow_protected || []).length) rows.push(h("div", null, h("b", {text: "Lead-approved protected paths: "}), c.allow_protected.join(", ")));
   if ((c.lock_exclusions || []).length) rows.push(h("div", null, h("b", {text: "Excluded lock paths: "}), c.lock_exclusions.join(", ")));
   if (c.cancel_reason) rows.push(h("div", null, h("b", {text: "Cancelled: "}), c.cancel_reason));
   if (c.scope) rows.push(h("div", null, h("b", {text: "Scope: "}), c.scope));
-  if ((c.locks || []).length) rows.push(h("div", null, h("b", {text: w("Locked paths: ", "Warded paths: ")}), c.locks.join(", ")));
-  if ((c.depends || []).length) rows.push(h("div", null, h("b", {text: w("Depends on: ", "After quests: ")}), c.depends.join(", ")));
-  if (c.evidence) rows.push(h("div", null, h("b", {text: w("Closed with evidence: ", "Proof of deed: ")}), /^https:\/\//.test(c.evidence) ? h("a", {href: c.evidence, target: "_blank", rel: "noopener noreferrer", text: c.evidence}) : c.evidence));
+  if ((c.locks || []).length) rows.push(h("div", null, h("b", {text: "Warded paths: "}), c.locks.join(", ")));
+  if ((c.depends || []).length) rows.push(h("div", null, h("b", {text: "After quests: "}), c.depends.join(", ")));
+  if (c.evidence) rows.push(h("div", null, h("b", {text: "Proof of deed: "}), /^https:\/\//.test(c.evidence) ? h("a", {href: c.evidence, target: "_blank", rel: "noopener noreferrer", text: c.evidence}) : c.evidence));
   if (c.verify) rows.push(h("div", null, h("b", {text: "Proof: "}), c.verify));
-  if ((c.approvals || []).length) rows.push(h("div", null, h("b", {text: w("Approved by: ", "Vouched for by: ")}), c.approvals.join(", ")));
+  if ((c.approvals || []).length) rows.push(h("div", null, h("b", {text: "Vouched for by: "}), c.approvals.join(", ")));
   if (c.pr && c.pr.held) rows.push(h("div", {class: "why"}, h("b", {text: "Merged, not closed: "}), c.pr.held));
   for (const r of (d && d.reviews) || []) rows.push(h("div", null, h("b", {text: `Review by ${r.by}, ${r.verdict}: `}), r.note || ""));
   const notes = ((d || c).notes || []).slice().reverse();
-  rows.push(h("h3", {class: "drawer-h", text: w("History", "Quest chronicle")}));
+  rows.push(h("h3", {class: "drawer-h", text: "Quest chronicle"}));
   for (const n of notes) rows.push(h("div", null, h("b", {text: `${ago(n.ts)} ago, ${n.by || "?"}: `}), n.text));
   if (!notes.length) rows.push(h("div", {class: "cls", text: "No notes yet."}));
   if (!d && c.notes_count > (c.notes || []).length) rows.push(h("div", {class: "cls", text: `Loading ${c.notes_count} notes…`}));
@@ -828,7 +824,7 @@ function row(c, opts) {
   if (opts.primary) actions.push(h("button", {type: "button", class: "primary", "data-cmd": opts.primary.cmd, "data-label": opts.primary.label,
     title: opts.primary.cmd, "aria-label": `${opts.primary.label} ${c.title}: copy the command`, text: opts.primary.label}));
   if (opts.more) actions.push(opts.more);
-  if (!opts.oneLine) actions.push(h("button", {type: "button", class: "tog details", "aria-expanded": String(op), "aria-controls": "cardDrawer", text: w("Details", "Examine")}));
+  if (!opts.oneLine) actions.push(h("button", {type: "button", class: "tog details", "aria-expanded": String(op), "aria-controls": "cardDrawer", text: "Examine"}));
   return h("li", {class: "row" + (op ? " open" : "") + (opts.oneLine ? " one" : ""), "data-id": c.id, "data-lane": c.lane, "data-kind": opts.kind || c.lane},
     h("div", {class: "row-main"},
       h("div", {class: "row-title"}, h("strong", {class: "t", text: c.title}), h("span", {class: "cid", text: c.id})),
@@ -863,7 +859,7 @@ function refreshRow(el) {
   if (!c || !state.open.has(c.id)) return;
   $("drawerTitle").textContent = c.title;
   const item = itemFor(c.id);
-  setKids($("drawerBody"), cardDetail(c, item?.commands?.length ? h("div", null, h("b", {text: "Suggested command: "}), cmdLine(item.commands[0])) : null), JSON.stringify([c, state.details[c.id], item, state.theme]));
+  setKids($("drawerBody"), cardDetail(c, item?.commands?.length ? h("div", null, h("b", {text: "Suggested command: "}), cmdLine(item.commands[0])) : null), JSON.stringify([c, state.details[c.id], item]));
 }
 function itemFor(id) { return (((state.board || {}).approvals || {}).items || []).find(x => x.card === id) || null; }
 async function loadDetail(id) {
@@ -908,7 +904,7 @@ function groups(cards) {
 function byUpdated(a, b) { return (b.updated || "").localeCompare(a.updated || ""); }
 function needRow(x) {
   const c = state.cards[x.card] || (state.board.cards || []).find(k => k.id === x.card);
-  const label = (raid() && RAID_PRIMARY[x.kind]) || PRIMARY[x.kind] || "Copy command";
+  const label = RAID_PRIMARY[x.kind] || PRIMARY[x.kind] || "Copy command";
   const primary = x.commands && x.commands[0] ? {label, cmd: x.commands[0]} : null;
   const extra = x.commands && x.commands.length > 1 ? moreMenu(x.card || x.id, x.commands.slice(1)) : null;
   if (!c) {
@@ -920,9 +916,9 @@ function needRow(x) {
   return row(c, {kind: x.kind, primary, more: extra, reason: why, meta: [ownerPill(c), approvalPill(c), costPill(c), prPill(c)]});
 }
 function sectionHead(el, key, text, count) {
-  const main = raid() && RAID[key] ? RAID[key] : text;
-  const sub = raid() && RAID[key] ? h("small", {class: "raid-sub", text}) : null;
-  setKids(el, [h("span", null, ico(RAID_ICON[key]), main, " ", count === undefined ? null : h("span", {class: "count", text: String(count)})), sub], JSON.stringify([text, count, state.theme]));
+  const main = RAID[key] || text;
+  const sub = RAID[key] ? h("small", {class: "raid-sub", text}) : null;
+  setKids(el, [h("span", null, ico(RAID_ICON[key]), main, " ", count === undefined ? null : h("span", {class: "count", text: String(count)})), sub], JSON.stringify([text, count]));
 }
 function paged(list, key, make) {
   const limit = state.laneLimit[key] || LANE_PAGE;
@@ -950,33 +946,33 @@ function renderFocus(cards) {
   sectionHead($("needsTitle"), "needs", "Needs you", g.needs.length);
   $("needsSub").textContent = g.needs.length ? needsSummary(g.needs) : "";
   const allNeeds = state.needsAll || statusFilter === "needs";
-  const needKids = g.needs.length ? (allNeeds ? g.needs : g.needs.slice(0, NEEDS_CAP)).map(needRow) : [h("li", {class: "empty"}, w("Nothing needs you", "All is quiet in the realm"))];
+  const needKids = g.needs.length ? (allNeeds ? g.needs : g.needs.slice(0, NEEDS_CAP)).map(needRow) : [h("li", {class: "empty"}, "All is quiet in the realm")];
   if (g.needs.length > NEEDS_CAP && statusFilter !== "needs") needKids.push(h("li", {class: "more-row"}, h("button", {type: "button", class: "tog", id: "needsMore", "aria-expanded": String(!!state.needsAll),
-    text: state.needsAll ? w(`Show the first ${NEEDS_CAP}`, `Roll up to ${NEEDS_CAP}`) : w(`Show all ${g.needs.length}`, `Unroll all ${g.needs.length}`)})));
+    text: state.needsAll ? `Roll up to ${NEEDS_CAP}` : `Unroll all ${g.needs.length}`})));
   setKids($("needsList"), needKids,
-  JSON.stringify([g.needs, allNeeds, state.theme, [...state.open], Object.keys(state.details).length]));
+  JSON.stringify([g.needs, allNeeds, [...state.open], Object.keys(state.details).length]));
   if (!$("waitingNote")) $("needs").querySelector("summary").append(h("span", {id: "waitingNote", class: "waiting-note"}));
   const waiting = g.blocked.length;
-  setKids($("waitingNote"), waiting ? [w(`${waiting} blocked ${waiting === 1 ? "card waits" : "cards wait"} on others. `, `${waiting} cursed ${waiting === 1 ? "quest waits" : "quests wait"} on others. `),
-    h("a", {href: subHref("all"), "data-sub": "all", text: w("See them in All cards", "See them in the Quest log")})] : [], JSON.stringify([waiting, state.theme, state.view]));
+  setKids($("waitingNote"), waiting ? [`${waiting} cursed ${waiting === 1 ? "quest waits" : "quests wait"} on others. `,
+    h("a", {href: subHref("all"), "data-sub": "all", text: "See them in the Quest log"})] : [], JSON.stringify([waiting, state.view]));
   $("waitingNote").hidden = !waiting;
   $("needs").classList.toggle("calm", !g.needs.length);
   $("needsList").hidden = !g.needs.length;
-  if (!g.needs.length) $("needsTitle").textContent = w("Nothing needs you", "All is quiet in the realm");
+  if (!g.needs.length) $("needsTitle").textContent = "All is quiet in the realm";
   const doing = cards.filter(c => c.lane === "doing").sort(byUpdated);
   sectionHead($("doingTitle"), "doing", "In progress", doing.length);
   setKids($("doingList"), doing.length ? paged(doing, "doingFocus", c => row(c, {meta: [ownerPill(c), leaseText(c), takeoverPill(c), costPill(c), prPill(c)],
-    reason: [lastNote(c), (c.locks || []).length ? "Locks: " + c.locks.join(", ") : ""].filter(Boolean).join(" · ")})) : [h("li", {class: "empty"}, w("Nobody is working on a card. A worker starts one with ", "No hero is on a quest. A worker takes one with "), h("code", {text: "raid claim <card>"}), ".")],
-  JSON.stringify([doing, state.laneLimit.doingFocus, state.theme, [...state.open], Object.keys(state.details).length, Math.floor(Date.now() / 30000)]));
+    reason: [lastNote(c), (c.locks || []).length ? "Locks: " + c.locks.join(", ") : ""].filter(Boolean).join(" · ")})) : [h("li", {class: "empty"}, "No hero is on a quest. A worker takes one with ", h("code", {text: "raid claim <card>"}), ".")],
+  JSON.stringify([doing, state.laneLimit.doingFocus, [...state.open], Object.keys(state.details).length, Math.floor(Date.now() / 30000)]));
   const claim = state.board.claimable || {};
   const todo = todoOrder(cards);
   sectionHead($("todoTitle"), "todo", "To do", todo.length);
   const shown = state.todoAll ? todo : todo.slice(0, TODO_CAP);
   const kids = shown.map(c => row(c, {meta: [claimPill(c), (c.depends || []).length ? h("span", {class: "pill", text: "after " + c.depends.join(", ")}) : null, c.ticket ? h("span", {class: "pill tk", text: c.ticket}) : null]}));
-  if (!todo.length) kids.push(h("li", {class: "empty"}, w("No cards waiting. Add one with ", "The quest board is empty. Post a quest with "), h("code", {text: leadCmd('new "Title" --team <team> --locks <repo>/<path>')}), "."));
+  if (!todo.length) kids.push(h("li", {class: "empty"}, "The quest board is empty. Post a quest with ", h("code", {text: leadCmd('new "Title" --team <team> --locks <repo>/<path>')}), "."));
   if (todo.length > TODO_CAP) kids.push(h("li", {class: "more-row"}, h("button", {type: "button", class: "tog", id: "todoMore", "aria-expanded": String(state.todoAll),
-    text: state.todoAll ? w(`Show the first ${TODO_CAP}`, `Roll up to ${TODO_CAP}`) : w(`Show all ${todo.length}`, `Unroll all ${todo.length} quests`)})));
-  setKids($("todoList"), kids, JSON.stringify([todo.map(c => [c.id, c.updated, (claim[c.id] || {}).ok]), state.todoAll, state.theme, [...state.open], Object.keys(state.details).length]));
+    text: state.todoAll ? `Roll up to ${TODO_CAP}` : `Unroll all ${todo.length} quests`})));
+  setKids($("todoList"), kids, JSON.stringify([todo.map(c => [c.id, c.updated, (claim[c.id] || {}).ok]), state.todoAll, [...state.open], Object.keys(state.details).length]));
 }
 function renderDone(cards) {
   const done = cards.filter(c => c.lane === "done").sort(byUpdated);
@@ -986,25 +982,24 @@ function renderDone(cards) {
   if (!$("donePanel").open) { $("doneList").dataset.sig = ""; return; }
   const shown = done.slice(0, state.doneLimit);
   const kids = shown.map(c => row(c, {meta: [ownerPill(c), h("span", {class: "pill", text: `closed ${ago(c.updated)} ago`}), costPill(c)]}));
-  if (!done.length) kids.push(h("li", {class: "empty", text: w("No card is done yet. The lead closes a card from Needs you.", "No legends yet. The raid leader turns in quests from the call above.")}));
+  if (!done.length) kids.push(h("li", {class: "empty", text: "No legends yet. The raid leader turns in quests from the call above."}));
   if (done.length > shown.length) kids.push(h("li", {class: "more-row"}, h("button", {type: "button", class: "tog", id: "doneMore", text: `Show all ${done.length}`})));
-  setKids($("doneList"), kids, JSON.stringify([shown.map(c => [c.id, c.updated]), done.length, state.doneLimit, state.theme, [...state.open], Object.keys(state.details).length]));
+  setKids($("doneList"), kids, JSON.stringify([shown.map(c => [c.id, c.updated]), done.length, state.doneLimit, [...state.open], Object.keys(state.details).length]));
 }
 function renderAllLanes(cards) {
   const box = $("lanes");
-  const sig = JSON.stringify([cards.map(c => [c.id, c.lane, c.updated, c.owner]), state.laneLimit, state.theme, [...state.open], Object.keys(state.details).length]);
+  const sig = JSON.stringify([cards.map(c => [c.id, c.lane, c.updated, c.owner]), state.laneLimit, [...state.open], Object.keys(state.details).length]);
   if (box.dataset.sig === sig) return;
   box.dataset.sig = sig;
-  const empty = {todo: ["Nothing queued.", "The quest board is empty."], doing: ["Nobody is working on a card.", "No hero is on a quest."],
-    review: ["Nothing waits for review.", "Nothing awaits inspection."], blocked: ["Nothing is blocked.", "No quest is cursed."], done: ["No card is done yet.", "No legends yet."]};
+  const empty = {todo: "The quest board is empty.", doing: "No hero is on a quest.", review: "Nothing awaits inspection.", blocked: "No quest is cursed.", done: "No legends yet."};
   box.replaceChildren(...LANES.filter(l => l !== "cancelled" || cards.some(c => c.lane === l)).map(l => {
     const cs = l === "todo" ? todoOrder(cards) : cards.filter(c => c.lane === l).sort(byUpdated);
     const limit = state.laneLimit[l] || (l === "done" || l === "cancelled" ? 10 : LANE_PAGE);
     const kids = cs.slice(0, limit).map(c => row(c, {meta: [ownerPill(c), approvalPill(c), claimPill(c), leaseText(c), takeoverPill(c), costPill(c)]}));
-    if (!cs.length) kids.push(h("li", {class: "empty", text: w(...(empty[l] || ["None.", "None."]))}));
+    if (!cs.length) kids.push(h("li", {class: "empty", text: empty[l] || "None."}));
     if (cs.length > limit) kids.push(h("li", {class: "more-row"}, h("button", {type: "button", class: "tog lane-more", "data-lane": l, text: `Show ${Math.min(LANE_PAGE, cs.length - limit)} more of ${cs.length - limit}`})));
     return h("section", {class: "lane" + (cs.length ? "" : " empty"), "data-lane": l, "aria-labelledby": "lane-" + l},
-      h("h3", {class: "lane-h", id: "lane-" + l}, h("span", null, ico(RAID_ICON[l]), raid() && RAID[l] ? RAID[l] : LANE[l], raid() && RAID[l] ? h("small", {class: "raid-sub", text: LANE[l]}) : null), h("span", {class: "count", text: String(cs.length)})),
+      h("h3", {class: "lane-h", id: "lane-" + l}, h("span", null, ico(RAID_ICON[l]), RAID[l] || LANE[l], RAID[l] ? h("small", {class: "raid-sub", text: LANE[l]}) : null), h("span", {class: "count", text: String(cs.length)})),
       h("ul", {class: "rows"}, kids));
   }));
 }
@@ -1029,7 +1024,7 @@ function agentCard(name, a, cards) {
   const seen = lastSeen(a);
   const who = identity(a);
   const mail = (state.board.inbox || {})[name] || {};
-  return h("div", {class: `agent st-${st}`, "data-agent": name, vars: {"--s": `var(--s-${st})`}, title: raid() && !lead ? (heroOf(name) || ["", ""])[1] : null},
+  return h("div", {class: `agent st-${st}`, "data-agent": name, vars: {"--s": `var(--s-${st})`}, title: !lead ? (heroOf(name) || ["", ""])[1] : null},
     h("div", {class: "av", "aria-hidden": "true", text: avatar(name)}),
     h("div", {class: "body"},
       h("div", {class: "nm"}, h("b", {text: name}), " ", statusBadge(st)),
@@ -1046,7 +1041,7 @@ function renderAgents(cards) {
   const idle = all.filter(x => !isActive(x.name, x.a)).sort((x, y) => lastSeen(y.a) - lastSeen(x.a) || x.name.localeCompare(y.name));
   $("agentsHint").textContent = all.length ? `${active.filter(x => isWorking(x.name, x.a)).length} working, ${active.filter(x => !isWorking(x.name, x.a)).length} recently active` : "nobody joined yet";
   if (!$("agentsPanel").open) { $("agents").dataset.sig = ""; return; }
-  const sig = JSON.stringify([b.agents, b.inbox, cards.map(c => [c.id, c.owner, c.lane]), state.theme, Math.floor(Date.now() / 30000), !!state.idleAll]);
+  const sig = JSON.stringify([b.agents, b.inbox, cards.map(c => [c.id, c.owner, c.lane]), Math.floor(Date.now() / 30000), !!state.idleAll]);
   const kids = [];
   if (!all.some(x => x.name !== b.lead)) kids.push(h("p", {class: "empty"}, "No workers yet. A worker joins from its own terminal with ", h("code", {text: "raid up --join"}), "."));
   if (active.length) kids.push(h("div", {class: "agents"}, active.map(x => agentCard(x.name, x.a, cards))));
@@ -1062,7 +1057,7 @@ function renderAgents(cards) {
   setKids($("agents"), kids, sig);
 }
 
-const BELL_ICON = {close: "\u2705", apply: "\u{1FA79}", duel: "\u2694\uFE0F", review: "\u{1F989}", blocked: "\u{1F480}", stalled: "\u231B"};
+const BELL_ICON = {close: "\u2705", apply: "\u{1FA79}", duel: "\u2694\uFE0F", review: "\u{1F989}", blocked: "\u{1F480}", stalled: "\u231B", gates: "\u2696\uFE0F"};
 function bellItems() {
   const ps = (state.projects || []).filter(p => state.view === "*" || p.name === state.view);
   return ps.flatMap(p => (p.needs || []).map(n => ({...n, guild: p.name, key: `${p.name}:${n.kind}:${n.card}`})));
@@ -1089,17 +1084,16 @@ function renderBell() {
   state.bellKnown = new Set(items.map(x => x.key));
   setKids(bell, ["\u{1F514}", unseen ? h("span", {class: "badge bell-count", text: String(unseen)}) : null], JSON.stringify([unseen]));
   const body = menu.querySelector(".bell-body");
-  const head = h("b", {text: all ? w("Needs you, all workspaces", "The realm needs you") : w(`Needs you in ${state.view}`, `${state.view} needs you`)});
+  const head = h("b", {text: all ? "The realm needs you" : `${state.view} needs you`});
   const rows = items.length ? items.map(x => h("a", {class: "bell-row" + (seen.has(x.key) ? "" : " new"), href: href(x.guild), "data-nav": x.guild},
     h("span", {class: "bell-ico", text: BELL_ICON[x.kind] || "\u2022"}),
-    h("span", {class: "bell-text"}, h("span", {class: "bell-title", text: x.title}), h("span", {class: "cls", text: all ? `${x.guild} \u00b7 ${x.reason}` : x.reason})))) : [h("span", {class: "cls", text: w("Nothing needs you.", "All is quiet.")})];
-  setKids(body, [head, ...rows], JSON.stringify([items.map(x => x.key), [...seen].length, state.view, state.theme]));
+    h("span", {class: "bell-text"}, h("span", {class: "bell-title", text: x.title}), h("span", {class: "cls", text: all ? `${x.guild} \u00b7 ${x.reason}` : x.reason})))) : [h("span", {class: "cls", text: "All is quiet."})];
+  setKids(body, [head, ...rows], JSON.stringify([items.map(x => x.key), [...seen].length, state.view]));
 }
 function renderUpdate(u) {
   const old = $("updateMenu");
   if (!u) { if (old) old.remove(); return; }
   if (old) return;
-  const plugin = "claude plugin marketplace update raidlock && claude plugin update raidlock@raidlock";
   const row = (label, cmd) => {
     const btn = h("button", {type: "button", class: "tog", text: "Copy"});
     btn.addEventListener("click", () => copyCommand(btn, cmd, "Copy"));
@@ -1109,7 +1103,7 @@ function renderUpdate(u) {
     h("summary", {class: "tog update-chip", title: `raidlock ${u.latest} is available`}, "Update", h("span", {class: "v", text: ` ${u.latest}`})),
     h("div", {class: "menu-body upd-body"},
       h("b", {text: `raidlock ${u.latest} is available (you have ${u.current})`}),
-      row("CLI", u.upgrade), row("Claude Code plugin", plugin),
+      row("CLI and plugin", u.upgrade),
       h("span", {class: "cls", text: "Then start a new Claude Code session so the new hooks load."}),
       h("a", {href: `https://github.com/agi1clj/raidlock/releases/tag/v${u.latest}`, target: "_blank", rel: "noopener", text: "What's new"}))));
 }
@@ -1129,24 +1123,24 @@ function renderTour(cards, opts) {
   const id = first ? first.id : "<card>";
   const repo = (opts.repos || []).length === 1 ? opts.repos[0].name : "<repo>";
   const steps = [
-    [cards.length > 0, w("Create a card", "Post a quest"), w("The lead adds a card with the paths it may change and a check that proves it.", "The raid leader posts a quest with the ground it may touch and the proof it needs."), leadCmd(`new "<title>" --locks ${repo}/<path> --verify-cmd "<check>"`)],
-    [any("doing", "review", "blocked", "done"), w("Claim it", "Accept the quest"), w("A worker claims the card and holds its locks.", "A hero accepts the quest and holds its ground."), `raid claim ${id}`],
-    [verified, w("Verify it", "Prove the deed"), w("The lead runs the check and records the result.", "The raid leader tests the deed and records the proof."), leadCmd(`verify ${id}`)],
-    [any("done"), w("Close it", "Turn in the quest"), w("The lead marks the card done and releases its locks.", "The raid leader turns in the quest and frees its ground."), leadCmd(`done ${id}`)]];
+    [cards.length > 0, "Post a quest", "The raid leader posts a quest with the ground it may touch and the proof it needs.", leadCmd(`new "<title>" --locks ${repo}/<path> --verify-cmd "<check>"`)],
+    [any("doing", "review", "blocked", "done"), "Accept the quest", "A hero accepts the quest and holds its ground.", `raid claim ${id}`],
+    [verified, "Prove the deed", "The raid leader tests the deed and records the proof.", leadCmd(`verify ${id}`)],
+    [any("done"), "Turn in the quest", "The raid leader turns in the quest and frees its ground.", leadCmd(`done ${id}`)]];
   const count = steps.filter(s => s[0]).length;
   const next = steps.findIndex(s => !s[0]);
   el.hidden = false;
   setKids(el, [
     h("div", {class: "tour-head"},
-      h("h2", {id: "tourTitle", text: w("Your first card", "First quest")}),
+      h("h2", {id: "tourTitle", text: "First quest"}),
       h("span", {class: "cls tour-count", text: `${count} of ${steps.length}`}),
-      h("button", {type: "button", id: "tourClose", class: "tour-x", "aria-label": w("Dismiss the first card guide", "Dismiss the first quest"), text: "×", onclick: closeTour})),
+      h("button", {type: "button", id: "tourClose", class: "tour-x", "aria-label": "Dismiss the first quest", text: "×", onclick: closeTour})),
     h("ol", {class: "tour-steps"}, steps.map(([ok, title, text, cmd], i) => h("li", {class: "tour-step" + (ok ? " done" : i === next ? " next" : ""), "aria-current": i === next ? "step" : null},
       h("span", {class: "tour-mark", "aria-hidden": "true", text: ok ? "✓" : String(i + 1)}),
       h("div", {class: "tour-body"},
         h("b", null, title, h("span", {class: "sr-only", text: ok ? ": done" : ": pending"})),
         h("span", {class: "cls", text}),
-        ok ? null : cmdLine(cmd)))))], JSON.stringify([state.view, state.theme, steps.map(s => [s[0], s[3]]), next]));
+        ok ? null : cmdLine(cmd)))))], JSON.stringify([state.view, steps.map(s => [s[0], s[3]]), next]));
 }
 function closeTour() {
   store(tourKey(), "off");
@@ -1170,7 +1164,7 @@ function renderLimits(data) {
     const level = peak >= 90 ? "critical" : peak >= 70 ? "warning" : "normal";
     const parts = [];
     if (ctx) parts.push(h("span", {class: "lv", title: ctx.assumed_window ? "Window size not reported; assumed " + ktok(ctx.window_tokens) + " tokens" : `Context window used: ${ktok(ctx.used_tokens || 0)} of ${ktok(ctx.window_tokens)} tokens`},
-      `${w("Context", "Mana")} ${Math.round(ctx.used_percent)}%`, ctx.assumed_window ? "*" : ""));
+      `Mana ${Math.round(ctx.used_percent)}%`, ctx.assumed_window ? "*" : ""));
     for (const w of windows) {
       const name = w.window === "weekly" ? "Weekly" : w.window || "Window";
       const reset = resetText(w.resets_at);
@@ -1193,7 +1187,7 @@ function cardEvents(cards) {
     const who = c.owner || "someone";
     if (!p) { toast("New card: ", h("b", {text: c.title})); play("posted"); continue; }
     if (p.lane !== c.lane) {
-      if (c.lane === "done" && raid()) toastAs("quest", fxGlyph("quest-seal"), h("b", {text: "Quest complete: "}), c.title, ` (${who})`);
+      if (c.lane === "done") toastAs("quest", fxGlyph("quest-seal"), h("b", {text: "Quest complete: "}), c.title, ` (${who})`);
       else toast(h("b", {text: who}), " moved ", h("b", {text: c.title}), ` to ${LANE[c.lane]}`);
       const fx = {done: [null, "done"], review: [["\u{1F989}", "✨"], "review"], blocked: [["\u{1F480}"], "blocked"], doing: [["\u{1F525}", "✨"], "claim"]}[c.lane];
       if (fx) { if (fx[0]) setTimeout(() => burst(el(), fx[0]), 400); play(fx[1]); } else play("posted");
@@ -1268,7 +1262,7 @@ function evidenceList(x, c) {
     h("li", null, h("span", {text: label}), h("b", {text: value}), h("span", {class: "delta", text: `${signed(delta)} pts`}))));
 }
 function renderScore(rows, reputations) {
-  const sig = JSON.stringify([rows, reputations, state.theme]);
+  const sig = JSON.stringify([rows, reputations]);
   const children = [];
   const known = rows.filter(g => g.provider !== "unknown" || g.model !== "unknown" || g.usd || g.usd_equiv || g.tokens);
   const head = ["Provider", "Model", "Cards", "Done", "Review pass", "Paid", "At API prices", "Tokens", "Time"];
@@ -1326,7 +1320,7 @@ function renderTreasury(t, f) {
   const total = t.total || {};
   const runs = +total.runs || 0;
   $("costHint").textContent = runs && ((f || {}).alerts || []).length ? plural(f.alerts.length, "budget alert") : "";
-  const sig = JSON.stringify([t, f, by, state.theme]);
+  const sig = JSON.stringify([t, f, by]);
   if (!runs) {
     setKids($("treasury"), [h("p", {class: "empty", text: "No usage recorded yet. Cost appears here once a runner or an agent records a run."})], sig);
     return;
@@ -1393,7 +1387,7 @@ function renderLog(force) {
   sp.style.height = Math.max(n * ROW_H, 1) + "px";
   const first = Math.max(0, Math.floor(box.scrollTop / ROW_H) - 4);
   const last = Math.min(n, Math.ceil((box.scrollTop + box.clientHeight) / ROW_H) + 4);
-  const sig = [n, first, last, state.logSel, state.theme, rows.length ? rows[0].id : ""].join("|");
+  const sig = [n, first, last, state.logSel, rows.length ? rows[0].id : ""].join("|");
   if (!force && box.dataset.sig === sig) return;
   box.dataset.sig = sig;
   const kids = [];
@@ -1452,7 +1446,7 @@ async function pollLog(ws) {
 }
 
 function viewDef(id) { return VIEW_DEFS.find(v => v.id === id) || null; }
-function subOn(id) { if (id === "focus" || id === "all") return true; const d = viewDef(id); return !!d && (!d.optIn || state.achievements) && (!d.raidOnly || raid()); }
+function subOn(id) { if (id === "focus" || id === "all") return true; const d = viewDef(id); return !!d && (!d.optIn || state.achievements); }
 function subRoute() {
   let v = "focus";
   try { v = new URLSearchParams(location.search).get("view") || "focus"; } catch (_) {}
@@ -1469,7 +1463,7 @@ function agentClass(name) {
   const i = names.indexOf(name || "");
   return "ag-" + ((i >= 0 ? i : hash(name || "")) % 8);
 }
-function viewLabel(d) { return (d.label || {}).plain || d.id; }
+function viewLabel(d) { return (d.label || {}).sub || d.id; }
 const TAB_ORDER = ["focus", "all", "chat", "graph", "map", "frames", "treasury", "replay", "bosses", "achievements"];
 function tabRank(id) { const i = TAB_ORDER.indexOf(id); return i < 0 ? TAB_ORDER.length : i; }
 function renderViewTabs() {
@@ -1478,18 +1472,18 @@ function renderViewTabs() {
   const active = filterTab() || state.sub;
   if (state.view === "*") {
     const realm = [["focus", "Workspaces", "Guilds"], ["chat", "Chatter" + chat, "Tavern chatter" + chat], ["treasury", "Cost", "Treasury"]];
-    setKids($("realmTabs"), realm.map(([id, label, raidName]) => h("a", {href: subHref(id), "data-sub": id, "aria-current": id === active ? "page" : null, text: raid() ? raidName : label})),
-      JSON.stringify([realm, active, state.theme]));
+    setKids($("realmTabs"), realm.map(([id, label, raidName]) => h("a", {href: subHref(id), "data-sub": id, "aria-current": id === active ? "page" : null, text: raidName})),
+      JSON.stringify([realm, active]));
     return;
   }
   const items = [["focus", "Focus", "War room"], ["all", "All cards", "Quest log"], ["chat", "Chatter" + chat, "Tavern chatter" + chat], ["treasury", "Cost", "Treasury"], ...VIEW_DEFS.filter(d => subOn(d.id)).map(d => [d.id, viewLabel(d), (d.label || {}).raid])]
     .sort((a, b) => tabRank(a[0]) - tabRank(b[0]));
   setKids($("viewTabs"), items.map(([id, label, raidName]) => h("a", {href: subHref(id), "data-sub": id, "aria-current": id === active ? "page" : null,
-    title: raid() && raidName && raidName !== label ? label : null, text: raid() && raidName ? raidName : label})), JSON.stringify([items, active, state.view, state.theme]));
+    title: raidName && raidName !== label ? label : null, text: raidName || label})), JSON.stringify([items, active, state.view]));
 }
 function viewCtx(d) {
-  return {h, svg, ago, localTime, usd, ktok, modelName, avatar, agentClass, setKids, theme: state.theme, raid: raid(), RM: RM || !state.anim, ws: state.view, board: state.board,
-    view: d.id, fresh: false, raidSub: key => raid() && key ? h("small", {class: "raid-sub", text: key}) : null,
+  return {h, svg, ago, localTime, usd, ktok, modelName, avatar, agentClass, setKids, RM: RM || !state.anim, ws: state.view, board: state.board,
+    view: d.id, fresh: false, raidSub: key => key ? h("small", {class: "raid-sub", text: key}) : null,
     api: (endpoint, query) => getJSON(api(endpoint, state.view, query || "")), def: viewDef, go: id => goSub(id), reload: () => loadSub(true)};
 }
 function enter(el) { if (!el || !motion()) return; el.classList.remove("enter"); void el.offsetWidth; el.classList.add("enter"); }
@@ -1546,30 +1540,30 @@ function goSub(id) {
   enter(id === "focus" ? $("focus") : id === "all" ? $("lanes") : $("viewPane"));
 }
 function renderTabs() {
-  const items = state.mode === "all" ? [{id: "*", label: w("All workspaces", "The realm")}] : [];
+  const items = state.mode === "all" ? [{id: "*", label: "The realm"}] : [];
   for (const p of state.projects) items.push({id: p.name, label: p.name});
   $("tabs").hidden = items.length < 2;
   setKids($("tabs"), items.map(i => h("a", {href: href(i.id), "data-nav": i.id, "aria-current": i.id === state.view ? "page" : null}, i.label)),
-    JSON.stringify([items, state.view, state.theme]));
+    JSON.stringify([items, state.view]));
 }
 function renderCrumbs() {
   const c = $("crumbs");
   if (state.error) { setKids(c, h("span", {class: "err", role: "alert", text: state.error})); return; }
   if (!state.loaded) { c.textContent = "Loading the board…"; return; }
-  if (state.view === "*") { setKids(c, [h("span", {"aria-current": "page", text: w("All workspaces", "The realm")}), h("span", {class: "cls", text: ` · ${plural(state.projects.length, w("workspace", "guild"))}`})]); return; }
-  setKids(c, [state.mode === "all" ? h("a", {href: "/", "data-nav": "*", text: w("All workspaces", "The realm")}) : null, state.mode === "all" ? " / " : null,
+  if (state.view === "*") { setKids(c, [h("span", {"aria-current": "page", text: "The realm"}), h("span", {class: "cls", text: ` · ${plural(state.projects.length, "guild")}`})]); return; }
+  setKids(c, [state.mode === "all" ? h("a", {href: "/", "data-nav": "*", text: "The realm"}) : null, state.mode === "all" ? " / " : null,
     h("span", {"aria-current": "page", text: state.view})]);
 }
 function renderWsBar(data, cards) {
   setKids($("wsName"), [state.view], JSON.stringify([state.view]));
-  setKids($("hudLevel"), [streakChip(data.streak || 0), levelBadge("Guild", data.counts)], JSON.stringify(["ws", state.view, state.theme, data.counts, data.streak]));
+  setKids($("hudLevel"), [streakChip(data.streak || 0), levelBadge("Guild", data.counts)], JSON.stringify(["ws", state.view, data.counts, data.streak]));
   victory("ws:" + state.view, data.bosses_slain || []);
   levelUp("ws:" + state.view, "Guild", data.counts, $("hudLevel"));
   const repos = data.repos || [];
   if (state.repo && !repos.some(r => r.name === state.repo)) state.repo = "";
   const many = repos.length > 1;
-  const chips = many ? [h("button", {type: "button", class: "repo all", "data-repo": "", "aria-pressed": String(!state.repo), text: w("All repos", "All zones")}), ...repos.map(r => repoChip(r, true))] : [];
-  setKids($("repos"), chips, JSON.stringify([repos, state.repo, state.theme]));
+  const chips = many ? [h("button", {type: "button", class: "repo all", "data-repo": "", "aria-pressed": String(!state.repo), text: "All zones"}), ...repos.map(r => repoChip(r, true))] : [];
+  setKids($("repos"), chips, JSON.stringify([repos, state.repo]));
   const ids = new Set(cards.map(c => c.id));
   const titles = Object.fromEntries(cards.map(c => [c.id, c.title]));
   const agents = Object.entries(data.agents || {}).map(([name, a]) => ({...a, name})).filter(a => !state.repo || ids.has(a.card));
@@ -1581,7 +1575,7 @@ function renderWsBar(data, cards) {
   setKids($("loreList"), paged(lore, "loreInbox", needRow));
   const info = {needs: g.needs.length, doing: count("doing"), blocked: count("blocked"), todo: count("todo"), done: count("done"), total: cards.length,
     stalled: oldestStalled(agents, titles), today: (data.today || {}).usd_equiv || 0};
-  setKids($("wsStatus"), statusLine({...info, needs: 0, doing: 0, todo: 0, total: 0, quiet: true}), JSON.stringify([info, state.theme, Math.floor(Date.now() / 30000)]));
+  setKids($("wsStatus"), statusLine({...info, needs: 0, doing: 0, todo: 0, total: 0, quiet: true}), JSON.stringify([info, Math.floor(Date.now() / 30000)]));
 }
 function renderBoard(data) {
   state.board = data;
@@ -1649,7 +1643,7 @@ function shownCards(cards) {
   const inRepo = state.repo ? cards.filter(c => (c.repos || []).includes(state.repo)) : cards;
   const terms = queryTerms();
   const found = terms.length ? inRepo.filter(c => matches(c, terms)) : inRepo;
-  if ($("qCount")) $("qCount").textContent = terms.length ? w(`${found.length} of ${inRepo.length} match`, `${found.length} of ${inRepo.length} quests`) : "";
+  if ($("qCount")) $("qCount").textContent = terms.length ? `${found.length} of ${inRepo.length} quests` : "";
   return found;
 }
 
@@ -1660,7 +1654,7 @@ function projInfo(p) {
 }
 function projCard(p, info) {
   if (p.missing) return h("div", {class: "proj att-0"}, h("h3", {text: p.name}), h("p", {class: "cls", text: p.error ? `This board cannot be read (${p.error}). Run raid doctor in its folder.` : "The board folder is missing. Remove it with raid workspaces, or restore the folder."}));
-  const head = h("div", {class: "top"}, h("h3", null, p.name, raid() && info.total ? h("span", {class: "lvl-chip", title: `Guild level ${levelOf(p.counts).level}, ${levelOf(p.counts).rank}`, text: `Lv ${levelOf(p.counts).level}`}) : null), h("span", {class: "act", text: p.last ? `active ${ago(p.last)} ago` : "no activity yet"}));
+  const head = h("div", {class: "top"}, h("h3", null, p.name, info.total ? " " : null, info.total ? h("span", {class: "lvl-chip", title: `Guild level ${levelOf(p.counts).level}, ${levelOf(p.counts).rank}`, text: `Lv ${levelOf(p.counts).level}`}) : null), h("span", {class: "act", text: p.last ? `active ${ago(p.last)} ago` : "no activity yet"}));
   const repos = (p.repos || []).length ? h("div", {class: "repos"}, p.repos.map(r => repoChip(r, false))) : null;
   if (!info.total) return h("a", {class: "proj att-3", href: href(p.name), "data-nav": p.name}, head, repos, h("div", {class: "start"}, "No cards yet. Add one from the lead terminal:", h("code", {text: 'raid --lead-secret "$LEAD_SECRET_FILE" new "First card" --team core --locks repo/path'})));
   const lbl = LANES.filter(l => p.counts[l]).map(l => `${p.counts[l]} ${LANE[l].toLowerCase()}`).join(", ");
@@ -1672,18 +1666,18 @@ function renderOverview() {
   const o = $("projects");
   const ps = state.projects;
   applyStatuses(ps.flatMap(p => p.agents || []), null);
-  setKids($("overviewTitle"), [w("Workspaces", "The realm")], JSON.stringify([state.theme]));
+  setKids($("overviewTitle"), ["The realm"], "realm");
   const live = ps.filter(p => attention(projInfo(p)) < 3).length;
-  $("realmStatus").textContent = `${plural(ps.length, w("workspace", "guild"))} · ${live} active`;
-  setKids($("hudLevel"), [levelBadge("Realm", sumCounts(ps))], JSON.stringify(["realm", state.theme, ps.map(p => p.counts)]));
+  $("realmStatus").textContent = `${plural(ps.length, "guild")} · ${live} active`;
+  setKids($("hudLevel"), [levelBadge("Realm", sumCounts(ps))], JSON.stringify(["realm", ps.map(p => p.counts)]));
   levelUp("realm", "Realm", sumCounts(ps), $("hudLevel"));
   renderTour([], {realm: true, hide: !ps.length || Object.values(sumCounts(ps)).some(n => n > 0)});
   if (!ps.length) { setKids(o, h("div", {class: "empty"}, "No boards yet. In a project folder, run ", h("code", {text: "raid quickstart"}), ", then reload this page."), "none"); $("idle").hidden = true; return; }
   const rows = ps.map(p => ({p, info: projInfo(p)})).map(r => ({...r, rank: attention(r.info)}));
   rows.sort((a, b) => a.rank - b.rank || (b.p.last || "").localeCompare(a.p.last || "") || a.p.name.localeCompare(b.p.name));
   const busy = rows.filter(r => r.rank < 3), idle = rows.filter(r => r.rank === 3);
-  const sig = JSON.stringify([ps.map(p => [p.name, p.counts, p.repos, p.today, p.agents, p.last, p.missing, p.review]), state.theme, Math.floor(Date.now() / 30000)]);
-  setKids(o, busy.length ? busy.map(r => projCard(r.p, r.info)) : [h("p", {class: "empty", text: w("Every workspace is quiet: nothing in progress, in review or blocked.", "Every guild rests: no quests underway, inspected or cursed.")})], sig);
+  const sig = JSON.stringify([ps.map(p => [p.name, p.counts, p.repos, p.today, p.agents, p.last, p.missing, p.review]), Math.floor(Date.now() / 30000)]);
+  setKids(o, busy.length ? busy.map(r => projCard(r.p, r.info)) : [h("p", {class: "empty", text: "Every guild rests: no quests underway, inspected or cursed."})], sig);
   $("idle").hidden = !idle.length;
   setKids($("idle"), [h("span", {class: "lbl", text: `Quiet (${idle.length}): `}), ...idle.flatMap((r, i) => [i ? ", " : null,
     h("a", {href: href(r.p.name), "data-nav": r.p.name, title: r.p.last ? `active ${ago(r.p.last)} ago` : "no activity yet", text: r.p.name})])], sig);
@@ -1755,7 +1749,7 @@ function renderChat() {
         r.task ? h("a", {href: href(r.workspace) + "#card-" + encodeURIComponent(r.task), "data-card": r.task, text: r.task}) : null,
         h("span", {text: ago(r.ts) + " ago"})), h("div", {class: "tx", text: r.text || ""})))])
     : [h("div", {class: "empty", text: "Quiet for now. Agent messages and notes appear here."})];
-  const sig = JSON.stringify([state.view, state.chatFilter, top, state.theme]);
+  const sig = JSON.stringify([state.view, state.chatFilter, top]);
   if (box.dataset.sig !== sig) {
     box.dataset.sig = sig;
     const previous = new Map([...box.querySelectorAll("[data-message]")].map(el => [el.dataset.message, el]));
@@ -1788,9 +1782,9 @@ function renderLayout(cards) {
     doing: cards.filter(c => c.lane === "doing").length, done: cards.filter(c => c.lane === "done").length, chatter: unreadChat().length};
   const medium = matchMedia("(min-width: 768px) and (max-width: 1279px)").matches;
   if (medium && workTab !== "chatter") workTab = "todo";
-  const labels = raid() ? {needs: "Raid leader\u2019s call", todo: "Quest board", doing: "On a quest", done: "Hall of legends", chatter: "Tavern chatter"} : {needs: "Needs you", todo: "To do", doing: "In progress", done: "Done", chatter: "Chatter"};
+  const labels = {needs: "Raid leader\u2019s call", todo: "Quest board", doing: "On a quest", done: "Hall of legends", chatter: "Tavern chatter"};
   setKids($("workTabs"), (medium ? ["todo"] : ["todo", "doing", "done"]).map(id => h("button", {type: "button", role: "tab", id: "tab-" + id, class: "tog", "data-tab": id,
-    "aria-selected": String(workTab === id), tabindex: workTab === id ? "0" : "-1", "aria-controls": medium && id === "todo" ? "columns" : id === "done" ? "donePanel" : id, text: medium && id === "todo" ? w("Board", "Quest board") : `${labels[id]} (${counts[id]})`,
+    "aria-selected": String(workTab === id), tabindex: workTab === id ? "0" : "-1", "aria-controls": medium && id === "todo" ? "columns" : id === "done" ? "donePanel" : id, text: medium && id === "todo" ? "Quest board" : `${labels[id]} (${counts[id]})`,
     onclick: () => { workTab = id; statusFilter = ""; renderLayout(cards); if (id === "chatter") { $("chatter").open = true; renderChat(); } }})));
   if (focusTab) $("workTabs").querySelector(`[data-tab="${focusTab}"]`)?.focus();
   $("focus").dataset.tab = workTab;
@@ -1810,26 +1804,16 @@ function renderLayout(cards) {
   foldDefault("logPanel", false);
   foldDefault("chatter", true);
   setKids($("activityChips"), ["all", "done", "log"].map(id => h("button", {type: "button", class: "tog", "aria-pressed": String(activityFilter === id),
-    text: raid() ? {all: "All", done: "Quests won", log: "Deeds"}[id] : {all: "All", done: "Done", log: "Events"}[id], onclick: () => { activityFilter = id; renderLog(true); renderLayout(cards); }})));
+    text: {all: "All", done: "Quests won", log: "Deeds"}[id], onclick: () => { activityFilter = id; renderLog(true); renderLayout(cards); }})));
 }
 
 function panelTitles() {
-  const t = (id, text, key) => setKids($(id), raid() && RAID[key] ? [RAID[key], h("small", {class: "raid-sub", text})] : [text], state.theme);
+  const t = (id, text, key) => setKids($(id), RAID[key] ? [RAID[key], h("small", {class: "raid-sub", text})] : [text]);
   t("agentsTitle", "Team", "agents");
   t("costTitle", "Cost", "cost");
   if ($("ovCostTitle")) t("ovCostTitle", "Cost", "cost");
   t("logTitle", "Activity", "log");
   t("chatTitle", "Chatter", "chat");
-}
-function applyTheme() {
-  document.documentElement.setAttribute("data-theme", state.theme);
-  const svgIcon = document.querySelector('link[rel="icon"][type="image/svg+xml"]');
-  if (svgIcon) svgIcon.href = state.theme === "raid" ? "/static/icon-raid.svg" : "/static/icon.svg";
-  const pngIcon = document.querySelector('link[rel="icon"][type="image/png"]');
-  if (pngIcon) pngIcon.media = state.theme === "raid" ? "not all" : "all";
-  panelTitles();
-  for (const el of document.querySelectorAll("[data-sig]")) el.dataset.sig = "";
-  stars();
 }
 function applyView() {
   const all = state.view === "*";
@@ -1928,7 +1912,6 @@ function stars() {
   const c = $("stars");
   cancelAnimationFrame(starFrame);
   const x = c.getContext("2d");
-  if (state.theme !== "raid") { x.clearRect(0, 0, c.width, c.height); return; }
   let W2, H2, S = [], M = [], shoot = null;
   const rs = () => {
     W2 = c.width = innerWidth; H2 = c.height = innerHeight;
@@ -2038,7 +2021,6 @@ function init() {
     if (box.scrollHeight - box.scrollTop - box.clientHeight < 32) markChatRead();
   });
 
-  state.theme = recall("rl.theme") === "plain" ? "plain" : "raid";
   state.sound = recall("rl.sound") !== "false";
   state.notify = recall("rl.notify") === "true" && "Notification" in window && Notification.permission === "granted";
   state.treasuryBy = recall("rl.treasuryBy") || "by_model";
@@ -2175,7 +2157,8 @@ function init() {
   audio();
   updateSound();
   updateNotify();
-  applyTheme();
+  panelTitles();
+  stars();
   state.view = route();
   state.sub = subRoute();
   applyView();

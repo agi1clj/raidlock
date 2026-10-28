@@ -221,8 +221,13 @@ def test_ui_heartbeat_renews_and_stops_after_handover(world, monkeypatch, capsys
     monkeypatch.setattr(time, "monotonic", lambda: ticks[0])
     monkeypatch.setattr(web_cli, "find_board_dir", lambda path: world.board.dir)
 
+    class FakeCatalog:
+        def workspaces(self):
+            return []
+
     class FakeServer:
         server_address = ("127.0.0.1", 8765)
+        catalog = FakeCatalog()
 
         def service_actions(self):
             pass

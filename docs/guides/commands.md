@@ -1,6 +1,6 @@
 # Command reference
 
-`raid` and `raidlock` are the same program. `raid` lists the everyday commands, `raid help advanced` the rest, and `raid <command> --help` the exact flags. This page lists every shipped command with the flags it takes beyond the common ones. Lead-only commands need `--lead-secret FILE` from the lead's session; hints and copy-ready commands include it.
+`raid` and `raidlock` are the same program, and every hint, error and refusal uses the name you typed. `raid` lists the everyday commands, `raid help advanced` the rest, and `raid <command> --help` the exact flags. This page lists every shipped command with the flags it takes beyond the common ones. Lead-only commands need `--lead-secret FILE` from the lead's session; hints and copy-ready commands include it.
 
 ## Common flags
 
@@ -33,6 +33,7 @@ Runtime names accept a short form wherever a runtime is named: `claude` or `clau
 | `init [PATH]` | Create an empty board. Prints the lead secret's file path, never the secret. | `--lead`, `--runtime`, `--model`, `--no-auth` |
 | `doctor` | Check Python, the board, `RAIDLOCK_HOME`, the database and `PATH`. See [Operations](operations.md#doctor). | |
 | `version` | Print the version. | |
+| `upgrade` | Upgrade raidlock (with `uv` or `pipx`, whichever installed it) and its Claude Code plugin to the latest release. See [Install](install.md#upgrade). | |
 | `install-commands` | Add a personal `/raid` skill to Claude Code. | `--uninstall` |
 | `migrate` | Upgrade a legacy v1 board, or restore its backup. See [Operations](operations.md#migrate-a-legacy-board). | `--lead`, `--allow-auth-downgrade`, `--yes`, `--rollback` |
 
@@ -82,7 +83,8 @@ Runtime names accept a short form wherever a runtime is named: `claude` or `clau
 | `close ID` | Lead: verify and record cross-provider approval, or close with external evidence without verification or review. | `--reviewer` or `--evidence` (HTTPS URL or SHA), required `--note`, `--cwd` / `--checkout`, `--timeout` |
 | `cancel ID` | Lead: cancel without completion gates and release the lease. | `--reason` |
 | `reopen ID` | Lead: move a done or cancelled card back to `todo`. | `--note` |
-| `reap` | Lead: move cards whose `doing` lease expired to `blocked`, and drop expired review and blocked holds without changing their lane. | |
+| `reap` | Lead: move cards whose `doing` lease expired to `blocked`, and drop expired review and blocked holds without changing their lane. `raid ui` also does this every 5 minutes. | |
+| `tidy` | Lead: one sweep of housekeeping. Reaps expired leases, closes cards whose linked PR merged (through the gates), and lists every card still waiting on a lead decision with its copy-ready commands. | |
 | `pr ID` | Lead: push the card's verified commit to a branch and open a pull request with `gh`. Dry run when `gh` is not authenticated. See [Pull requests](pr.md). | `--dry-run`, `--base`, `--remote`, `--branch`, `--redact`, `--redact-terms`, `--draft` |
 | `pr-link ID REF` | Lead: link a card to an existing pull request (number or URL). | |
 | `pr-sync [ID ...]` | Lead: poll linked pull requests; a merged card closes only through the verify and review gates. | `--min-interval`, `--force`, `--watch SECONDS`, `--max-polls` |
@@ -92,7 +94,7 @@ Runtime names accept a short form wherever a runtime is named: `claude` or `clau
 | Command | What it does | Flags |
 |---|---|---|
 | `delegate CARD` | Lead: run a card with Codex, Claude Code, Gemini or a shell command in its own remote-less clone. | `--to {codex,claude,gemini,shell}`, `--as {worker,reviewer}`, `--sandbox {read-only,workspace-write}`, `--model`, `--cmd`, `--tools`, `--unsafe-verify`, `--raw-capture`, `--ref` / `--base`, `--timeout` |
-| `lead {status,heartbeat,handover,takeover}` | Inspect or transfer the lead session lease. See [Install](install.md#lead-session-handover). | `--to SESSION` |
+| `lead {status,heartbeat,handover,takeover}` | Inspect or transfer the lead session lease. `lead status` works from any session. When the lead's session ends the lease is freed at once, so `lead takeover` works without waiting out the TTL. See [Install](install.md#lead-session-handover). | `--to SESSION` |
 | `who` | Who is on the board and what they are doing. | `--brief` |
 | `guard {install,uninstall,check}` | Git pre-commit and pre-push lease guards for the checkout in the current folder. See [Operations](operations.md#git-guards). | `--hook {pre-commit,pre-push}` |
 | `scan SOURCE` | Check a patch file or clone for secrets, denied paths and large binaries. | `--card` (locks that authorize symlink targets), `--base` |

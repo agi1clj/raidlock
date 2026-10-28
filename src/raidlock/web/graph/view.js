@@ -19,7 +19,7 @@
     const drawn = nodes.filter(n => linked.has(n.id));
     const loose = nodes.length - drawn.length;
     const looseNote = loose ? c.h("p", {class: "cls", text: `${loose} ${loose === 1 ? "card has" : "cards have"} no dependencies; they are listed under Dependencies as text.`}) : null;
-    if (!drawn.length) return c.h("div", null, c.h("p", {class: "empty", text: c.raid ? "No quest chains yet. Link quests with raid edit <card> --depends <other>." : "No dependencies between cards yet. Link cards with raid edit <card> --depends <other>."}), looseNote);
+    if (!drawn.length) return c.h("div", null, c.h("p", {class: "empty", text: "No quest chains yet. Link quests with raid edit <card> --depends <other>."}), looseNote);
     const at = new Map(), rowAt = {};
     let rows = 0;
     for (const n of drawn) {
@@ -105,7 +105,7 @@
   views.push({
     id: "graph",
     endpoint: "graph",
-    label: {raid: "Quest web", plain: "Dependencies"},
+    label: {raid: "Quest web", sub: "Dependencies"},
     render(c, d, pane) {
       const repo = document.querySelector('#repos [data-repo][aria-pressed="true"]')?.dataset.repo || "";
       if (repo) {
@@ -120,14 +120,14 @@
       const scroll = oldScroll ? [oldScroll.scrollLeft, oldScroll.scrollTop] : [0, 0];
       const cycles = (d.cycles || []).length;
       c.setKids(pane, [
-        c.h("div", {class: "view-head"}, c.h("h2", null, c.raid ? "Quest web" : "Dependencies", c.raid && c.raidSub ? c.raidSub("Dependencies") : null),
+        c.h("div", {class: "view-head"}, c.h("h2", null, "Quest web", c.raidSub("Dependencies")),
           c.h("p", {class: "cls", text: `${(d.nodes || []).length} cards, ${(d.edges || []).length} ${(d.edges || []).length === 1 ? "dependency" : "dependencies"}${cycles ? `, ${cycles} cycle${cycles === 1 ? "" : "s"}` : ""}. Arrows point from a card to the cards that wait on it.`})),
         c.h("div", {class: "legend-row"}, ["todo", "doing", "review", "blocked", "done"].map(l => c.h("span", null, c.h("i", {class: "sw lane-sw lane-" + l}), l))),
         depGraph(c, d),
         asText(c, d),
         c.h("h3", {text: "Lock contention"}),
         c.h("p", {class: "cls", text: "Lock denials, write violations and takeovers per path and day, plus cards waiting on a held path now. Darker means more."}),
-        heat(c, d)], JSON.stringify([d, c.theme, c.ws, repo]));
+        heat(c, d)], JSON.stringify([d, c.ws, repo]));
       const nextScroll = pane.querySelector(".dep-scroll");
       if (nextScroll) { nextScroll.scrollLeft = scroll[0]; nextScroll.scrollTop = scroll[1]; }
       if (active) [...pane.querySelectorAll(".gnode")].find(n => n.dataset.id === active)?.focus({preventScroll: true});

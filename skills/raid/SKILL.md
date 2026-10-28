@@ -8,4 +8,4 @@ disable-model-invocation: true
 
 !`raidlock $ARGUMENTS`
 
-Relay the output above in one or two lines, keeping its `Next:` step. Run nothing else.
+Relay the output above in one or two lines, keeping its `Next:` step. Run nothing else. (`raid` and `raidlock` are the same command.)

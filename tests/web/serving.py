@@ -43,6 +43,8 @@ def isolate_env(mp, root):
     mp.setenv("CODEX_HOME", str(root / "codex"))
     mp.setenv("CLAUDE_CONFIG_DIR", str(root / "claude"))
     mp.setenv("GEMINI_CONFIG_DIR", str(root / "gemini"))
+    # A release published mid-run would change the overview ETag; tests never reach PyPI.
+    mp.setenv("RAIDLOCK_NO_UPDATE_CHECK", "1")
     mp.chdir(root)
 
 

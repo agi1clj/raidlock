@@ -663,6 +663,9 @@ def classify(sub, args):
             raise Forbidden("git config writes can install commands")
         if flags & {"--get", "--get-all", "--get-regexp", "--list", "-l"} or (pos and pos[0] in ("get", "list")):
             return READ, [], written
+        if len(pos) == 1 and "." in pos[0]:
+            # `git config user.email` with no value reads the key.
+            return READ, [], written
         raise Forbidden("git config writes can install commands; edit config outside agents")
     if sub == "stash":
         action = pos[0] if pos else "push"
@@ -725,6 +728,9 @@ def classify(sub, args):
         if items:
             return _paths(items) + (written,)
         return REF, [], written
+    if sub == "init":
+        # Creates (or harmlessly re-initializes) a repository; it changes no tracked file and no ref of an existing one.
+        return READ, [], written
     raise Ambiguous(f"unsupported git subcommand {sub!r}; use a directly auditable command")
 
 

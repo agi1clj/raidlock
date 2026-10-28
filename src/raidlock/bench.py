@@ -103,6 +103,8 @@ def _fixture(root, runs):
     cases["pre-write.allow"] = {**base, "tool_name": "Write", "tool_input": {"file_path": str(workspace / "free.txt")}}
     cases["pre-bash.allow"] = {**base, "tool_name": "Bash", "tool_input": {"command": "printf hello"}}
     cases["session-start.unbound"] = {**base, "session_id": "bench-other-session", "source": "startup"}
+    # The lead's own SessionEnd frees the lead lease; measure a teammate's, which leaves the fixture intact.
+    cases["session-end.allow"] = {**base, "session_id": "bench-other-session"}
     cases["pre-write.deny"] = {
         **base,
         "tool_name": "Write",

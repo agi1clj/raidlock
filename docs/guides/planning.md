@@ -50,7 +50,7 @@ raid --lead-secret "$LEAD_SECRET_FILE" plan import openspec/changes/add-cart --t
 raid --lead-secret "$LEAD_SECRET_FILE" plan import specs/001-orders/tasks.md --team core
 ```
 
-Task numbers such as `1.2` or `T001` move to the card's ticket, and markers such as `[P]` or `[US1]` are dropped from the title. Add `| locks: <repo>/<path>` to a task to set its locks on import, or set them afterwards with `raid --lead-secret "$LEAD_SECRET_FILE" edit CARD --locks <repo>/<path>`. An import is all or nothing: if any task's card id already exists, nothing is created, so import later tasks from a file that holds only the new ones.
+Task numbers such as `1.2` or `T001` move to the card's ticket, and markers such as `[P]` or `[US1]` are dropped from the title. A task with no locks gets the file paths it names as locks (`Create the model in src/models/user.py` locks `src/models/user.py`) when the board maps each path to one repo; paths outside the workspace or in more than one possible repo are left out, and the import says which cards got inferred locks. Add `| locks: <repo>/<path>` to a task to set its locks on import, or set them afterwards with `raid --lead-secret "$LEAD_SECRET_FILE" edit CARD --locks <repo>/<path>`. An import is all or nothing: if any task's card id already exists, nothing is created, so import later tasks from a file that holds only the new ones.
 
 A JSON plan is a list of card objects, or `{"cards": [...]}`, with the same fields as `raid new` (`title`, `id`, `team`, `locks`, `depends`, `scope`, `verify`, `verify_cmd` and so on). `--team` applies to items that name no team.
 

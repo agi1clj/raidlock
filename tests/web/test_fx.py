@@ -7,12 +7,12 @@ pytest.importorskip("playwright.sync_api")
 ALL = (lambda f: close_card(f, "refunds"), sign_receipt, refuse_lock, lambda f: block_card(f, "cart-api"), record_cost)
 
 
-def fx_page(browse, server, path, theme="raid", panels=(), storage=None, width=1280, **ctx):
+def fx_page(browse, server, path, panels=(), storage=None, width=1280, **ctx):
     p = browse(width=width, height=900, **ctx)
     p.page.add_init_script(FX_LOG)
     feed = Feed(p.page, server)
     store = {"rl.achievements": "true", **(storage or {})}
-    page = p.open(path, theme=theme, panels=panels, storage=store)
+    page = p.open(path, panels=panels, storage=store)
     settle(page, "#board:not([hidden])", ms=POLL_MS + 400)
     return p, page, feed
 
@@ -70,14 +70,6 @@ def assert_still(p, page):
     assert page.locator(".fx-layer, .fx-pulse").count() == 0
     assert running_animations(page) == 0
     assert p.errors == []
-
-
-def test_plain_theme_has_no_animations(browse, server):
-    p, page, feed = fx_page(browse, server, "/acme-shop?view=all", theme="plain")
-    drive_all(feed, page)
-    assert page.locator(".toast").count() > 0
-    assert page.locator(".toast.quest").count() == 0
-    assert_still(p, page)
 
 
 def test_reduced_motion_disables_every_effect(browse, server):

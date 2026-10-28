@@ -1,4 +1,5 @@
 import os
+import threading
 import webbrowser
 
 from raidlock.core import find_board_dir
@@ -50,6 +51,9 @@ def handler(ctx, args):
         raise Precondition(
             f"port {args.port} is busy ({e.strerror})", hint=f"raidlock ui --port {args.port + 1}"
         ) from e
+    from .. import tidy
+
+    threading.Thread(target=tidy.reaper, args=(srv.catalog,), daemon=True).start()
     if here:
         caller = ctx.caller()
         if caller.is_lead:

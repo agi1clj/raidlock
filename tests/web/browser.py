@@ -39,12 +39,10 @@ class Page:
             )
         self.server = server
 
-    def open(self, path="/", theme="plain", panels=(), storage=None):
-        if theme or panels or storage:
+    def open(self, path="/", panels=(), storage=None):
+        if panels or storage:
             self.page.goto(self.server.url + "/")
             script = "".join(f"localStorage.setItem('rl.open.{p}','true');" for p in panels)
-            if theme:
-                script += f"localStorage.setItem('rl.theme','{theme}');"
             for key, value in (storage or {}).items():
                 script += f"localStorage.setItem('{key}','{value}');"
             self.page.evaluate(script)
@@ -87,9 +85,9 @@ def settle(page, selector, ms=300):
     return page
 
 
-def open_view(browse, path, selector, theme="raid", width=1280, storage=None, **ctx):
+def open_view(browse, path, selector, width=1280, storage=None, **ctx):
     p = browse(width=width, height=900, **ctx)
-    page = p.open(path, theme=theme, storage=storage)
+    page = p.open(path, storage=storage)
     settle(page, selector)
     return p, page
 

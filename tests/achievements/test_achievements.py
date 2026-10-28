@@ -156,10 +156,9 @@ def test_on_by_default_and_off_stops_asking_the_server(browse):
     assert p.errors == []
 
 
-@pytest.mark.parametrize("theme", ["raid", "plain"])
 @pytest.mark.parametrize("width", [1280, 375])
-def test_badges_show_and_turn_off(browse, theme, width):
-    p, page = open_view(browse, "/acme-shop", "#todoList .row", theme=theme, width=width)
+def test_badges_show_and_turn_off(browse, width):
+    p, page = open_view(browse, "/acme-shop", "#todoList .row", width=width)
     assert page.locator("#achieveBtn").get_attribute("aria-pressed") == "true"
     page.locator("#viewTabs a[data-sub=achievements]").click()
     page.wait_for_selector(".ach")

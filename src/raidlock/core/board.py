@@ -26,6 +26,7 @@ from .hints import lead_cmd
 from .lock import FileLock
 from .paths import parse_list
 
+MODEL_PROVIDERS = ("anthropic", "openai", "google")
 DEFAULT_SETTINGS = {
     "auth": "token",
     "require_review": {"count": 0, "other_provider": False},
@@ -320,6 +321,13 @@ class Board:
             return self.leadlease().check(secret, sid, any_session=any_session, pid=pid, start=start)
         except (LD.ForeignLead, StaleLead) as e:
             event = "lead_stale_fence" if isinstance(e, StaleLead) else "lead_foreign_session"
+            holder = e.details.get("lead_session", "")
+            if isinstance(e, LD.ForeignLead) and sid and holder and holder != sid:
+                expires = self.leadlease().lease().get("expires", "")
+                e.hint = (
+                    f"from the lead session run: {lead_cmd(self, f'lead handover --to {sid}')}; "
+                    f"or, once its lease expires ({expires}), run here: {lead_cmd(self, 'lead takeover')}"
+                )
             with self.lock():
                 self._record(
                     "status",
@@ -384,6 +392,48 @@ class Board:
         lease = self.leadlease()
         return {"lead": self.lead, **lease.summary(), "secret_file": I.token_path(self.home, self.uid, self.lead)}
 
+    def lead_session_resumed(self, session):
+        """The session the lease names started again (resume, or the next headless turn) after its lease lapsed:
+        re-arm it as a pending lease, as a handover would, so its process binds on the next authenticated use. Nobody
+        took over in between, or the lease would name another session."""
+        with self.lock():
+            lead = self.leadlease()
+            lease = lead.lease()
+            if not session or lease.get("session") != session or not lead.expired(lease):
+                return False
+            lease.update(pid=None, pid_start=None, renewed=clock.iso(), expires=clock.later(lead.ttl_s))
+            lead._save(lease)
+            self._record(
+                "status",
+                self.lead,
+                f"lead session {session} is back; its lead lease is live again",
+                data={"event": "lead_rearmed", "session": session, "lead_fence": lease.get("fence", 0)},
+            )
+            return True
+
+    def lead_session_ended(self, session):
+        """The lead's host session ended: expire its lease now, so the next session can take over without waiting out
+        the TTL. Only the session the lease names releases it, and only from inside the lease's own process tree (the
+        host's SessionEnd hook), so another session that learned the id cannot. A pending handover keeps its TTL. The
+        secret and fence stay until a takeover rotates them."""
+        with self.lock():
+            lead = self.leadlease()
+            lease = lead.lease()
+            if not session or lease.get("session") != session or not lease.get("pid") or lead.expired(lease):
+                return False
+            anchor = (lease["pid"], lease.get("pid_start"))
+            if not any((pid, start) == anchor for pid, start, _ in LD.ancestors(self._table())):
+                return False
+            lease["expires"] = clock.iso()
+            lead._save(lease)
+            self._record(
+                "status",
+                self.lead,
+                f"lead session {session} ended; the lead lease is free for takeover",
+                data={"event": "lead_released", "session": session, "lead_fence": lease.get("fence", 0)},
+            )
+            return True
+
     @serialized_write
     def lead_heartbeat(self, caller):
         self._require_lead(caller, "renew the lead lease")
@@ -443,11 +493,13 @@ class Board:
         return self._cached("teams.json", "teams")
 
     def _cached(self, name, key):
-        if self._cache is None:
+        # One read of self._cache: a runner thread may reach here while the writer clears it.
+        cache = self._cache
+        if cache is None:
             return store.read_doc(self._p(name), key)
-        if name not in self._cache:
-            self._cache[name] = store.read_doc(self._p(name), key)
-        return copy.deepcopy(self._cache[name])
+        if name not in cache:
+            cache[name] = store.read_doc(self._p(name), key)
+        return copy.deepcopy(cache[name])
 
     def leases(self):
         return self.index.leases(self.uid)
@@ -574,19 +626,18 @@ class Board:
         live = set()
         for name, agent in agents.items():
             provider = agent.get("provider")
-            if provider in (None, "", "human"):
+            if provider not in MODEL_PROVIDERS:
                 continue
             age = clock.age_seconds(seen.get(name) or agent.get("last_seen", ""))
             if name == self.lead or name in holders or (age is not None and age <= ttl):
                 live.add(provider)
         return live
 
-    def _sync_gate_defaults(self, actor, agents=None):
-        """Review and verify gates the lead never set follow the providers present: on while two or more are live,
-        back to the defaults when only one is left. Values set with `config set` are kept either way."""
+    def _gate_settings(self, meta, agents=None):
+        """Stored settings with the gates the lead never set following the providers present: on while two or more
+        are live, the defaults when only one is left. Values set with `config set` are kept either way."""
         agents = self.agents() if agents is None else agents
         multi = len(self._live_providers(agents)) >= 2
-        meta = store.read_json(self._p("board.json"))
         settings = copy.deepcopy(meta.get("settings", {}))
         explicit = meta.get("explicit_settings", [])
         review = normalize_review_setting(settings.get("require_review"))
@@ -598,8 +649,24 @@ class Board:
         settings["require_review"] = review
         if "require_verify" not in explicit:
             settings["require_verify"] = multi or DEFAULT_SETTINGS["require_verify"]
+        return settings, multi
+
+    def live_settings(self):
+        """Settings as the next close will apply them, for display; nothing is written."""
+        settings, _ = self._gate_settings(store.read_json(self._p("board.json")))
+        s = {**DEFAULT_SETTINGS, **settings}
+        s["require_review"] = normalize_review_setting(s.get("require_review"))
+        return s
+
+    def _sync_gate_defaults(self, actor, agents=None):
+        """Store the provider-following gates; returns "enabled" or "relaxed" when they changed, else ""."""
+        meta = store.read_json(self._p("board.json"))
+        settings, multi = self._gate_settings(meta, agents)
+        changed = ""
         if settings != meta.get("settings"):
+            changed = "enabled" if multi else "relaxed"
             meta["settings"] = settings
+            meta["gate_event"] = {"event": changed, "ts": clock.iso()}
             store.write_json(self._p("board.json"), meta)
             self._record(
                 "status",
@@ -608,6 +675,7 @@ class Board:
                 data={"event": "gate_defaults" if multi else "gate_defaults_relaxed", "settings": settings},
             )
         self.meta = meta
+        return changed
 
     def _touch(self, name):
         self.index.touch_agent(self.uid, name)
@@ -772,7 +840,7 @@ class Board:
             src.keychain.delete()
 
     def get_setting(self, key=None):
-        s = self.settings
+        s = self.live_settings()
         if key is None:
             return s
         if key in PR_SETTING_KEYS:
@@ -1000,12 +1068,13 @@ class Board:
 
     def _owner_or_lead(self, card, caller):
         self._auth(caller, card["id"])
-        if card["owner"] and caller.name == card["owner"]:
+        # The lead may act on any card, so a lead that owns one needs no fence unless it passes one.
+        if card["owner"] and caller.name == card["owner"] and (caller.fence or not caller.is_lead):
             if not caller.fence:
                 raise Precondition(
-                    f"no fence given for {card['id']}",
+                    f"no fence given for {card['id']}; your claim's fence is {card['fence']}",
                     card=card["id"],
-                    hint="export RAIDLOCK_FENCE=<fence printed by raidlock claim>",
+                    hint=f"add --fence {card['fence']}, or export RAIDLOCK_FENCE={card['fence']}",
                 )
             if caller.fence != card["fence"]:
                 self._record(
@@ -1432,7 +1501,10 @@ class Board:
                 )
             if card["lane"] == lane:
                 raise Precondition(f"{card_id} is already in {lane}", card=card_id)
+            self._gates_changed = ""
             role = self._move_checks(card, lane, caller)
+            if not caller.is_lead:
+                self._touch(caller.name)
             self._apply_move(card, lane, role)
             self._note(card, caller.name, f"-> {lane}" + (f" ({note})" if note else ""))
             self._save_card(card)
@@ -1443,13 +1515,16 @@ class Board:
                 task=card_id,
                 data={"a2a_state": model.a2a_state(card), "lane": lane},
             )
-        return {"card": card_id, "lane": lane, "a2a_state": model.a2a_state(card), "owner": card["owner"]}
+        out = {"card": card_id, "lane": lane, "a2a_state": model.a2a_state(card), "owner": card["owner"]}
+        if self._gates_changed == "relaxed":
+            out["gates"] = "relaxed"
+        return out
 
     def _move_checks(self, card, lane, caller):
         if lane == "done":
             self._auth(caller)
             self._require_lead(caller, "move a card to done")
-            self._sync_gate_defaults(caller.name)
+            self._gates_changed = self._sync_gate_defaults(caller.name)
             self._done_gate(card)
             return "lead"
         if lane in ("review", "blocked") and card["lane"] == "todo":
@@ -1551,7 +1626,9 @@ class Board:
                 continue
             if card.get("allow_protected") and (not owner_provider or not r.get("provider")):
                 continue
-            if need["other_provider"] and owner_provider and r.get("provider") == owner_provider:
+            if need["other_provider"] and (
+                r.get("provider") not in (*MODEL_PROVIDERS, "human") or r.get("provider") == owner_provider
+            ):
                 continue
             out.append(name)
         return out
@@ -1581,6 +1658,7 @@ class Board:
         note = model.line_text(T.redact(note or ""), "note")
         with self.lock():
             self._auth(caller)
+            self._touch(caller.name)
             card = self.card(card_id)
             if card["lane"] != "review":
                 raise Precondition(f"{card_id} is in {card['lane']}, not review", card=card_id)
@@ -2172,8 +2250,9 @@ class Board:
             "workspace": self.name,
             "board": self.dir,
             "lead": self.lead,
-            "settings": self.settings,
+            "settings": self.live_settings(),
             "warnings": self.warnings(),
+            "gate_event": store.read_json(self._p("board.json")).get("gate_event") or {},
             "now": clock.iso(),
             "lead_lease": self.leadlease().summary(),
             "cards": [self.card_view(c, leases, agents) for c in cards],

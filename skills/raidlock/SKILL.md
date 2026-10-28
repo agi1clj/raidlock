@@ -8,7 +8,7 @@ allowed-tools: Bash(raidlock *) Bash(raid *) Bash(git status *) Bash(git diff *)
 
 A board in `<workspace>/.board/` holds cards. A card leases paths like `app/src/api`. While you hold the lease, nobody else can edit those paths. Work only on a card you hold. The plugin's hooks enforce this: an edit outside your lease is denied with a one-line reason, and so is a subagent launch whose prompt does not contain `card <id>` for an open card.
 
-Run `raidlock` with no arguments for the everyday commands. Every command prints one line and a `Next:` step. Add `--json` when you need to parse output.
+Run `raidlock` with no arguments for the everyday commands. Every command prints one line and a `Next:` step. Add `--json` when you need to parse output. `raid` and `raidlock` are the same command; this skill spells `raidlock`, and hints echo whichever name you typed.
 
 ## Worker loop
 
@@ -43,12 +43,13 @@ Use this when you run the board.
 
 Board first: every piece of work, yours and every subagent's, is a card before it starts. The hooks enforce it. Your own edits inside a git repo are denied unless you hold a card that covers the path (`require_card_for_lead_edits`). A `Task` or `Agent` launch is denied unless its prompt contains `card <id>` for an open card (`board_first_subagents`). The lead turns either off with `raidlock --lead-secret FILE config set <key> off`.
 
-1. `raidlock up` creates the board (you become the lead) and prints the lead secret's file path (`FILE`). Every lead write takes `--lead-secret FILE`. Never put the secret or its path in an agent prompt.
+1. `raidlock up` creates the board (you become the lead) and prints the lead secret's file path (`FILE`). Every lead write takes `--lead-secret FILE`. Never put the secret or its path in an agent prompt. If the hooks say another session holds the lead lease, the refusal prints both session ids and the exact `lead handover --to <you>` and `lead takeover` commands; when the previous lead session ended, its lease is already free and `raidlock --lead-secret FILE lead takeover` works at once.
 2. Create a card per task: `raidlock --lead-secret FILE new "<title>" --locks <repo>/<path> --team <team> --verify-cmd "<check>"`, or `raidlock --lead-secret FILE plan import <tasks.md>`.
 3. Start workers, one card each, disjoint locks. Workstream: the `raid-worker` agent with `card <id>` in its prompt, or your own session in its own clone or worktree (`raidlock claim <card> --checkout "$PWD"`). Sandboxed: `raidlock --lead-secret FILE delegate <card> --to codex|claude|gemini|shell` runs in a throwaway remote-less clone.
 4. To edit yourself, create a card, claim it, then edit inside its locks.
 5. `raidlock who` shows who is working. `raidlock approvals` lists what waits for you.
 6. Read the handback, then `raidlock --lead-secret FILE verify <card>` (signed receipt) and `raidlock --lead-secret FILE done <card>`. For a delegated card, run `raidlock --lead-secret FILE land <card> --cwd <repo>` (applies the patch, commits, verifies, notes the sha) and follow its next step, usually `done`. Fallback: `git -C <repo> apply --index <patch>`, commit, `verify <card> --cwd <repo>`.
+7. Open pull requests with `raidlock --lead-secret FILE pr <card>` so merged work closes itself, and run `raidlock --lead-secret FILE tidy` before you stop: it reaps expired leases, closes cards whose linked PR merged, and lists every card still waiting on you with the command that resolves it. Leave nothing in doing, review or blocked that nobody is working on.
 
 ## Details
 

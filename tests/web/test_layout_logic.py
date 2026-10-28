@@ -140,6 +140,4 @@ const half = levelOf({done: 5, todo: 5});
 assert.equal(half.level, 30);
 assert.equal(half.rank, 'Champion');
 assert.deepEqual(sumCounts([{counts: {done: 2, todo: 1}}, {counts: {done: 1}}, {}]), {done: 3, todo: 1});
-state.theme = 'plain';
-assert.equal(levelBadge('Guild', {done: 1}), null);
 """)

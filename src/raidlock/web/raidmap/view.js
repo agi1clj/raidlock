@@ -33,15 +33,15 @@
   views.push({
     id: "map",
     endpoint: "raidmap",
-    label: {raid: "War map", plain: "Map"},
+    label: {raid: "War map", sub: "Map"},
     tiles, legend,
     render(c, d, pane) {
       const head = c.h("div", {class: "view-head"},
-        c.h("h2", null, c.raid ? "War map" : "Map", c.raid && c.raidSub ? c.raidSub("Map") : null),
+        c.h("h2", null, "War map", c.raidSub("Map")),
         c.h("p", {class: "cls", text: `Which agent holds which locked paths: ${d.held} held, ${d.contested} contested. Updates every few seconds.`}),
-        c.h("button", {type: "button", class: "tog", "data-go": "replay", text: c.raid ? "See how it changed in the Chronicle" : "See how it changed in Timeline"}));
+        c.h("button", {type: "button", class: "tog", "data-go": "replay", text: "See how it changed in the Chronicle"}));
       head.querySelector("[data-go]").addEventListener("click", () => c.go("replay"));
-      c.setKids(pane, [head, legend(c, d), c.h("div", {class: "zones"}, tiles(c, d))], JSON.stringify([d, c.theme]));
+      c.setKids(pane, [head, legend(c, d), c.h("div", {class: "zones"}, tiles(c, d))], JSON.stringify(d));
     }
   });
 })();

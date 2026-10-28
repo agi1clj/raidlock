@@ -7,6 +7,7 @@ You are a coding agent (Claude Code, Codex, Gemini CLI or similar) asked to inst
 - Install the latest release. Never pin an old version unless the user asks.
 - Never read, print or copy the contents of a lead secret file. Pass only its path with `--lead-secret`.
 - Do not change files in the user's repos during installation.
+- `raid` and `raidlock` are the same command. This guide uses `raid`; the Claude Code skills use `raidlock`.
 
 ## 1. Check prerequisites
 
@@ -24,7 +25,7 @@ If neither `uv` nor `pipx` exists, ask the user before installing uv (`curl -LsS
 raid --version 2>/dev/null && uv tool upgrade raidlock || uv tool install raidlock
 ```
 
-With pipx: `pipx upgrade raidlock || pipx install raidlock`. If `raid` is not found afterwards, run `uv tool update-shell` (or `pipx ensurepath`) and tell the user to open a new terminal.
+With pipx: `pipx upgrade raidlock || pipx install raidlock`. Once installed, `raid upgrade` upgrades the CLI and the Claude Code plugin together. If `raid` is not found afterwards, run `uv tool update-shell` (or `pipx ensurepath`) and tell the user to open a new terminal.
 
 ## 3. Verify
 
@@ -85,7 +86,9 @@ raid config get board_first_subagents         # expect true
 
 Explain them to the user in two sentences: every piece of work is a card on the board first; the hooks deny a lead edit inside a git repo without a held card, and a subagent launch whose prompt does not contain `card <id>` for an open card. Only the user can turn a rule off (`raid --lead-secret FILE config set <key> off`); do not do it yourself.
 
-From now on, work board-first yourself: create a card with `raid --lead-secret FILE new "<title>" --locks <repo>/<path>`, claim it before editing, put `card <id>` in every subagent prompt, and close the card with evidence when the work is done.
+From now on, work board-first yourself: create a card with `raid --lead-secret FILE new "<title>" --locks <repo>/<path>`, claim it before editing, put `card <id>` in every subagent prompt, and close the card with evidence when the work is done. Writes outside the workspace's repos (your scratchpad, `/tmp`) are never blocked. Before you stop, run `raid --lead-secret FILE tidy` and resolve what it lists.
+
+If a hook says another session holds the lead lease, follow the refusal: it prints this session's id and the exact `lead handover` and `lead takeover` commands. When the previous lead session ended, the lease is already free and `lead takeover` works at once.
 
 ## 7. Finish
 

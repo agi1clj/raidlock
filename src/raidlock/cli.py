@@ -11,20 +11,21 @@ import traceback
 
 from . import __version__
 from .core import Board, Usage, clock, model, registry
+from .core import paths as P
 from .core.db import Index
 from .core.errors import IdentityError, Precondition, RaidlockError
-from .core.hints import lead_cmd, lead_secret_src, quote_path
+from .core.hints import lead_cmd, lead_secret_src, prog_name, quote_path
 from .core.identity import detect_runtime, long_runtime, token_path
 from .core.leases import describe, is_live
 from .core.model import LANES
 
 COMMANDS = {}
 GROUPS = (
-    ("Start", ("up", "quickstart", "doctor")),
+    ("Start", ("up", "quickstart", "doctor", "upgrade")),
     ("Plan", ("new", "plan")),
     ("Work", ("brief", "claim", "note", "move", "done")),
     ("Agents", ("delegate", "who", "lead")),
-    ("Board", ("show", "ui")),
+    ("Board", ("show", "tidy", "ui")),
 )
 EXTENSION_MODULES = (
     "raidlock.bench",
@@ -106,7 +107,7 @@ FLAG_HELP = {
     ("join", "session"): "session id of the agent (default: from the runtime's environment)",
     ("lead", "action"): "status, heartbeat (renew), handover to another session, or takeover an expired lease",
     ("lock", "id"): "your card",
-    ("lock", "paths"): "comma-separated <repo>/<path> locks to add",
+    ("lock", "paths"): "<repo>/<path> locks to add, space- or comma-separated",
     ("move", "id"): "card to move",
     ("move", "lane"): "target lane (doing is reached by claim, done by raid done)",
     ("msg", "text"): "message text",
@@ -209,6 +210,8 @@ EXAMPLES = {
     "next": ["raidlock next", "raidlock next --provider codex"],
     "duel": [f"{LEAD} duel checkout --vs claude,codex"],
     "doctor": ["raidlock doctor"],
+    "upgrade": ["raidlock upgrade"],
+    "tidy": [f"{LEAD} tidy"],
     "ui": ["raidlock ui --open"],
 }
 
@@ -284,6 +287,8 @@ def _entry_points():
 def load_extensions(debug=False):
     import importlib
 
+    global _EXTENSIONS_LOADED
+    _EXTENSIONS_LOADED = True
     for module in EXTENSION_MODULES:
         try:
             mod = importlib.import_module(module)
@@ -325,34 +330,24 @@ def hhmm(ts):
 
 
 GLOBAL_DESTS = ("board", "json", "agent", "token", "fence", "fields", "debug", "lead_secret", "cap")
-PROGS = ("raid", "raidlock")
-_COMMAND_WORD = re.compile(r"(?<![\w./-])raidlock (?=[a-z-])")
+_EXTENSIONS_LOADED = False
 
 
-def prog_name(argv0=None):
-    base = os.path.basename(argv0 if argv0 is not None else (sys.argv[0] if sys.argv else ""))
-    base = base[:-4] if base.lower().endswith(".exe") else base
-    return base if base in PROGS else "raidlock"
+def _command_word():
+    """`raidlock ` followed by a real subcommand or an option: a command to rewrite, never prose such as
+    "raidlock identity" or a workspace named raidlock."""
+    if not _EXTENSIONS_LOADED:
+        load_extensions()
+    names = sorted(set(COMMANDS) | {"ui", "hook"}, key=len, reverse=True)
+    return re.compile(r"(?<![\w./\[-])raidlock (?=--|(?:" + "|".join(map(re.escape, names)) + r")(?![\w-]))")
 
 
 def rename(text, prog):
-    """Rewrite command hints in `text` to the name the user invoked: the part of a line after Next:/next:, and lines
-    that start with a raidlock command."""
+    """Rewrite every raidlock command in `text` to the name the user invoked (`raid` and `raidlock` are the same
+    command)."""
     if prog == "raidlock" or not text:
         return text
-    out = []
-    for line in text.split("\n"):
-        body = line.lstrip()
-        if body.startswith("raidlock "):
-            line = line[: len(line) - len(body)] + _COMMAND_WORD.sub(prog + " ", body)
-        else:
-            for marker in ("Next:", "next:", "Warning:"):
-                i = line.find(marker)
-                if i >= 0:
-                    line = line[:i] + _COMMAND_WORD.sub(prog + " ", line[i:])
-                    break
-        out.append(line)
-    return "\n".join(out)
+    return _command_word().sub(prog + " ", text)
 
 
 def _common_args(p):
@@ -563,7 +558,7 @@ def main(argv=None, prog=None):
     try:
         args = parse(argv, prog)
         found = None
-        if args._cmd not in ("doctor", "migrate", "help", "version"):
+        if args._cmd not in ("doctor", "migrate", "help", "version", "upgrade"):
             from .core.board import find_board_dir
             from .core.migrate import reject_legacy
 
@@ -592,8 +587,7 @@ def main(argv=None, prog=None):
         return code
     except RaidlockError as e:
         _lead_identity_hint(e, locals().get("ctx"), argv)
-        if e.hint:
-            e.hint = _COMMAND_WORD.sub(prog + " ", e.hint) if prog != "raidlock" else e.hint
+        e.message, e.hint = rename(e.message, prog), rename(e.hint, prog)
         if want_json:
             print(json.dumps(e.to_dict(), sort_keys=True, ensure_ascii=False, separators=(",", ":"), default=str))
         else:
@@ -1151,7 +1145,7 @@ def cmd_new(ctx, a):
     )
     locks = f"locks {', '.join(c['locks'])}" if c["locks"] else "no locks, so it reserves nothing"
     warnings = []
-    if not c.get("verify_cmd") and ctx.board.settings.get("require_verify"):
+    if not c.get("verify_cmd") and ctx.board.live_settings().get("require_verify"):
         warnings.append(
             f"require_verify is on and {c['id']} has no verify command, so done will refuse it until one is set: "
             + lead_cmd(ctx.board, f'edit {c["id"]} --verify-cmd "<check>"')
@@ -1232,9 +1226,38 @@ def cmd_plan(ctx, a):
         if a.var:
             raise Precondition("--var applies only to recipe imports")
         items = _read_plan(a.file, a.team)
+        if not a.file.endswith(".json"):
+            _infer_task_locks(ctx.board, items)
     cards = ctx.board.import_plan(ctx.caller(), items)
     ids = [c["id"] for c in cards]
-    return {"cards": ids}, f"Imported {len(ids)} card(s): {', '.join(ids)}.\nNext: raidlock show"
+    inferred = [c["id"] for c, i in zip(cards, items, strict=True) if i.get("inferred_locks")]
+    text = f"Imported {len(ids)} card(s): {', '.join(ids)}."
+    if inferred:
+        text += f"\nLocks taken from file paths named in {len(inferred)} task(s); check them with raidlock show <id>."
+    return {"cards": ids, **({"inferred_locks": inferred} if inferred else {})}, text + "\nNext: raidlock show"
+
+
+_TASK_PATH = re.compile(r"(?<![\w./~@+-])[\w.@+-]+(?:/[\w.@+-]+)+")
+
+
+def _infer_task_locks(board, items):
+    """Lock the file paths a task names (Spec Kit: "Create the model in src/models/user.py") when it has no locks.
+    A path is used only when the board maps it to one repo; ambiguous paths are left out."""
+    resolver = board._resolver()
+    for item in items:
+        if not isinstance(item, dict) or item.get("locks"):
+            continue
+        locks = []
+        for raw in _TASK_PATH.findall(item.get("title", "")):
+            raw = raw.rstrip(".")
+            try:
+                path = P.canonical(raw)
+            except Precondition:
+                continue
+            if resolver._match(P.split(path))[0] and path not in locks:
+                locks.append(path)
+        if locks:
+            item.update(locks=",".join(locks), inferred_locks=True)
 
 
 def _read_plan(path, team):
@@ -1373,14 +1396,15 @@ def _note_opts(p):
 
 @command("lock", "add paths to a card's locks", mutating=True)
 def cmd_lock(ctx, a):
-    r = ctx.board.lock_paths(a.id, ctx.caller(), a.replace or a.paths, replace=a.replace is not None)
+    paths = ",".join(a.paths)
+    r = ctx.board.lock_paths(a.id, ctx.caller(), a.replace or paths, replace=a.replace is not None)
     return r, f"{a.id} now locks {', '.join(r['locks'])}."
 
 
 @options("lock")
 def _lock_opts(p):
     p.add_argument("id")
-    p.add_argument("paths", nargs="?", default="")
+    p.add_argument("paths", nargs="*", default=[])
     p.add_argument("--replace", default=None, help="lead: replace all locks with these paths")
 
 
@@ -1504,6 +1528,12 @@ def cmd_done(ctx, a):
         warnings.append(f"{a.id} was closed from todo: no worker claimed it or handed work back")
     if not model.last_verification(before) and not before.get("verify_cmd"):
         warnings.append(f"{a.id} has no verify command, so no receipt was checked")
+    if r.get("gates") == "relaxed":
+        warnings.append(
+            "only one provider is present, so the automatic review and verify gates were relaxed to the defaults; "
+            + lead_cmd(ctx.board, "config set require_review 1")
+            + " keeps reviews on"
+        )
     text = f"Done: {a.id}. Next: raidlock show" + "".join(f"\nWarning: {w}" for w in warnings)
     return {**r, **({"warnings": warnings} if warnings else {})}, text
 
@@ -1594,10 +1624,15 @@ def _verify_checkout(board, card, cwd):
             guess = quote_path(policy.target(board.workspace, board.dir, card["locks"])["path"])
         except RaidlockError:
             pass
+    again = lead_cmd(board, f"verify {card['id']} --cwd {guess}")
+    if guess == quote_path(where):
+        # The guess is the folder that just failed: it is a repo without a commit, so say what to do instead.
+        again = f"commit the card's work there (git -C {guess} commit), then: {again}"
     raise Precondition(
-        f"{short(where)} is not a git repository; verify runs a committed checkout of the card's repo",
+        f"{short(where)} has no committed HEAD (not a git repository, or nothing committed yet); "
+        "verify runs a committed checkout of the card's repo",
         card=card["id"],
-        hint=lead_cmd(board, f"verify {card['id']} --cwd {guess}"),
+        hint=again,
     )
 
 
@@ -1812,12 +1847,20 @@ def cmd_lead(ctx, a):
     if a.action == "status":
         r = b.lead_status()
         if not r["held"]:
-            return r, f"No lead lease on {b.name}. Next: raidlock lead takeover --lead-secret <file>"
+            return r, f"No lead lease on {b.name}. Next: {lead_cmd(b, 'lead takeover')}"
         state = "live" if r["live"] else "EXPIRED"
-        return r, (
+        mine = _env_session()
+        text = (
             f"Lead {r['lead']}: session {r['session'] or '-'}, fence {r['fence']}, {state} until "
-            f"{hhmm(r['expires'])}, secret in {r['store']}" + (" (handover pending)" if r.get("pending") else "")
+            f"{hhmm(r['expires'])}, secret: {lead_secret_src(b)}" + (" (handover pending)" if r.get("pending") else "")
         )
+        if not r["live"]:
+            text += f"\nThe lease is free. Next: {lead_cmd(b, 'lead takeover')}"
+        elif mine and mine != r["session"]:
+            text += f"\nThis session is {mine}, not the lead. To lead from here, the lead session runs: " + lead_cmd(
+                b, f"lead handover --to {mine}"
+            )
+        return r, text
     if a.action == "heartbeat":
         r = b.lead_heartbeat(ctx.caller())
         return r, f"Lead lease renewed until {hhmm(r['expires'])} (fence {r['fence']})."
@@ -1850,6 +1893,43 @@ def _lead_opts(p):
 def cmd_reap(ctx, a):
     r = ctx.board.reap()
     return r, f"Reaped {len(r['reaped'])} card(s): {', '.join(r['reaped'])}." if r["reaped"] else "Nothing to reap."
+
+
+@command("tidy", "lead: reap expired leases, close merged linked PRs, list what still needs a decision", mutating=True)
+def cmd_tidy(ctx, a):
+    from . import prsync, tidy
+
+    board, caller = ctx.board, ctx.caller()
+    board._auth(caller)
+    board._require_lead(caller, "tidy the board")
+    reaped = board.reap(caller)["reaped"]
+    closed, held, sync_error = [], [], ""
+    if any(c.get("pr") for c in board.cards()):
+        try:
+            r = prsync.sync(board, caller)
+            closed, held = r["done"], [h["card"] for h in r["held"]]
+            if r["errors"] or r["rate_limited"]:
+                sync_error = "; ".join(e["error"] for e in r["errors"]) or "GitHub rate limit reached"
+        except RaidlockError as e:
+            sync_error = e.message
+    decide = tidy.decisions(board)
+    lines = []
+    if reaped:
+        lines.append(f"Reaped {len(reaped)} expired card(s) to blocked: {', '.join(reaped)}.")
+    if closed:
+        lines.append(f"Closed {len(closed)} card(s) whose pull request merged: {', '.join(closed)}.")
+    if held:
+        lines.append(f"Merged but held by a gate: {', '.join(held)}.")
+    if sync_error:
+        lines.append(f"Pull request sync skipped: {sync_error}")
+    for d in decide:
+        lines.append(f"{d['card']}: {d['reason']}. " + " | ".join(d["commands"]))
+    if not lines:
+        lines.append("The board is tidy.")
+    elif not decide:
+        lines.append("Nothing else needs a decision.")
+    out = {"reaped": reaped, "closed": closed, "held": held, "decide": decide}
+    return ({**out, "sync_error": sync_error} if sync_error else out), "\n".join(lines)
 
 
 @command("show", "the board, or one card with its notes")
@@ -2037,6 +2117,28 @@ def cmd_tokens(ctx, a):
     r = TK.report(board)
     lines = [f"{i['name']}: ~{i['tokens']} ({i['detail']})" for i in r["items"]]
     return r, "\n".join(lines + [f"total: ~{r['total']} tokens per session ({r['method']})"])
+
+
+@command("upgrade", "upgrade raidlock and its Claude Code plugin to the latest release")
+def cmd_upgrade(ctx, a):
+    from . import updates
+
+    steps = updates.upgrade_steps()
+    ran = []
+    for argv in steps:
+        proc = updates._run(argv)
+        line = " ".join([os.path.basename(argv[0]), *argv[1:]])
+        ran.append({"command": line, "ok": proc.returncode == 0})
+        if proc.returncode != 0:
+            detail = (proc.stderr or proc.stdout).strip()[-300:]
+            raise Precondition(f"{line} failed: {detail}", ran=ran)
+    cli_step = any(r["command"].startswith(("uv ", "pipx ")) for r in ran)
+    lines = [f"Ran: {r['command']}" for r in ran]
+    if not cli_step:
+        lines.append("This raidlock was not installed with uv or pipx; upgrade it the way you installed it.")
+    if any("plugin" in r["command"] for r in ran):
+        lines.append("Start a new Claude Code session so the new hooks load.")
+    return {"ran": ran, "cli": cli_step}, "\n".join(lines) or "Nothing to upgrade."
 
 
 @command("version", "print the version")

@@ -201,7 +201,7 @@ def test_verify_outside_a_repo_names_the_cwd_fix(shell):
     assert shell(*lead_args, "edit", "example", "--verify-cmd", "true").returncode == 0
     r = shell(*lead_args, "verify", "example")
     assert r.returncode == 3
-    assert "is not a git repository" in r.stderr
+    assert "has no committed HEAD" in r.stderr
     assert "verify example --cwd" in r.stderr.split("Next:", 1)[1]
 
 

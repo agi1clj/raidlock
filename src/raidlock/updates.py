@@ -6,6 +6,9 @@ and is skipped in CI or when RAIDLOCK_NO_UPDATE_CHECK is set."""
 import json
 import os
 import re
+import shutil
+import subprocess
+import sys
 import time
 import urllib.request
 
@@ -15,7 +18,8 @@ from .core import registry
 URL = "https://pypi.org/pypi/raidlock/json"
 TTL = 600
 TIMEOUT = 2
-UPGRADE = "uv tool upgrade raidlock"
+UPGRADE = "raid upgrade"
+PLUGIN = "raidlock@raidlock"
 VERSION_RE = re.compile(r"^\d+(\.\d+){0,3}$")
 
 
@@ -100,3 +104,28 @@ def notice(latest=None):
     if not info:
         return ""
     return f"raidlock {info['latest']} is available (you have {info['current']}): {info['upgrade']}"
+
+
+def _run(argv, timeout=300):
+    return subprocess.run(argv, capture_output=True, text=True, timeout=timeout, check=False)
+
+
+def upgrade_steps():
+    """The commands that upgrade this install: the CLI through the tool that installed it, then the Claude Code
+    plugin when it is installed. A CLI installed some other way gets no CLI step."""
+    steps = []
+    prefix = sys.prefix.replace("\\", "/").lower()
+    uv, pipx, claude = shutil.which("uv"), shutil.which("pipx"), shutil.which("claude")
+    if uv and "/uv/tools/raidlock" in prefix:
+        steps.append([uv, "tool", "upgrade", "--refresh", "raidlock"])
+    elif pipx and "/pipx/venvs/raidlock" in prefix:
+        steps.append([pipx, "upgrade", "raidlock"])
+    if claude:
+        try:
+            listed = _run([claude, "plugin", "list"], timeout=60).stdout
+        except (OSError, subprocess.SubprocessError):
+            listed = ""
+        if PLUGIN in listed:
+            steps.append([claude, "plugin", "marketplace", "update", "raidlock"])
+            steps.append([claude, "plugin", "update", PLUGIN])
+    return steps

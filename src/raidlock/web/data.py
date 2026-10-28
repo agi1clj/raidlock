@@ -328,6 +328,17 @@ def needs_items(payload, rows):
         if c["lane"] in ("review", "blocked") and c["id"] not in seen:
             reason = "Review awaiting lead" if c["lane"] == "review" else "Blocked"
             out.append({"kind": c["lane"], "card": c["id"], "title": c["title"], "reason": reason})
+    gate = payload.get("gate_event") or {}
+    age = clock.age_seconds(gate.get("ts", ""))
+    if gate.get("event") == "relaxed" and age is not None and age < 86400:
+        out.append(
+            {
+                "kind": "gates",
+                "card": gate["ts"],
+                "title": "Review gates relaxed",
+                "reason": "only one provider is present, so the automatic review and verify gates are off",
+            }
+        )
     for r in rows:
         if r["status"] == "stalled":
             out.append(

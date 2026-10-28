@@ -109,17 +109,16 @@ def test_cli(lab, capsys):
     assert code == 0 and out["workspace"] == "*" and "coin-lab" in [w["workspace"] for w in out["workspaces"]]
 
 
-@pytest.mark.parametrize("theme", ["raid", "plain"])
 @pytest.mark.parametrize("width", [1280, 375])
-def test_forecast_in_treasury_panel(browse, server, theme, width):
+def test_forecast_in_treasury_panel(browse, server, width):
     p = browse(width=width, height=900)
-    page = p.open("/acme-shop?view=treasury", theme=theme, panels=("overviewCosts",))
+    page = p.open("/acme-shop?view=treasury", panels=("overviewCosts",))
     page.wait_for_selector("#treasury .forecast")
     text = page.locator("#treasury .forecast").inner_text()
     assert "a day over the last 7 days" in text and "by month end" in text
     assert page.locator("#treasury .spark i").count() == 14
     assert page.locator("#treasury .spark").get_attribute("role") == "img"
-    page = p.open("/?view=treasury", theme=theme, panels=("overviewCosts",))
+    page = p.open("/?view=treasury", panels=("overviewCosts",))
     page.wait_for_selector("#treasury .forecast")
     assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")
     assert p.errors == []

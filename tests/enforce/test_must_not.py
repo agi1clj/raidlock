@@ -395,3 +395,55 @@ def test_p5_worker_must_not_relax_the_gates(world):
     with pytest.raises(RaidlockError, match="lead"):
         world.board.move("task", "done", world.worker)
     assert world.board.settings["require_review"] == {"count": 1, "other_provider": True}
+
+
+def test_p5_a_review_must_count_as_presence(world):
+    joined = world.board.join(world.lead, agent="codex", provider="anthropic", role="reviewer")
+    codex = world.board.caller(agent="codex", token=joined["token"])
+    _go_stale(world.board, "codex")
+    world.board.move("task", "review", world.worker)
+    world.board.review("task", codex, "comment", note="still here")
+    assert "anthropic" in world.board._live_providers(world.board.agents())
+
+
+def test_p5_display_must_show_the_gates_the_next_close_applies(world):
+    world.board.join(world.lead, agent="codex", provider="anthropic", role="reviewer")
+    _go_stale(world.board, "codex")
+    assert world.board.settings["require_review"] == {"count": 1, "other_provider": True}
+    assert world.board.get_setting("require_review") == DEFAULT_REVIEW
+    assert world.board.snapshot()["settings"]["require_review"] == DEFAULT_REVIEW
+
+
+def test_p5_relaxing_close_must_say_so(world):
+    world.board.join(world.lead, agent="codex", provider="anthropic", role="reviewer")
+    _go_stale(world.board, "codex")
+    assert world.board.move("task", "done", world.lead)["gates"] == "relaxed"
+
+
+def test_p5_relaxed_gates_must_reach_the_bell(world):
+    from raidlock.web import data
+
+    world.board.join(world.lead, agent="codex", provider="anthropic", role="reviewer")
+    _go_stale(world.board, "codex")
+    world.board.move("task", "done", world.lead)
+    snap = world.board.snapshot()
+    assert snap["gate_event"]["event"] == "relaxed"
+    items = data.needs_items(snap, [])
+    assert [i["title"] for i in items if i["kind"] == "gates"] == ["Review gates relaxed"]
+
+
+def test_p5_shell_agents_must_not_count_as_a_second_provider(world):
+    world.board.join(world.lead, agent="sub", runtime="shell")
+    world.board.join(world.lead, agent="person", provider="human")
+    assert world.board.agents()["sub"]["provider"] == "local"
+    assert world.board.settings["require_review"] == DEFAULT_REVIEW
+    assert world.board.move("task", "done", world.lead)["lane"] == "done"
+
+
+def test_p5_a_local_reviewer_must_not_satisfy_cross_provider_review(world):
+    world.board.join(world.lead, agent="codex", provider="anthropic", role="reviewer")
+    joined = world.board.join(world.lead, agent="sub", runtime="shell", role="reviewer")
+    sub = world.board.caller(agent="sub", token=joined["token"])
+    world.board.move("task", "review", world.worker)
+    world.board.review("task", sub, "approve")
+    assert world.board.approvals(world.board.card("task")) == []

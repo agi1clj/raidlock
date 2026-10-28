@@ -2,6 +2,7 @@
 
 import os
 import shlex
+import sys
 
 from .identity import token_path
 
@@ -27,6 +28,16 @@ def lead_secret_src(board):
     return "keychain" if where == "keychain" else quote_path(token_path(board.home, board.uid, board.lead))
 
 
-def lead_cmd(board, rest, prog="raidlock"):
+PROGS = ("raid", "raidlock")
+
+
+def prog_name(argv0=None):
+    """The name the CLI was invoked with (`raid` or `raidlock`, the same command); `raidlock` otherwise."""
+    base = os.path.basename(argv0 if argv0 is not None else (sys.argv[0] if sys.argv else ""))
+    base = base[:-4] if base.lower().endswith(".exe") else base
+    return base if base in PROGS else "raidlock"
+
+
+def lead_cmd(board, rest, prog=None):
     """A lead command line that works when pasted into the lead session."""
-    return f"{prog} --lead-secret {lead_secret_src(board)} {rest}"
+    return f"{prog or prog_name()} --lead-secret {lead_secret_src(board)} {rest}"
