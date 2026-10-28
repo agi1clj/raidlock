@@ -239,3 +239,15 @@ def test_done_warns_about_unclaimed_cards(world):
     r, text = cli.cmd_done(ctx, args)
     assert any("closed from todo" in w for w in r["warnings"])
     assert "Warning: c1 was closed from todo" in text
+
+
+def test_every_cli_error_names_a_next_step(tmp_path, capsys):
+    from raidlock import cli
+
+    ws = tmp_path / "ws"
+    make_repo(ws / "app")
+    assert cli.main(["init", str(ws)]) == 0
+    capsys.readouterr()
+    assert cli.main(["note", "missing-card", "", "--board", str(ws)], prog="raid") != 0
+    err = capsys.readouterr().err
+    assert "\nNext: raid " in err, err

@@ -123,6 +123,9 @@ def serialized_write(fn):
     return wrapped
 
 
+REVIEW_OTHER_HINT = "another agent reviews it; the lead assigns one: raidlock review <card> --assign <agent>"
+
+
 class Board:
     """One workspace board (`<workspace>/.board`). Every mutation takes the board lock; lease writes also take the
     global lock."""
@@ -417,6 +420,28 @@ class Board:
                 f"lead session {session} is back; its lead lease is live again",
                 data={"event": "lead_rearmed", "session": session, "lead_fence": lease.get("fence", 0)},
             )
+            return True
+
+    def lead_session_active(self, session):
+        """The lead's host session just used a tool: renew its lease once half the TTL is spent, so a lead that keeps
+        working (waiting on CI, running tests) never lapses. Gated like lead_session_ended: the session the lease names,
+        from inside the lease's own process tree."""
+        lead = self.leadlease()
+        lease = lead.lease()
+        if not session or lease.get("session") != session or not lease.get("pid") or lead.expired(lease):
+            return False
+        left = -(clock.age_seconds(lease["expires"]) or 0)
+        if left > lead.ttl_s / 2:
+            return False
+        anchor = (lease["pid"], lease.get("pid_start"))
+        if not any((pid, start) == anchor for pid, start, _ in LD.ancestors(self._table())):
+            return False
+        with self.lock():
+            lease = lead.lease()
+            if lease.get("session") != session:
+                return False
+            lease.update(renewed=clock.iso(), expires=clock.later(lead.ttl_s))
+            lead._save(lease)
             return True
 
     def lead_session_ended(self, session):
@@ -1101,7 +1126,12 @@ class Board:
             return "owner"
         if caller.is_lead:
             return "lead"
-        raise Denied(f"{card['id']} is owned by {card['owner'] or 'nobody'}", card=card["id"], owner=card["owner"])
+        raise Denied(
+            f"{card['id']} is owned by {card['owner'] or 'nobody'}",
+            card=card["id"],
+            owner=card["owner"],
+            hint="raidlock claimable lists cards you can take; the lead can reassign this one",
+        )
 
     def _keys(self, paths):
         resolver = self._resolver()
@@ -1269,7 +1299,11 @@ class Board:
             card = self.card(card_id)
             self._owner_or_lead(card, caller)
             if card["lane"] not in model.HOLD_LANES:
-                raise Precondition(f"{card_id} is in {card['lane']}; nothing to renew", card=card_id)
+                raise Precondition(
+                    f"{card_id} is in {card['lane']}; nothing to renew",
+                    hint=f"raidlock show {card_id}",
+                    card=card_id,
+                )
             lease, resumed = self._renew(card, ttl_minutes)
             self._touch(caller.name)
         return {"card": card_id, "fence": card["fence"], "expires": lease["expires"], "resumed": resumed}
@@ -1278,7 +1312,11 @@ class Board:
         lease = self.index.lease(self.uid, card["id"])
         if card["lane"] != "doing":
             if not lease:
-                raise Precondition(f"{card['id']} holds no lease; claim it again", card=card["id"])
+                raise Precondition(
+                    f"{card['id']} holds no lease; claim it again",
+                    hint=f"raidlock claim {card['id']}",
+                    card=card["id"],
+                )
             return self._update_lease(card["id"], renewed=clock.iso()), False
         if lease and L.is_live(lease):
             return self._update_lease(
@@ -1671,7 +1709,11 @@ class Board:
             if card["lane"] != "review":
                 raise Precondition(f"{card_id} is in {card['lane']}, not review", card=card_id)
             if caller.name == card["owner"]:
-                raise Denied("owners cannot review their own card", card=card_id)
+                raise Denied(
+                    "owners cannot review their own card",
+                    hint=REVIEW_OTHER_HINT,
+                    card=card_id,
+                )
             if card.get("reviewers") and caller.name not in card["reviewers"] and not caller.is_lead:
                 raise Denied(f"{card_id} is assigned to reviewers {', '.join(card['reviewers'])}", card=card_id)
             agent = self.agents().get(caller.name, {})
@@ -1722,9 +1764,13 @@ class Board:
             agents = self.agents()
             for n in names:
                 if n not in agents:
-                    raise Precondition(f"{n} has not joined", agent=n)
+                    raise Precondition(f"{n} has not joined", hint=f"raidlock join --agent {n} --team <team>", agent=n)
                 if n == card["owner"]:
-                    raise Precondition("the owner cannot review its own card", agent=n)
+                    raise Precondition(
+                        "the owner cannot review its own card",
+                        hint=REVIEW_OTHER_HINT,
+                        agent=n,
+                    )
             owner_provider = agents.get(card["owner"], {}).get("provider", "")
             warnings = [
                 f"{n} has the same provider as the owner ({owner_provider})"
@@ -2052,7 +2098,7 @@ class Board:
             self._require_lead(caller, "send urgent messages")
         with self.lock():
             if to not in self.agents():
-                raise Precondition(f"no agent {to} on this board", to=to)
+                raise Precondition(f"no agent {to} on this board", hint="raidlock who lists the agents", to=to)
             if task:
                 self.card(task)
             dup = M.check_limits(self.dir, caller.name, to, task or "", text, clock.now())

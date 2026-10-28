@@ -203,10 +203,18 @@ def resolve(
     if cap:
         found = check_cap(home, board_uid, name, cap)
         if not found:
-            raise IdentityError(f"card capability is not valid for {name or 'this caller'}", agent=name)
+            raise IdentityError(
+                f"card capability is not valid for {name or 'this caller'}",
+                hint="claim the card again and use the RAIDLOCK_CAP it prints",
+                agent=name,
+            )
         scope, cap_fence = found
         if fence_value and fence_value != cap_fence:
-            raise IdentityError("card fence does not match the presented capability", agent=name)
+            raise IdentityError(
+                "card fence does not match the presented capability",
+                hint="use the RAIDLOCK_CAP and RAIDLOCK_FENCE from your latest claim",
+                agent=name,
+            )
         fence_value = cap_fence
         authenticated = True
     else:

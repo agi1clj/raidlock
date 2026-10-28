@@ -1,3 +1,5 @@
+import json
+
 import pytest
 from conftest import LEAD_SESSION, make_repo
 from test_native_bridge import (
@@ -345,3 +347,20 @@ def test_an_option_named_like_git_is_not_git(scene):
     assert "git" in reason(
         hooks.run("pre-bash", bash(scene, "timeout 5 git push", session=LEAD_SESSION), dict(scene.env))
     )
+
+
+def test_the_lead_working_keeps_its_lease_alive(scene):
+    from raidlock.core import clock
+
+    def post(session):
+        payload = {"session_id": session, "cwd": str(scene.ws), "tool_name": "Read", "tool_input": {}}
+        hooks.run("post-tool", json.dumps(payload), dict(scene.env))
+
+    before = scene.board.lead_status()["expires"]
+    post(LEAD_SESSION)
+    assert scene.board.lead_status()["expires"] == before, "no write while more than half the TTL is left"
+    clock.travel(scene.board.ttl_seconds() * 0.6)
+    post(TEAMMATE)
+    assert scene.board.lead_status()["expires"] == before, "another session never renews the lead"
+    post(LEAD_SESSION)
+    assert scene.board.lead_status()["expires"] > before
