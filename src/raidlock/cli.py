@@ -25,7 +25,7 @@ GROUPS = (
     ("Plan", ("new", "plan")),
     ("Work", ("brief", "claim", "note", "move", "done")),
     ("Agents", ("delegate", "who", "lead")),
-    ("Board", ("show", "ui")),
+    ("Board", ("show", "tidy", "ui")),
 )
 EXTENSION_MODULES = (
     "raidlock.bench",
@@ -211,6 +211,7 @@ EXAMPLES = {
     "duel": [f"{LEAD} duel checkout --vs claude,codex"],
     "doctor": ["raidlock doctor"],
     "upgrade": ["raidlock upgrade"],
+    "tidy": [f"{LEAD} tidy"],
     "ui": ["raidlock ui --open"],
 }
 
@@ -1887,6 +1888,43 @@ def _lead_opts(p):
 def cmd_reap(ctx, a):
     r = ctx.board.reap()
     return r, f"Reaped {len(r['reaped'])} card(s): {', '.join(r['reaped'])}." if r["reaped"] else "Nothing to reap."
+
+
+@command("tidy", "lead: reap expired leases, close merged linked PRs, list what still needs a decision", mutating=True)
+def cmd_tidy(ctx, a):
+    from . import prsync, tidy
+
+    board, caller = ctx.board, ctx.caller()
+    board._auth(caller)
+    board._require_lead(caller, "tidy the board")
+    reaped = board.reap(caller)["reaped"]
+    closed, held, sync_error = [], [], ""
+    if any(c.get("pr") for c in board.cards()):
+        try:
+            r = prsync.sync(board, caller)
+            closed, held = r["done"], [h["card"] for h in r["held"]]
+            if r["errors"] or r["rate_limited"]:
+                sync_error = "; ".join(e["error"] for e in r["errors"]) or "GitHub rate limit reached"
+        except RaidlockError as e:
+            sync_error = e.message
+    decide = tidy.decisions(board)
+    lines = []
+    if reaped:
+        lines.append(f"Reaped {len(reaped)} expired card(s) to blocked: {', '.join(reaped)}.")
+    if closed:
+        lines.append(f"Closed {len(closed)} card(s) whose pull request merged: {', '.join(closed)}.")
+    if held:
+        lines.append(f"Merged but held by a gate: {', '.join(held)}.")
+    if sync_error:
+        lines.append(f"Pull request sync skipped: {sync_error}")
+    for d in decide:
+        lines.append(f"{d['card']}: {d['reason']}. " + " | ".join(d["commands"]))
+    if not lines:
+        lines.append("The board is tidy.")
+    elif not decide:
+        lines.append("Nothing else needs a decision.")
+    out = {"reaped": reaped, "closed": closed, "held": held, "decide": decide}
+    return ({**out, "sync_error": sync_error} if sync_error else out), "\n".join(lines)
 
 
 @command("show", "the board, or one card with its notes")

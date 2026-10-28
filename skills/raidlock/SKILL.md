@@ -49,6 +49,7 @@ Board first: every piece of work, yours and every subagent's, is a card before i
 4. To edit yourself, create a card, claim it, then edit inside its locks.
 5. `raidlock who` shows who is working. `raidlock approvals` lists what waits for you.
 6. Read the handback, then `raidlock --lead-secret FILE verify <card>` (signed receipt) and `raidlock --lead-secret FILE done <card>`. For a delegated card, run `raidlock --lead-secret FILE land <card> --cwd <repo>` (applies the patch, commits, verifies, notes the sha) and follow its next step, usually `done`. Fallback: `git -C <repo> apply --index <patch>`, commit, `verify <card> --cwd <repo>`.
+7. Open pull requests with `raidlock --lead-secret FILE pr <card>` so merged work closes itself, and run `raidlock --lead-secret FILE tidy` before you stop: it reaps expired leases, closes cards whose linked PR merged, and lists every card still waiting on you with the command that resolves it. Leave nothing in doing, review or blocked that nobody is working on.
 
 ## Details
 

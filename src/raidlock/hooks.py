@@ -15,7 +15,20 @@ TAIL_BYTES = 65536
 HANDBACK_CHARS = 8000
 URGENT_CHARS = 8000
 PLUGIN_ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..")
-LEAD_ONLY = ("migrate", "done", "reopen", "verify", "land", "pr", "pr-link", "pr-sync", "delegate", "duel", "resurrect")
+LEAD_ONLY = (
+    "migrate",
+    "tidy",
+    "done",
+    "reopen",
+    "verify",
+    "land",
+    "pr",
+    "pr-link",
+    "pr-sync",
+    "delegate",
+    "duel",
+    "resurrect",
+)
 READ_ONLY = (
     "",
     "show",
@@ -1391,7 +1404,17 @@ def _native_join(data, env, board_dir, board):
             save_binding(env, session, "main", binding)
     role = session_role(data, env, board, binding)
     if role == "lead":
-        return None
+        from .tidy import decisions
+
+        waiting = decisions(board)
+        if not waiting:
+            return None
+        text = (
+            f"raidlock: {len(waiting)} card(s) in {board.name} wait on the lead "
+            f"({', '.join(d['card'] for d in waiting[:5])}{', ...' if len(waiting) > 5 else ''}). "
+            "Run raidlock --lead-secret <lead secret file> tidy to resolve them."
+        )
+        return {"hookSpecificOutput": {"hookEventName": "SessionStart", "additionalContext": text}}
     name = token = ""
     if binding.get("pooled") and role == "worker":
         name = binding["name"]
