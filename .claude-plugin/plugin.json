@@ -1,6 +1,6 @@
 {
   "name": "raidlock",
-  "version": "0.2.10",
+  "version": "0.2.11",
   "description": "Lease-and-review board for coding agents: path locks enforced by hooks, a lead-only done gate, heartbeats and handbacks.",
   "author": {
     "name": "agi1clj",
