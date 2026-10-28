@@ -730,12 +730,15 @@ def _lead_file(board):
 def _lead_lines(board):
     where = board.leadlease().store.using
     src = lead_secret_src(board)
-    return [
-        f"The lead secret is in {src}" + (" (mode 0600)" if where == "file" else "") + "; it is never printed. "
-        "Lead commands present it, from this session only; never give it to an agent:",
-        "  " + lead_cmd(board, "<command>"),
-        _exports(board=board.workspace, agent=board.lead),
-    ]
+    if where == "file":
+        head = [
+            "Lead secret file (mode 0600; keep the path, never print or share the contents):",
+            f"  LEAD_SECRET_FILE={src}",
+            "Lead commands present it, from this session only; never give it to an agent:",
+        ]
+    else:
+        head = ["The lead secret is in the keychain. Lead commands present it, from this session only:"]
+    return [*head, "  " + lead_cmd(board, "<command>"), _exports(board=board.workspace, agent=board.lead)]
 
 
 def _init_text(board, token):
@@ -815,6 +818,13 @@ def cmd_up(ctx, a):
     if a.join or not caller.name or caller.name not in board.agents():
         if board.meta.get("migrated_from") and not a.join:
             raise Precondition("migrated board has no identity; use lead takeover or raid up --join")
+        env_file = os.path.join(board.home, "agents", board.uid, f"{caller.name}.env")
+        joined = caller.name and caller.name in board.agents() and not caller.authenticated
+        if a.join and joined and os.path.isfile(env_file):  # a re-run: point back at the credentials it wrote
+            nxt = f'raidlock claim {shlex.quote(a.card)} --checkout "$PWD"' if a.card else "raidlock claimable"
+            return {"action": "joined", "agent": caller.name, "env_file": env_file}, (
+                f"{caller.name} already joined {board.name}.\nsource {shlex.quote(env_file)}\nNext: {nxt}"
+            )
         r = _no_lead_token(
             board,
             board.join(

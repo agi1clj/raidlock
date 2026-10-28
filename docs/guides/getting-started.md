@@ -20,14 +20,14 @@ mkdir -p ~/demo/shop && cd ~/demo/shop
 raid quickstart --demo
 ```
 
-This creates `.board/`, a `core` team, an example card and `acme-shop/`, a git repo whose checkout test fails until carts reject empty input. In your own projects, run `raid up` in the folder that holds your repos.
+This creates `.board/`, a `core` team, a placeholder `example` card (ignore it or replace it) and `acme-shop/`, a git repo whose checkout test fails until carts reject empty input. In your own projects, run `raid up` in the folder that holds your repos.
 
 A board started with `raid up` has no cards yet, so `raid ui` opens it with a **First quest** panel that walks steps 3 to 6 and ticks them off as you go.
 
-`quickstart` prints the path of the lead secret file, never the secret. Keep the path in an unexported shell variable:
+`quickstart` prints the path of the lead secret file, never the secret, as a ready line. Paste it into the lead terminal (set it, do not export it):
 
 ```bash
-LEAD_SECRET_FILE="<the path it printed>"
+LEAD_SECRET_FILE=<the path it printed>
 ```
 
 It also prints `export RAIDLOCK_BOARD=...` and `export RAIDLOCK_AGENT=...` lines; run them in this lead terminal only, never in a worker's. Every lead write presents it with `--lead-secret`, from this session only. Never pass it to a worker. Switching sessions: [Lead session handover](install.md#lead-session-handover).

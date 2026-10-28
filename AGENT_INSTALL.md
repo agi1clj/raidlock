@@ -39,7 +39,8 @@ raid doctor
 ## 4. Add or update the Claude Code plugin (Claude Code only)
 
 ```bash
-claude plugin marketplace add agi1clj/raidlock 2>/dev/null || claude plugin marketplace update raidlock
+if claude plugin marketplace list | grep -q raidlock; then claude plugin marketplace update raidlock
+else claude plugin marketplace add agi1clj/raidlock; fi
 claude plugin install raidlock@raidlock || claude plugin update raidlock@raidlock
 ```
 
