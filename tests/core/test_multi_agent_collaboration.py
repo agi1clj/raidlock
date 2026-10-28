@@ -94,6 +94,23 @@ def test_join_inside_lead_session_uses_separate_private_files(world, monkeypatch
         world.board.caller(agent="worker-ash", token=result["token"], lead_secret=world.lead_token)
 
 
+def test_up_join_rerun_prints_the_source_line(world, monkeypatch):
+    world.card("first")
+    monkeypatch.setattr(cli, "_lead_session_state", lambda board: (None, False))
+
+    def up():
+        args = cli.parse(["up", "--join", "--agent", "worker-ash", "--card", "first"])
+        ctx = cli.Context(args)
+        ctx._board = world.board
+        return cli.cmd_up(ctx, args)
+
+    first, _ = up()
+    again, text = up()
+    assert again["action"] == "joined" and again["env_file"] == first["env_file"]
+    assert f"source {shlex.quote(first['env_file'])}" in text
+    assert text.endswith('Next: raidlock claim first --checkout "$PWD"')
+
+
 def test_rejoin_without_token_points_at_the_env_file(world):
     world.agent("worker-ash")
     stranger = world.board.caller(env={})
