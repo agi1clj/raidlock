@@ -111,8 +111,10 @@ def _run(argv, timeout=300):
 
 
 def installed_version():
-    """The version the (just upgraded) CLI on PATH reports; this process still runs the old code."""
-    exe = shutil.which("raidlock")
+    """The version the just-upgraded CLI reports; this process still runs the old code. Ask the executable that is
+    running, not PATH: inside Claude Code the plugin's bin/ comes first on PATH and may hold an older copy."""
+    running = sys.argv[0] if sys.argv else ""
+    exe = running if os.path.isabs(running) and os.path.isfile(running) else shutil.which("raidlock")
     if not exe:
         return ""
     try:

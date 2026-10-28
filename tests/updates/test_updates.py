@@ -180,3 +180,16 @@ def test_upgrade_reports_the_version_it_installed(monkeypatch, capsys, got, says
     monkeypatch.setattr(updates, "refresh", lambda force=False, persist=True: "0.2.5")
     assert cli.main(["upgrade"]) == 0
     assert says in capsys.readouterr().out
+
+
+def test_installed_version_asks_the_running_executable_not_path(monkeypatch, tmp_path):
+    exe = tmp_path / "raid"
+    exe.write_text("#!/bin/sh\n", encoding="utf-8")
+    calls = []
+    monkeypatch.setattr(updates.sys, "argv", [str(exe), "upgrade"])
+    monkeypatch.setattr(updates.shutil, "which", lambda name: "/plugin/bin/raidlock")
+    monkeypatch.setattr(
+        updates, "_run", lambda argv, timeout=300: calls.append(argv) or types.SimpleNamespace(stdout="raid 0.2.6\n")
+    )
+    assert updates.installed_version() == "0.2.6"
+    assert calls == [[str(exe), "--version"]]
