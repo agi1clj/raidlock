@@ -611,3 +611,14 @@ def test_prune_skips_a_run_still_in_progress(ws, tmp_path):
     Path(live, "started.json").write_text("{}")
     assert prune_runs(ws.board, "busy") == 0
     assert os.path.isdir(os.path.join(live, "repo"))
+
+
+def test_git_failure_reports_stdout_when_stderr_is_empty(tmp_path):
+    from raidlock.core import Precondition
+    from raidlock.runners import workspace as W
+
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    W.git(str(repo), "init", "--quiet", "-b", "main")
+    with pytest.raises(Precondition, match="nothing to commit"):
+        W.git(str(repo), *W.IDENT, "commit", "-m", "empty")

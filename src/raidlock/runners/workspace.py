@@ -238,6 +238,8 @@ def git(cwd, *args, check=True, binary=False, env=None, timeout=None, input=None
     proc = git_run(cwd, *args, binary=binary, env=env, timeout=timeout, input=input)
     if check and proc.returncode != 0:
         err = proc.stderr.decode("utf-8", "replace") if binary else proc.stderr
+        if not err.strip():
+            err = proc.stdout.decode("utf-8", "replace") if binary else proc.stdout
         raise Precondition(f"git {' '.join(args[:2])} failed: {err.strip()[:300]}", cwd=cwd)
     return proc.stdout
 

@@ -1151,7 +1151,7 @@ def cmd_new(ctx, a):
     )
     locks = f"locks {', '.join(c['locks'])}" if c["locks"] else "no locks, so it reserves nothing"
     warnings = []
-    if not c.get("verify_cmd") and ctx.board.settings.get("require_verify"):
+    if not c.get("verify_cmd") and ctx.board.live_settings().get("require_verify"):
         warnings.append(
             f"require_verify is on and {c['id']} has no verify command, so done will refuse it until one is set: "
             + lead_cmd(ctx.board, f'edit {c["id"]} --verify-cmd "<check>"')
@@ -1504,6 +1504,12 @@ def cmd_done(ctx, a):
         warnings.append(f"{a.id} was closed from todo: no worker claimed it or handed work back")
     if not model.last_verification(before) and not before.get("verify_cmd"):
         warnings.append(f"{a.id} has no verify command, so no receipt was checked")
+    if r.get("gates") == "relaxed":
+        warnings.append(
+            "only one provider is present, so the automatic review and verify gates were relaxed to the defaults; "
+            + lead_cmd(ctx.board, "config set require_review 1")
+            + " keeps reviews on"
+        )
     text = f"Done: {a.id}. Next: raidlock show" + "".join(f"\nWarning: {w}" for w in warnings)
     return {**r, **({"warnings": warnings} if warnings else {})}, text
 

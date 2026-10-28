@@ -581,12 +581,11 @@ class Board:
                 live.add(provider)
         return live
 
-    def _sync_gate_defaults(self, actor, agents=None):
-        """Review and verify gates the lead never set follow the providers present: on while two or more are live,
-        back to the defaults when only one is left. Values set with `config set` are kept either way."""
+    def _gate_settings(self, meta, agents=None):
+        """Stored settings with the gates the lead never set following the providers present: on while two or more
+        are live, the defaults when only one is left. Values set with `config set` are kept either way."""
         agents = self.agents() if agents is None else agents
         multi = len(self._live_providers(agents)) >= 2
-        meta = store.read_json(self._p("board.json"))
         settings = copy.deepcopy(meta.get("settings", {}))
         explicit = meta.get("explicit_settings", [])
         review = normalize_review_setting(settings.get("require_review"))
@@ -598,9 +597,24 @@ class Board:
         settings["require_review"] = review
         if "require_verify" not in explicit:
             settings["require_verify"] = multi or DEFAULT_SETTINGS["require_verify"]
+        return settings, multi
+
+    def live_settings(self):
+        """Settings as the next close will apply them, for display; nothing is written."""
+        settings, _ = self._gate_settings(store.read_json(self._p("board.json")))
+        s = {**DEFAULT_SETTINGS, **settings}
+        s["require_review"] = normalize_review_setting(s.get("require_review"))
+        return s
+
+    def _sync_gate_defaults(self, actor, agents=None):
+        """Store the provider-following gates; returns "enabled" or "relaxed" when they changed, else ""."""
+        meta = store.read_json(self._p("board.json"))
+        settings, multi = self._gate_settings(meta, agents)
+        changed = ""
         if settings != meta.get("settings"):
             meta["settings"] = settings
             store.write_json(self._p("board.json"), meta)
+            changed = "enabled" if multi else "relaxed"
             self._record(
                 "status",
                 actor,
@@ -608,6 +622,7 @@ class Board:
                 data={"event": "gate_defaults" if multi else "gate_defaults_relaxed", "settings": settings},
             )
         self.meta = meta
+        return changed
 
     def _touch(self, name):
         self.index.touch_agent(self.uid, name)
@@ -772,7 +787,7 @@ class Board:
             src.keychain.delete()
 
     def get_setting(self, key=None):
-        s = self.settings
+        s = self.live_settings()
         if key is None:
             return s
         if key in PR_SETTING_KEYS:
@@ -1432,7 +1447,10 @@ class Board:
                 )
             if card["lane"] == lane:
                 raise Precondition(f"{card_id} is already in {lane}", card=card_id)
+            self._gates_changed = ""
             role = self._move_checks(card, lane, caller)
+            if not caller.is_lead:
+                self._touch(caller.name)
             self._apply_move(card, lane, role)
             self._note(card, caller.name, f"-> {lane}" + (f" ({note})" if note else ""))
             self._save_card(card)
@@ -1443,13 +1461,16 @@ class Board:
                 task=card_id,
                 data={"a2a_state": model.a2a_state(card), "lane": lane},
             )
-        return {"card": card_id, "lane": lane, "a2a_state": model.a2a_state(card), "owner": card["owner"]}
+        out = {"card": card_id, "lane": lane, "a2a_state": model.a2a_state(card), "owner": card["owner"]}
+        if self._gates_changed == "relaxed":
+            out["gates"] = "relaxed"
+        return out
 
     def _move_checks(self, card, lane, caller):
         if lane == "done":
             self._auth(caller)
             self._require_lead(caller, "move a card to done")
-            self._sync_gate_defaults(caller.name)
+            self._gates_changed = self._sync_gate_defaults(caller.name)
             self._done_gate(card)
             return "lead"
         if lane in ("review", "blocked") and card["lane"] == "todo":
@@ -1581,6 +1602,7 @@ class Board:
         note = model.line_text(T.redact(note or ""), "note")
         with self.lock():
             self._auth(caller)
+            self._touch(caller.name)
             card = self.card(card_id)
             if card["lane"] != "review":
                 raise Precondition(f"{card_id} is in {card['lane']}, not review", card=card_id)
@@ -2172,7 +2194,7 @@ class Board:
             "workspace": self.name,
             "board": self.dir,
             "lead": self.lead,
-            "settings": self.settings,
+            "settings": self.live_settings(),
             "warnings": self.warnings(),
             "now": clock.iso(),
             "lead_lease": self.leadlease().summary(),

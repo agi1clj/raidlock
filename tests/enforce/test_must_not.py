@@ -395,3 +395,26 @@ def test_p5_worker_must_not_relax_the_gates(world):
     with pytest.raises(RaidlockError, match="lead"):
         world.board.move("task", "done", world.worker)
     assert world.board.settings["require_review"] == {"count": 1, "other_provider": True}
+
+
+def test_p5_a_review_must_count_as_presence(world):
+    joined = world.board.join(world.lead, agent="codex", provider="anthropic", role="reviewer")
+    codex = world.board.caller(agent="codex", token=joined["token"])
+    _go_stale(world.board, "codex")
+    world.board.move("task", "review", world.worker)
+    world.board.review("task", codex, "comment", note="still here")
+    assert "anthropic" in world.board._live_providers(world.board.agents())
+
+
+def test_p5_display_must_show_the_gates_the_next_close_applies(world):
+    world.board.join(world.lead, agent="codex", provider="anthropic", role="reviewer")
+    _go_stale(world.board, "codex")
+    assert world.board.settings["require_review"] == {"count": 1, "other_provider": True}
+    assert world.board.get_setting("require_review") == DEFAULT_REVIEW
+    assert world.board.snapshot()["settings"]["require_review"] == DEFAULT_REVIEW
+
+
+def test_p5_relaxing_close_must_say_so(world):
+    world.board.join(world.lead, agent="codex", provider="anthropic", role="reviewer")
+    _go_stale(world.board, "codex")
+    assert world.board.move("task", "done", world.lead)["gates"] == "relaxed"
