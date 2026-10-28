@@ -126,9 +126,7 @@ RAID_WORD = re.compile(r"(?<![\w.-])raid(lock)?(?![\w/-])", re.I)
 LAUNCH_THROUGH = (*gitguard.LAUNCHERS, *WRAPPERS, "uv", "busybox")
 ARG_LAUNCHERS = ("xargs", "parallel", "find", "fd")
 PACKAGE_OPTIONS = ("--with", "--from", "--spec", "-p", "--package")
-BOARD_WRITE_DENIAL = (
-    ".board/ is written only by the raidlock CLI; change cards with raidlock note, move, lock or (lead) edit instead"
-)
+BOARD_WRITE_DENIAL = ".board/ is written only by the raidlock CLI; use raidlock note/move/lock"
 LEAD_PROOF_DENIAL = "only the lead may present the lead secret; subagents hand over with: raidlock move <id> review"
 EXPORT_LINE = re.compile(r"^export RAIDLOCK_(AGENT|FENCE|BOARD)=([^\s#]+)", re.M)
 CLAIMED_LINE = re.compile(r"\bClaimed ([A-Za-z0-9_-]+)[:.]")
