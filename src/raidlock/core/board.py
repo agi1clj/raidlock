@@ -822,7 +822,9 @@ class Board:
             return True
         if caller.is_lead or not I.has_token(self.home, self.uid, name):
             return False
-        raise IdentityError(f"{name} already joined; present its token or ask the lead to re-issue it", agent=name)
+        env_file = os.path.join(self.home, "agents", self.uid, name + ".env")
+        hint = f"source {env_file}" if os.path.exists(env_file) else "ask the lead to re-issue its token"
+        raise IdentityError(f"{name} already joined; present its token", agent=name, hint=hint)
 
     @serialized_write
     def add_team(self, caller, name, max_active=2, mission="", repos_list=None):

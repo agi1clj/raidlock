@@ -16,7 +16,8 @@ def report():
     return measure(runs=3, plugin_root=ROOT, tokenizer="estimate")
 
 
-SHARED_RUNNER_SLACK = 3
+# Shared macOS runners start Python processes far slower; Linux CI keeps the tight bound.
+SHARED_RUNNER_SLACK = 5 if sys.platform == "darwin" else 3
 
 
 def test_ci_budget(report):

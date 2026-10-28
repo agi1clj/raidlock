@@ -345,7 +345,8 @@ def test_limits_and_reputation_at_375px(browse):
     page = p.page
 
     def overview(route):
-        response = route.fetch()
+        headers = {k: v for k, v in route.request.headers.items() if k.lower() != "if-none-match"}
+        response = route.fetch(headers=headers)
         payload = response.json()
         payload["limits"] = {
             "providers": [
@@ -367,7 +368,8 @@ def test_limits_and_reputation_at_375px(browse):
         route.fulfill(response=response, json=payload)
 
     def board(route):
-        response = route.fetch()
+        headers = {k: v for k, v in route.request.headers.items() if k.lower() != "if-none-match"}
+        response = route.fetch(headers=headers)
         payload = response.json()
         payload["agents"]["opus-checkout"].update(reputation=75, reputation_inputs={"verify_passed": 1})
         route.fulfill(response=response, json=payload)

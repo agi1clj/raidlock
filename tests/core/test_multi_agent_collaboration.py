@@ -94,6 +94,20 @@ def test_join_inside_lead_session_uses_separate_private_files(world, monkeypatch
         world.board.caller(agent="worker-ash", token=result["token"], lead_secret=world.lead_token)
 
 
+def test_rejoin_without_token_points_at_the_env_file(world):
+    world.agent("worker-ash")
+    stranger = world.board.caller(env={})
+    with pytest.raises(IdentityError) as no_file:
+        world.board.join(stranger, agent="worker-ash", team="core")
+    assert no_file.value.hint == "ask the lead to re-issue its token"
+    env_file = Path(world.board.home) / "agents" / world.board.uid / "worker-ash.env"
+    env_file.parent.mkdir(parents=True, exist_ok=True)
+    env_file.write_text("")
+    with pytest.raises(IdentityError) as with_file:
+        world.board.join(stranger, agent="worker-ash", team="core")
+    assert with_file.value.hint == f"source {env_file}"
+
+
 def test_teamless_worker_can_claim_unrestricted_card_and_gets_team_hint(world):
     worker = world.agent("worker-ash", team=None)
     world.card("open", team=None)

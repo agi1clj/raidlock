@@ -1866,7 +1866,7 @@ def cmd_lead(ctx, a):
         mine = _env_session()
         text = (
             f"Lead {r['lead']}: session {r['session'] or '-'}, fence {r['fence']}, {_lease_state(r)}, "
-            f"secret: {lead_secret_src(b)}" + (" (handover pending)" if r.get("pending") else "")
+            f"secret: {lead_secret_src(b)}" + (" (attaches on the lead's next command)" if r.get("pending") else "")
         )
         if not r["live"]:
             text += f"\nThe lease is free. Next: {lead_cmd(b, 'lead takeover')}"
