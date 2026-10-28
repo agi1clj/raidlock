@@ -1090,13 +1090,23 @@ def pre_bash(data, env):
         ctx, argv = op["env"], op["argv"]
         _, redirects = strip_redirects(op["raw"])
         verb = os.path.basename(argv[0]).casefold() if argv else ""
-        opaque = raidlock_args(argv) is None and (
-            gitguard.INTERPRETER.match(verb)
-            or verb in gitguard.SHELLS + ("eval", "source", ".", "rscript")
-            or verb.endswith((".py", ".js", ".sh", ".pl", ".rb"))
-            or "$" in verb
-            or gitguard.SUBST in verb
-            or (argv and "/" in argv[0] and verb not in READ_COMMANDS + WRITE_VERBS + ("git", "printf", "echo"))
+        # python3 --version and the like print and exit; a path or script name could be anything
+        version_only = (
+            argv[1:] == ["--version"]
+            and "/" not in argv[0]
+            and bool(gitguard.INTERPRETER.match(verb) or verb in gitguard.SHELLS)
+        )
+        opaque = (
+            raidlock_args(argv) is None
+            and not version_only
+            and (
+                gitguard.INTERPRETER.match(verb)
+                or verb in gitguard.SHELLS + ("eval", "source", ".", "rscript")
+                or verb.endswith((".py", ".js", ".sh", ".pl", ".rb"))
+                or "$" in verb
+                or gitguard.SUBST in verb
+                or (argv and "/" in argv[0] and verb not in READ_COMMANDS + WRITE_VERBS + ("git", "printf", "echo"))
+            )
         )
         if sub and ctx.get("RAIDLOCK_LEAD_SECRET"):
             return deny(LEAD_PROOF_DENIAL)

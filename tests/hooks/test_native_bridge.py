@@ -626,10 +626,18 @@ def test_pool_never_reassigns_a_live_worker(scene, tmp_path, lane):
         "/tmp/payload",
         "sh payload",
         "awk 'BEGIN {system(ENVIRON[\"CMD\"])}'",
+        "./payload.sh --version",
+        "/tmp/python3 --version",
+        "python3 --version payload.py",
     ],
 )
 def test_unbound_interpreters_are_denied(scene, command):
     assert reason(hooks.run("pre-bash", bash(scene, command), dict(scene.env)))
+
+
+@pytest.mark.parametrize("command", ["python3 --version", "node --version", "bash --version"])
+def test_unbound_interpreter_version_is_allowed(scene, command):
+    assert hooks.run("pre-bash", bash(scene, command), dict(scene.env)) is None
 
 
 def test_worker_interpreter_write_is_caught_at_commit(scene, monkeypatch):

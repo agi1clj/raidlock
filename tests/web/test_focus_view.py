@@ -313,7 +313,8 @@ def test_limits_strip_renders_context_and_plan_usage(chromium, fleet):
     p = Page(chromium, fleet, width=375, height=900)
 
     def overview(route):
-        response = route.fetch()
+        headers = {k: v for k, v in route.request.headers.items() if k.lower() != "if-none-match"}
+        response = route.fetch(headers=headers)
         payload = response.json()
         payload["limits"] = {
             "providers": [
@@ -359,7 +360,8 @@ def test_waiting_times_are_readable(view, width):
     page.clock.install(time="2026-10-25T11:00:00Z")
 
     def board(route):
-        response = route.fetch()
+        headers = {k: v for k, v in route.request.headers.items() if k.lower() != "if-none-match"}
+        response = route.fetch(headers=headers)
         data = response.json()
         card = next(c for c in data["cards"] if c["lane"] == "todo")
         data["claimable"][card["id"]] = {
@@ -392,7 +394,8 @@ def test_agents_use_two_hour_activity_window_and_live_leases(view):
     page.clock.install(time="2026-10-25T11:00:00Z")
 
     def board(route):
-        response = route.fetch()
+        headers = {k: v for k, v in route.request.headers.items() if k.lower() != "if-none-match"}
+        response = route.fetch(headers=headers)
         data = response.json()
         data["agents"] = {
             "holder": {"card": "held", "last_seen": "2026-10-24T00:00:00Z"},
@@ -451,7 +454,8 @@ def test_guild_level_up_shows_a_toast(view):
     bump = {"done": 0}
 
     def board(route):
-        data = route.fetch().json()
+        headers = {k: v for k, v in route.request.headers.items() if k.lower() != "if-none-match"}
+        data = route.fetch(headers=headers).json()
         data["counts"] = dict(data["counts"], done=data["counts"].get("done", 0) + bump["done"])
         route.fulfill(json=data)
 
