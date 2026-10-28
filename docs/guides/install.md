@@ -42,9 +42,9 @@ An optional hardened container image runs `raid ui`, `raid mcp` and sandboxed `r
 raid upgrade
 ```
 
-It upgrades the CLI with the tool that installed it (`uv tool upgrade --refresh raidlock`, or `pipx upgrade raidlock`) and, when the Claude Code plugin is installed, runs `claude plugin marketplace update raidlock` and `claude plugin update raidlock@raidlock`. Installed some other way, upgrade the CLI the way you installed it; older releases have no `raid upgrade`, so run those commands by hand once.
+It upgrades the CLI with the tool that installed it (`uv tool upgrade --reinstall raidlock`, which works with every uv release, or `pipx upgrade raidlock`) and, when the Claude Code plugin is installed, runs `claude plugin marketplace update raidlock` and `claude plugin update raidlock@raidlock`. Installed some other way, upgrade the CLI the way you installed it; older releases have no `raid upgrade`, so run those commands by hand once.
 
-Then start a new Claude Code session so the new hooks load. The check is one HTTPS request to pypi.org, cached in `~/.raidlock/update-check.json`, with a 2-second timeout; hooks never make it. Set `RAIDLOCK_NO_UPDATE_CHECK=1` to turn it off; it is skipped when `CI` is set.
+It ends by printing the version now installed; if PyPI is still serving an older one right after a release, it says so and asks you to run it again in a few minutes. Then start a new Claude Code session so the new hooks load. The check is one HTTPS request to pypi.org, cached in `~/.raidlock/update-check.json`, with a 2-second timeout; hooks never make it. Set `RAIDLOCK_NO_UPDATE_CHECK=1` to turn it off; it is skipped when `CI` is set.
 
 ## Claude Code
 
@@ -112,7 +112,9 @@ Most of this is automatic in Claude Code:
 - SessionStart exports `RAIDLOCK_SESSION` set to the session ID the hooks see. A resumed session keeps an old `CLAUDE_CODE_SESSION_ID` in its shell; this keeps the CLI and the hooks agreeing on one ID, so handover to a resumed session works.
 - A refusal names the session holding the lease, its expiry, this session's ID, and the exact `lead handover --to <this session>` and `lead takeover` commands. `raid lead status` works from any session.
 
-On hosts without `CLAUDE_ENV_FILE` (Codex, Gemini), prefix the takeover with the session ID the refusal printed: `RAIDLOCK_SESSION=<id> raid --lead-secret "$LEAD_SECRET_FILE" lead takeover`.
+A host that renames its session while its process lives on (resume, `/clear`) needs nothing either, on any host: the CLI and the hooks accept a caller whose nearest agent-host process (`claude`, `codex`, `gemini`) is the one the lease was bound to, and session start moves the lease to the new id. An agent the lead starts itself (`raid delegate`, `claude -p` from the lead's shell) is its own nearest host, so it never counts, and a lease bound to a plain shell never merges sessions. Set `RAIDLOCK_SAME_HOST_SESSIONS=0` to turn this off.
+
+Only a brand-new process with a different id still needs a handover or takeover. On hosts without `CLAUDE_ENV_FILE` (Codex, Gemini), a handover to such a session can need the id pinned on its first use: `RAIDLOCK_SESSION=<id> raid --lead-secret "$LEAD_SECRET_FILE" lead takeover`, which the refusal prints ready to paste.
 
 ### Ready prompt: lead in Claude Code or Codex
 

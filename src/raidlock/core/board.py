@@ -395,13 +395,21 @@ class Board:
     def lead_session_resumed(self, session):
         """The session the lease names started again (resume, or the next headless turn) after its lease lapsed:
         re-arm it as a pending lease, as a handover would, so its process binds on the next authenticated use. Nobody
-        took over in between, or the lease would name another session."""
+        took over in between, or the lease would name another session. A new session id under the lease's own host
+        process (the host renamed its session, as /clear does) takes the lease over in place and keeps the process
+        binding."""
         with self.lock():
             lead = self.leadlease()
             lease = lead.lease()
-            if not session or lease.get("session") != session or not lead.expired(lease):
+            if not session or not lead.expired(lease) and lease.get("session") == session:
                 return False
-            lease.update(pid=None, pid_start=None, renewed=clock.iso(), expires=clock.later(lead.ttl_s))
+            if lease.get("session") == session:
+                lease.update(pid=None, pid_start=None)
+            elif LD.under_lead_host(lease, self._table()):
+                lease.update(session=session)
+            else:
+                return False
+            lease.update(renewed=clock.iso(), expires=clock.later(lead.ttl_s))
             lead._save(lease)
             self._record(
                 "status",

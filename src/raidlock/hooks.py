@@ -278,15 +278,18 @@ def session_role(data, env, board, binding):
     # The lease decides: a binding left from an older fence (handover, takeover) must not outrank it.
     if sid and sid == lease.get("session") and lead_live(board):
         return "lead"
-    if name == board.lead:
-        return "unbound"
-    if name:
+    if name and name != board.lead:
         return "worker"
-    if env.get("RAIDLOCK_AGENT_ID") or env.get("RAIDLOCK_CAP"):
+    if not name and (env.get("RAIDLOCK_AGENT_ID") or env.get("RAIDLOCK_CAP")):
         return "worker"
     agent = env.get("RAIDLOCK_AGENT", "")
-    if agent and agent != board.lead and agent in board.agents():
+    if not name and agent and agent != board.lead and agent in board.agents():
         return "worker"
+    from .core.lead import under_lead_host
+
+    # The host renamed the lead's session (resume, clear) but this hook still runs under the lease's host process.
+    if lead_live(board) and under_lead_host(lease):
+        return "lead"
     return "unbound"
 
 
@@ -1080,17 +1083,24 @@ def pre_bash(data, env):
             return deny(f"subagents may not run {verb or 'computed'} code that calls raidlock")
         if opaque and role in ("worker", "unbound"):
             if unbound:
-                return deny("unbound sessions may not execute opaque interpreters or scripts")
+                return deny(
+                    f"this session has no raidlock identity, so it cannot run {verb or 'this'} scripts (their writes "
+                    "cannot be checked). Join and claim a card first: raidlock join --agent <name> --team <team>, "
+                    "then raidlock claimable; plain read commands (cat, grep, ls) still work"
+                )
             _, caller, _ = resolve(data, env)
             if not caller.authenticated:
-                return deny("a verified worker identity is required to execute interpreters or scripts")
+                return deny(
+                    f"running {verb or 'scripts'} needs a verified worker identity: pass --agent <name> --token "
+                    "<token> on a raidlock command (or claim your card) so the hooks can bind this session"
+                )
         if verb == "ln" and any(
             a == "--symbolic" or (a.startswith("-") and not a.startswith("--") and "s" in a) for a in argv[1:]
         ):
             return deny("symlink creation cannot be safely checked before subsequent writes")
         writes = written_paths(argv)
         if verb in WRITE_VERBS and not writes:
-            return deny("cannot determine write targets")
+            return deny(f"cannot tell which file {verb} writes; name the target path literally in the command")
         local_targets = redirects + writes
         rl_args = raidlock_args(argv)
         if rl_args is not None:
@@ -1103,7 +1113,10 @@ def pre_bash(data, env):
                     local_targets.append(value)
         for target in local_targets:
             if "$" in target or gitguard.SUBST in target or gitguard.GLOB.search(target) or None in op["cwds"]:
-                return deny("cannot determine the target directory")
+                return deny(
+                    f"cannot tell where this command writes: {target!r} uses a variable, substitution or glob, or "
+                    "the folder depends on one. Spell the path out literally, for example /full/path/file.txt"
+                )
             targets.extend(os.path.normpath(os.path.join(c, os.path.expanduser(target))) for c in op["cwds"])
         rl = raidlock_args(argv)
         reached = [rl] if rl is not None else []

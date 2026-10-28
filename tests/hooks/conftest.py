@@ -89,6 +89,8 @@ class Scene:
         self.env = {
             "RAIDLOCK_HOME": os.environ["RAIDLOCK_HOME"],
             "CLAUDE_PLUGIN_DATA": str(self.data),
+            # Hook subprocesses: every simulated session shares this process tree.
+            "RAIDLOCK_SAME_HOST_SESSIONS": "0",
             "PATH": os.environ.get("PATH", ""),
         }
         projects = self.root / "projects"

@@ -1,5 +1,6 @@
 import pytest
 from browser import Page, assert_fits, open_view, settle
+from playwright.sync_api import expect
 from serving import start
 
 pytest.importorskip("playwright.sync_api")
@@ -67,6 +68,7 @@ def test_boss_board_and_loot(chromium, realm, width):
 
 def test_boss_board_empty_state(browse):
     p, page = open_view(browse, "/acme-shop?view=bosses", "#viewPane .empty", width=390)
-    assert "No bosses roam this realm yet" in page.locator("#viewPane").inner_text()
+    # "#viewPane .empty" also matches the "Loading this view…" placeholder; wait for the view itself.
+    expect(page.locator("#viewPane")).to_contain_text("No bosses roam this realm yet")
     assert page.locator('.bag[data-agent="codex-payments"] .drop').count() == 1
     assert_fits(p, page)
