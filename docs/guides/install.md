@@ -42,7 +42,7 @@ An optional hardened container image runs `raid ui`, `raid mcp` and sandboxed `r
 raid upgrade
 ```
 
-It upgrades the CLI with the tool that installed it (`uv tool upgrade --reinstall raidlock`, which works with every uv release, or `pipx upgrade raidlock`) and, when the Claude Code plugin is installed, runs `claude plugin marketplace update raidlock` and `claude plugin update raidlock@raidlock`. Installed some other way, upgrade the CLI the way you installed it; older releases have no `raid upgrade`, so run those commands by hand once.
+It upgrades the CLI with the tool that installed it (`uv tool install --force raidlock@latest`, which also moves an install pinned to an old version, or `pipx upgrade raidlock`; a uv install is found even when its bin folder is not on PATH) and, when the Claude Code plugin is installed, runs `claude plugin marketplace update raidlock` and `claude plugin update raidlock@raidlock`. Installed some other way, upgrade the CLI the way you installed it; older releases have no `raid upgrade`, so run those commands by hand once.
 
 It ends by printing the version now installed; if PyPI is still serving an older one right after a release, it says so and asks you to run it again in a few minutes. Then start a new Claude Code session so the new hooks load. The check is one HTTPS request to pypi.org, cached in `~/.raidlock/update-check.json`, with a 2-second timeout; hooks never make it. Set `RAIDLOCK_NO_UPDATE_CHECK=1` to turn it off; it is skipped when `CI` is set.
 

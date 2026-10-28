@@ -1136,7 +1136,11 @@ def pre_bash(data, env):
                         return deny("cannot determine write targets")
                     local_targets.append(value)
         for target in local_targets:
-            if "$" in target or gitguard.SUBST in target or gitguard.GLOB.search(target) or None in op["cwds"]:
+            literal = not ("$" in target or gitguard.SUBST in target or gitguard.GLOB.search(target))
+            if literal and os.path.isabs(os.path.expanduser(target)):  # an absolute path ignores the folder
+                targets.append(os.path.normpath(os.path.expanduser(target)))
+                continue
+            if not literal or None in op["cwds"]:
                 return deny(
                     f"cannot tell where this command writes: {target!r} uses a variable, substitution or glob, or "
                     "the folder depends on one. Spell the path out literally, for example /full/path/file.txt"

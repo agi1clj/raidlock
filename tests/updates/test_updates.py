@@ -143,7 +143,7 @@ def test_upgrade_uses_the_installing_tool_and_the_plugin(monkeypatch):
 
     monkeypatch.setattr(updates, "_run", run)
     assert updates.upgrade_steps() == [
-        ["/bin/uv", "tool", "upgrade", "--reinstall", "raidlock"],
+        ["/bin/uv", "tool", "install", "--force", "raidlock@latest"],
         ["/bin/claude", "plugin", "marketplace", "update", "raidlock"],
         ["/bin/claude", "plugin", "update", "raidlock@raidlock"],
     ]
@@ -157,22 +157,40 @@ def test_upgrade_skips_what_is_not_installed(monkeypatch):
     assert updates.upgrade_steps() == [["/bin/pipx", "upgrade", "raidlock"]]
 
 
+def test_upgrade_finds_a_uv_install_from_another_python(monkeypatch, tmp_path):
+    (tmp_path / "raidlock").mkdir()
+    monkeypatch.setattr(updates.sys, "prefix", "/usr/lib/python3")
+    monkeypatch.setattr(updates.shutil, "which", lambda name: "/bin/uv" if name == "uv" else None)
+    monkeypatch.setattr(
+        updates,
+        "_run",
+        lambda argv, timeout=300: types.SimpleNamespace(returncode=0, stdout=f"{tmp_path}\n", stderr=""),
+    )
+    assert updates.upgrade_steps() == [["/bin/uv", "tool", "install", "--force", "raidlock@latest"]]
+    (tmp_path / "raidlock").rmdir()
+    assert updates.upgrade_steps() == []
+
+
 def test_upgrade_command_stops_on_a_failed_step(monkeypatch, capsys):
     from raidlock import cli
 
-    monkeypatch.setattr(updates, "upgrade_steps", lambda: [["/bin/uv", "tool", "upgrade", "--reinstall", "raidlock"]])
+    monkeypatch.setattr(
+        updates, "upgrade_steps", lambda: [["/bin/uv", "tool", "install", "--force", "raidlock@latest"]]
+    )
     monkeypatch.setattr(
         updates, "_run", lambda argv, timeout=300: types.SimpleNamespace(returncode=2, stdout="", stderr="offline")
     )
     assert cli.main(["upgrade"]) == 3
-    assert "uv tool upgrade --reinstall raidlock failed: offline" in capsys.readouterr().err
+    assert "uv tool install --force raidlock@latest failed: offline" in capsys.readouterr().err
 
 
 @pytest.mark.parametrize(("got", "says"), [("0.2.5", "raidlock is now 0.2.5"), ("0.2.4", "PyPI is still catching up")])
 def test_upgrade_reports_the_version_it_installed(monkeypatch, capsys, got, says):
     from raidlock import cli
 
-    monkeypatch.setattr(updates, "upgrade_steps", lambda: [["/bin/uv", "tool", "upgrade", "--reinstall", "raidlock"]])
+    monkeypatch.setattr(
+        updates, "upgrade_steps", lambda: [["/bin/uv", "tool", "install", "--force", "raidlock@latest"]]
+    )
     monkeypatch.setattr(
         updates, "_run", lambda argv, timeout=300: types.SimpleNamespace(returncode=0, stdout="", stderr="")
     )

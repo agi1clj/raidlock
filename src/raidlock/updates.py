@@ -124,14 +124,24 @@ def installed_version():
     return words[-1] if words and valid(words[-1]) else ""
 
 
+def _uv_has_raidlock(uv):
+    try:
+        tools = _run([uv, "tool", "dir"], timeout=60).stdout.strip()
+    except (OSError, subprocess.SubprocessError):
+        return False
+    return bool(tools) and os.path.isdir(os.path.join(tools, "raidlock"))
+
+
 def upgrade_steps():
     """The commands that upgrade this install: the CLI through the tool that installed it, then the Claude Code
-    plugin when it is installed. A CLI installed some other way gets no CLI step."""
+    plugin when it is installed. A CLI installed some other way gets no CLI step. The uv step installs @latest so a
+    pinned install moves too; uv is also asked directly because the plugin's bin/ may run this code under another
+    Python when the uv tool bin is not on PATH."""
     steps = []
     prefix = sys.prefix.replace("\\", "/").lower()
     uv, pipx, claude = shutil.which("uv"), shutil.which("pipx"), shutil.which("claude")
-    if uv and "/uv/tools/raidlock" in prefix:
-        steps.append([uv, "tool", "upgrade", "--reinstall", "raidlock"])
+    if uv and ("/uv/tools/raidlock" in prefix or _uv_has_raidlock(uv)):
+        steps.append([uv, "tool", "install", "--force", "raidlock@latest"])
     elif pipx and "/pipx/venvs/raidlock" in prefix:
         steps.append([pipx, "upgrade", "raidlock"])
     if claude:

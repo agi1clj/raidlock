@@ -22,10 +22,10 @@ If neither `uv` nor `pipx` exists, ask the user before installing uv (`curl -LsS
 ## 2. Install or upgrade the CLI
 
 ```bash
-raid --version 2>/dev/null && uv tool upgrade raidlock || uv tool install raidlock
+uv tool install --force raidlock@latest
 ```
 
-With pipx: `pipx upgrade raidlock || pipx install raidlock`. Once installed, `raid upgrade` upgrades the CLI and the Claude Code plugin together. If `raid` is not found afterwards, run `uv tool update-shell` (or `pipx ensurepath`) and tell the user to open a new terminal.
+This one command installs, upgrades, and moves an install pinned to an old version (`uv tool upgrade` keeps a pin). With pipx: `pipx install --force raidlock`. Once installed, `raid upgrade` upgrades the CLI and the Claude Code plugin together. If `raid` is not found afterwards, run `uv tool update-shell` (or `pipx ensurepath`) and tell the user to open a new terminal.
 
 ## 3. Verify
 

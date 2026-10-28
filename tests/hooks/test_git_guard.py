@@ -144,6 +144,8 @@ FORBIDDEN = [
 WORKER_ALLOWED = [
     ("status", "git status"),
     ("status-short", "git status --short"),
+    ("version", "git --version"),
+    ("help", "git --help restore"),
     ("diff", "git diff"),
     ("diff-cached", "git diff --cached app/src"),
     ("diff-orderfile", "git diff -Oorder.txt"),
