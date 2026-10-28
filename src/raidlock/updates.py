@@ -110,6 +110,18 @@ def _run(argv, timeout=300):
     return subprocess.run(argv, capture_output=True, text=True, timeout=timeout, check=False)
 
 
+def installed_version():
+    """The version the (just upgraded) CLI on PATH reports; this process still runs the old code."""
+    exe = shutil.which("raidlock")
+    if not exe:
+        return ""
+    try:
+        words = _run([exe, "--version"], timeout=60).stdout.split()
+    except (OSError, subprocess.SubprocessError):
+        return ""
+    return words[-1] if words and valid(words[-1]) else ""
+
+
 def upgrade_steps():
     """The commands that upgrade this install: the CLI through the tool that installed it, then the Claude Code
     plugin when it is installed. A CLI installed some other way gets no CLI step."""
@@ -117,7 +129,7 @@ def upgrade_steps():
     prefix = sys.prefix.replace("\\", "/").lower()
     uv, pipx, claude = shutil.which("uv"), shutil.which("pipx"), shutil.which("claude")
     if uv and "/uv/tools/raidlock" in prefix:
-        steps.append([uv, "tool", "upgrade", "--refresh", "raidlock"])
+        steps.append([uv, "tool", "upgrade", "--reinstall", "raidlock"])
     elif pipx and "/pipx/venvs/raidlock" in prefix:
         steps.append([pipx, "upgrade", "raidlock"])
     if claude:

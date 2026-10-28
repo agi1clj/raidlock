@@ -24,7 +24,8 @@ GROUP_OPEN = ("(", "{")
 GROUP_CLOSE = (")", "}")
 KEYWORDS = ("if", "then", "else", "elif", "fi", "do", "done", "while", "until", "!", "time", "{", "}")
 ENV_ASSIGN = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=")
-GIT_WORD = re.compile(r"(?<![\w.])git(?![\w.])")
+# Not after "-": "--skip-git-repo-check" is an option, not git; "git" and "git-lfs" still match.
+GIT_WORD = re.compile(r"(?<![\w.-])git(?![\w.])")
 HEREDOC = re.compile(r"(?<!<)<<(?!<)(-?)\s*(['\"]?)([A-Za-z_][A-Za-z0-9_]*)\2")
 EXEC_CONSUMER = re.compile(
     r"(?<![\w.-])(sh|bash|zsh|dash|ksh|mksh|fish|eval|source|xargs|python[\d.]*|perl|ruby|node|"

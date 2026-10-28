@@ -1,3 +1,4 @@
+import pytest
 from conftest import LEAD_SESSION, make_repo
 from test_native_bridge import (
     TEAMMATE,
@@ -269,9 +270,78 @@ def test_git_config_key_read_is_allowed_and_writes_stay_denied(scene):
 
 
 def test_takeover_by_the_holder_says_it_already_leads(scene):
-    import pytest
-
     from raidlock.core.errors import Precondition
 
     with pytest.raises(Precondition, match="already holds the lead lease"):
         scene.fresh().lead_takeover(lead_secret=scene.lead_secret, session=LEAD_SESSION)
+
+
+def lead_host(monkeypatch, scene, comm="claude"):
+    """Pretend this process runs under the lease's host process, as a renamed host session does."""
+    lease = scene.board.leadlease().lease()
+    monkeypatch.setattr(LD, "SAME_HOST_SESSIONS", True)
+    monkeypatch.delenv("RAIDLOCK_SAME_HOST_SESSIONS", raising=False)
+    monkeypatch.setattr(LD, "ancestors", lambda table, pid=None: [(lease["pid"], lease["pid_start"], comm)])
+
+
+def test_an_agent_the_lead_started_is_never_the_lead(scene, monkeypatch):
+    lease = scene.board.leadlease().lease()
+    monkeypatch.setattr(LD, "SAME_HOST_SESSIONS", True)
+    monkeypatch.delenv("RAIDLOCK_SAME_HOST_SESSIONS", raising=False)
+    chain = [(777, "child", "claude"), (lease["pid"], lease["pid_start"], "claude")]
+    monkeypatch.setattr(LD, "ancestors", lambda table, pid=None: chain)
+    assert hooks.session_role({"session_id": RESUMED}, scene.env, scene.board, {}) == "unbound"
+
+
+def test_a_renamed_session_under_the_lead_host_is_the_lead(scene, monkeypatch):
+    lead_host(monkeypatch, scene)
+    assert hooks.session_role({"session_id": RESUMED}, scene.env, scene.board, {}) == "lead"
+    assert reason(hooks.run("pre-read", read(scene, secret_path(scene), session=RESUMED), dict(scene.env))) == ""
+    lead = scene.fresh().caller(
+        agent=scene.board.lead, lead_secret=scene.lead_secret, env={"RAIDLOCK_SESSION": "the-shell-kept-this-id"}
+    )
+    assert lead.is_lead
+
+
+def test_a_shell_anchor_never_merges_sessions(scene, monkeypatch):
+    lead_host(monkeypatch, scene, comm="zsh")
+    assert hooks.session_role({"session_id": RESUMED}, scene.env, scene.board, {}) == "unbound"
+    with pytest.raises(LD.ForeignLead):
+        scene.fresh().caller(agent=scene.board.lead, lead_secret=scene.lead_secret, env={"RAIDLOCK_SESSION": RESUMED})
+
+
+def test_another_process_never_counts_as_the_lead_host(scene, monkeypatch):
+    monkeypatch.setattr(LD, "SAME_HOST_SESSIONS", True)
+    monkeypatch.setattr(LD, "ancestors", lambda table, pid=None: [(424242, "Mon 1", "claude")])
+    assert hooks.session_role({"session_id": RESUMED}, scene.env, scene.board, {}) == "unbound"
+    with pytest.raises(LD.ForeignLead):
+        scene.fresh().caller(agent=scene.board.lead, lead_secret=scene.lead_secret, env={"RAIDLOCK_SESSION": RESUMED})
+
+
+def test_clear_in_the_lead_host_moves_the_lease_to_the_new_session(scene, monkeypatch, tmp_path):
+    lead_host(monkeypatch, scene)
+    hooks.run("session-end", session_end(scene, LEAD_SESSION), dict(scene.env))
+    assert not hooks.lead_live(scene.board)
+    env = {**scene.env, "CLAUDE_ENV_FILE": str(tmp_path / "env.sh")}
+    hooks.run("session-start", session_start(scene, RESUMED, source="clear"), env)
+    status = scene.board.lead_status()
+    assert status["live"] and status["session"] == RESUMED and status["pid"]
+
+
+def test_friction_refusals_say_what_to_do(scene):
+    def run(command, session=TEAMMATE):
+        return reason(hooks.run("pre-bash", bash(scene, command, session=session), dict(scene.env)))
+
+    text = run("echo hi > $OUT")
+    assert "'$OUT' uses a variable" in text and "Spell the path out literally" in text
+    text = run("python3 -c 'print(1)'")
+    assert "no raidlock identity" in text and "raidlock join --agent" in text and "cat, grep, ls" in text
+
+
+def test_an_option_named_like_git_is_not_git(scene):
+    outside = scene.root / "scratch"
+    command = f"timeout 5 codex exec --skip-git-repo-check -C {outside} hello"
+    assert "git" not in reason(hooks.run("pre-bash", bash(scene, command, session=LEAD_SESSION), dict(scene.env)))
+    assert "git" in reason(
+        hooks.run("pre-bash", bash(scene, "timeout 5 git push", session=LEAD_SESSION), dict(scene.env))
+    )

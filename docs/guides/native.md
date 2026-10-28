@@ -9,7 +9,7 @@ Every hook call is classified before any rule runs:
 | Role | How the hook decides |
 |---|---|
 | subagent | the payload carries `agent_id` |
-| lead | no `agent_id`, and the payload `session_id` matches the live lead lease (`raidlock lead status`); the lease decides, so a binding left from an older fence never outranks it |
+| lead | no `agent_id`, and the payload `session_id` matches the live lead lease (`raidlock lead status`); the lease decides, so a binding left from an older fence never outranks it; a session whose nearest agent-host process is the lease's own (the host renamed its session) also counts |
 | worker | no `agent_id`, and the session has a validated worker binding, or its environment names a joined worker (`RAIDLOCK_AGENT`, `RAIDLOCK_AGENT_ID`, `RAIDLOCK_CAP`) |
 | unbound | any other session inside a raidlock workspace |
 

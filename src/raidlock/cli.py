@@ -2134,11 +2134,21 @@ def cmd_upgrade(ctx, a):
             raise Precondition(f"{line} failed: {detail}", ran=ran)
     cli_step = any(r["command"].startswith(("uv ", "pipx ")) for r in ran)
     lines = [f"Ran: {r['command']}" for r in ran]
+    got = latest = ""
     if not cli_step:
         lines.append("This raidlock was not installed with uv or pipx; upgrade it the way you installed it.")
+    else:
+        got, latest = updates.installed_version(), updates.refresh(force=True) or ""
+        if got and latest and updates._version(got) < updates._version(latest):
+            lines.append(
+                f"Installed {got}, but {latest} is out: PyPI is still catching up. Run raid upgrade again in a few "
+                "minutes."
+            )
+        elif got:
+            lines.append(f"raidlock is now {got}.")
     if any("plugin" in r["command"] for r in ran):
         lines.append("Start a new Claude Code session so the new hooks load.")
-    return {"ran": ran, "cli": cli_step}, "\n".join(lines) or "Nothing to upgrade."
+    return {"ran": ran, "cli": cli_step, "installed": got, "latest": latest}, "\n".join(lines) or "Nothing to upgrade."
 
 
 @command("version", "print the version")

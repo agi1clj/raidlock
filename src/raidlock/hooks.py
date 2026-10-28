@@ -126,6 +126,7 @@ RAID_WORD = re.compile(r"(?<![\w.-])raid(lock)?(?![\w/-])", re.I)
 LAUNCH_THROUGH = (*gitguard.LAUNCHERS, *WRAPPERS, "uv", "busybox")
 ARG_LAUNCHERS = ("xargs", "parallel", "find", "fd")
 PACKAGE_OPTIONS = ("--with", "--from", "--spec", "-p", "--package")
+BOARD_WRITE_DENIAL = ".board/ is written only by the raidlock CLI; use raidlock note/move/lock"
 LEAD_PROOF_DENIAL = "only the lead may present the lead secret; subagents hand over with: raidlock move <id> review"
 EXPORT_LINE = re.compile(r"^export RAIDLOCK_(AGENT|FENCE|BOARD)=([^\s#]+)", re.M)
 CLAIMED_LINE = re.compile(r"\bClaimed ([A-Za-z0-9_-]+)[:.]")
@@ -278,15 +279,18 @@ def session_role(data, env, board, binding):
     # The lease decides: a binding left from an older fence (handover, takeover) must not outrank it.
     if sid and sid == lease.get("session") and lead_live(board):
         return "lead"
-    if name == board.lead:
-        return "unbound"
-    if name:
+    if name and name != board.lead:
         return "worker"
-    if env.get("RAIDLOCK_AGENT_ID") or env.get("RAIDLOCK_CAP"):
+    if not name and (env.get("RAIDLOCK_AGENT_ID") or env.get("RAIDLOCK_CAP")):
         return "worker"
     agent = env.get("RAIDLOCK_AGENT", "")
-    if agent and agent != board.lead and agent in board.agents():
+    if not name and agent and agent != board.lead and agent in board.agents():
         return "worker"
+    from .core.lead import under_lead_host
+
+    # The host renamed the lead's session (resume, clear) but this hook still runs under the lease's host process.
+    if lead_live(board) and under_lead_host(lease):
+        return "lead"
     return "unbound"
 
 
@@ -383,7 +387,7 @@ def write_decision(data, env, path):
         return None
     full = path if os.path.isabs(path) else os.path.join(data.get("cwd") or os.getcwd(), path)
     if has_board_segment(full) or has_board_segment(os.path.realpath(full)):
-        return deny(".board/ is written only by the raidlock CLI")
+        return deny(BOARD_WRITE_DENIAL)
     try:
         board, caller, _, role = resolve_role(data, env, full)
     except NoBoard:
@@ -415,7 +419,10 @@ def write_decision(data, env, path):
 
         return deny(LEAD_CARD_RULE)
     if loc and caller.name and not caller.is_lead and (not caller.authenticated or not caller.fence):
-        return deny("a verified worker identity and current fence are required")
+        return deny(
+            "this session is not bound to your claim yet: run one raidlock command with --agent <name> --cap <cap> "
+            "--fence <fence> (from your claim's output), for example raidlock heartbeat <card> ..., then retry"
+        )
     d = board.check_write(full, caller)
     if d["allowed"]:
         return None
@@ -793,7 +800,7 @@ def raidlock_decision(data, env, board, role, ctx, rl, prog="raidlock"):
     if worker and lead_only:
         return deny(f"only the lead can run {prog} {cmd}. Hand over with: {prog} move <id> review")
     if worker and (opts.get("--for") or opts.get("--urgent")):
-        return deny("--for and --urgent are lead-only")
+        return deny(f'--for and --urgent are lead-only; drop them, or message the lead: {prog} msg --to <lead> "..."')
     recovering = unbound and cmd == "lead" and not lead_live(board)
     named = sub or (unbound and not recovering)
     read_only = cmd in READ_ONLY or (cmd == "lead" and pos[:1] == ["status"])
@@ -817,7 +824,10 @@ def raidlock_decision(data, env, board, role, ctx, rl, prog="raidlock"):
                 f"name yourself on every board command: RAIDLOCK_AGENT=<name> RAIDLOCK_TOKEN=<token> {prog} {cmd} ..."
             )
         if name == board_lead(data, load_binding(env, data.get("session_id", ""), agent_key(data)).get("board", "")):
-            return deny("subagents and unbound sessions cannot act as the lead")
+            return deny(
+                "subagents and unbound sessions cannot act as the lead; name your own agent (--agent <you>), "
+                f"or ask the lead session to run it. {prog} lead status shows which session leads"
+            )
     return None
 
 
@@ -951,7 +961,10 @@ def literal_prefix(path):
 def git_op_decision(data, env, board, caller, op):
     sub_agent = is_subagent(data)
     if any(k.startswith("GIT_") for k in op["env"]):
-        raise gitguard.Forbidden("GIT_* environment overrides are not allowed on git commands")
+        raise gitguard.Forbidden(
+            "GIT_* environment overrides are not allowed on git commands (they can redirect git or run commands); "
+            "run the same git command without them"
+        )
     cdirs, sub, args = gitguard.parse_git(op["argv"])
     kind, paths, written = gitguard.classify(sub, args)
     workspace = os.path.realpath(board.workspace)
@@ -965,7 +978,10 @@ def git_op_decision(data, env, board, caller, op):
         if c is not None and cdirs:
             real = os.path.realpath(c)
             if real != workspace and not real.startswith(workspace + os.sep):
-                raise gitguard.Forbidden(f"git -C {c} is outside the workspace")
+                raise gitguard.Forbidden(
+                    f"git -C {c} is outside the workspace: git would load that repo's own config (fsmonitor, hooks, "
+                    "aliases can run commands), which raidlock cannot vet. Run git there from your own terminal"
+                )
         cwds.add(c)
     if kind == gitguard.READ and not written:
         return None
@@ -987,14 +1003,19 @@ def git_op_decision(data, env, board, caller, op):
                 if result:
                     return result
                 if sub_agent and not board.check_write(full, caller)["allowed"] and repos.locate(full):
-                    return deny(f"git {sub} {p}: you hold no lease covering {full}")
+                    return deny(
+                        f"git {sub} {p}: you hold no lease covering {full}; claim a card that locks it "
+                        "(raidlock claimable) or ask the lead to add it: raidlock lock <card> <repo>/<path>"
+                    )
             continue
         root = repos.find_root(c)
         if not root:
             root = c
         if kind == gitguard.REF:
             if sub_agent and not repo_lease_held(board, caller, root):
-                return deny(f"git {sub} needs a lease in {root}; claim a card that locks part of it")
+                return deny(
+                    f"git {sub} needs a lease in {root}; claim a card that locks part of it (raidlock claimable)"
+                )
             continue
         if kind == gitguard.WHOLE:
             result = lease_check(data, env, board, caller, root)
@@ -1004,7 +1025,10 @@ def git_op_decision(data, env, board, caller, op):
                     f"({result['hookSpecificOutput']['permissionDecisionReason'][10:]})"
                 )
             if sub_agent and not board.check_write(root, caller)["allowed"]:
-                return deny(f"git {sub} can touch the whole repo; it needs a lease covering all of {root}")
+                return deny(
+                    f"git {sub} can touch the whole repo; it needs a lease covering all of {root}. Name the files "
+                    f"instead (git add <path> ..., git restore <path>), or ask the lead to lock the repo"
+                )
             continue
     return None
 
@@ -1080,17 +1104,27 @@ def pre_bash(data, env):
             return deny(f"subagents may not run {verb or 'computed'} code that calls raidlock")
         if opaque and role in ("worker", "unbound"):
             if unbound:
-                return deny("unbound sessions may not execute opaque interpreters or scripts")
+                return deny(
+                    f"this session has no raidlock identity, so it cannot run {verb or 'this'} scripts (their writes "
+                    "cannot be checked). Join and claim a card first: raidlock join --agent <name> --team <team>, "
+                    "then raidlock claimable; plain read commands (cat, grep, ls) still work"
+                )
             _, caller, _ = resolve(data, env)
             if not caller.authenticated:
-                return deny("a verified worker identity is required to execute interpreters or scripts")
+                return deny(
+                    f"running {verb or 'scripts'} needs a verified worker identity: pass --agent <name> --token "
+                    "<token> on a raidlock command (or claim your card) so the hooks can bind this session"
+                )
         if verb == "ln" and any(
             a == "--symbolic" or (a.startswith("-") and not a.startswith("--") and "s" in a) for a in argv[1:]
         ):
-            return deny("symlink creation cannot be safely checked before subsequent writes")
+            return deny(
+                "symlinks cannot be checked before later writes go through them; copy the file instead, or create "
+                "the link from your own terminal"
+            )
         writes = written_paths(argv)
         if verb in WRITE_VERBS and not writes:
-            return deny("cannot determine write targets")
+            return deny(f"cannot tell which file {verb} writes; name the target path literally in the command")
         local_targets = redirects + writes
         rl_args = raidlock_args(argv)
         if rl_args is not None:
@@ -1103,7 +1137,10 @@ def pre_bash(data, env):
                     local_targets.append(value)
         for target in local_targets:
             if "$" in target or gitguard.SUBST in target or gitguard.GLOB.search(target) or None in op["cwds"]:
-                return deny("cannot determine the target directory")
+                return deny(
+                    f"cannot tell where this command writes: {target!r} uses a variable, substitution or glob, or "
+                    "the folder depends on one. Spell the path out literally, for example /full/path/file.txt"
+                )
             targets.extend(os.path.normpath(os.path.join(c, os.path.expanduser(target))) for c in op["cwds"])
         rl = raidlock_args(argv)
         reached = [rl] if rl is not None else []
@@ -1121,7 +1158,7 @@ def pre_bash(data, env):
         if exports_only(argv):
             continue
         if any(has_board_segment(p) for p in written_paths(argv)):
-            return deny(".board/ is written only by the raidlock CLI")
+            return deny(BOARD_WRITE_DENIAL)
 
     for target in targets:
         if target.startswith("/dev/"):

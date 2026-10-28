@@ -193,6 +193,8 @@ def measure(runs=20, plugin_root=None, tokenizer="auto"):
                 "RAIDLOCK_HOME": str(Path(scratch) / "state"),
                 "CLAUDE_PLUGIN_DATA": str(Path(scratch) / "plugin"),
                 "CLAUDE_CODE_SESSION_ID": "bench-session",
+                # Every simulated session runs under this one process tree; keep them apart.
+                "RAIDLOCK_SAME_HOST_SESSIONS": "0",
             }
         )
         code = (

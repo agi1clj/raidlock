@@ -334,6 +334,22 @@ def anchor(env, table=None):
     return None
 
 
+# A host can rename its session (resume, clear) while its process lives on. A caller whose nearest agent-host ancestor
+# is the lease's own host process is that session whatever id it reports. The nearest host must match, so an agent the
+# lead starts as a child (raid delegate, claude -p) never counts, and a plain shell anchor never qualifies. Tests turn
+# it off (they run every simulated session under one process); RAIDLOCK_SAME_HOST_SESSIONS=0 reaches subprocesses.
+SAME_HOST_SESSIONS = True
+
+
+def under_lead_host(lease, table=None, pid=None):
+    """Whether the nearest agent host above `pid` (default: this process) is the lease's host process."""
+    if not SAME_HOST_SESSIONS or os.environ.get("RAIDLOCK_SAME_HOST_SESSIONS") == "0" or not lease.get("pid"):
+        return False
+    table = process_table() if table is None else table
+    host = next(((p, s) for p, s, comm in ancestors(table, pid) if _base(comm) in AGENT_HOSTS), None)
+    return host == (lease["pid"], lease.get("pid_start"))
+
+
 def session_of(env, explicit=None, table=None):
     """(session id, pid, pid start) of the caller. Session ids come from the flag or the runtime's environment;
     without one, the session is the process anchor."""
@@ -631,7 +647,14 @@ class Lead:
                 )
             )
             process_session = descendant and session.startswith("pid:") and lease.get("session", "").startswith("pid:")
-            if lease.get("session") and session != lease["session"] and not any_session and not process_session:
+            renamed = descendant and under_lead_host(lease, self.table(), pid)
+            if (
+                lease.get("session")
+                and session != lease["session"]
+                and not any_session
+                and not process_session
+                and not renamed
+            ):
                 raise ForeignLead(
                     f"the lead lease is held by session {lease['session']}, not {session or 'this one'}",
                     lead_session=lease["session"],
