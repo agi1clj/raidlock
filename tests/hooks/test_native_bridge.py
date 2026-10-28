@@ -391,7 +391,9 @@ def test_teammate_auto_joins_from_the_pool(scene, tmp_path):
     assert f"export RAIDLOCK_TOKEN={scene.tokens['mate-1']}" in text
     binding = hooks.load_binding(scene.env, TEAMMATE, "main")
     assert binding["name"] == "mate-1" and "proof" in binding and scene.tokens["mate-1"] not in json.dumps(binding)
-    assert "fence are required" in reason(hooks.run("pre-write", write(scene, "app/README.md"), dict(scene.env)))
+    assert "not bound to your claim yet" in reason(
+        hooks.run("pre-write", write(scene, "app/README.md"), dict(scene.env))
+    )
     assert "only the lead" in reason(hooks.run("pre-bash", bash(scene, "raidlock done c1"), dict(scene.env)))
 
 
