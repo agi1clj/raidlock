@@ -95,10 +95,9 @@ def test_api_and_cli(server, tmp_path, capsys):
     assert code == 0 and {f["agent"] for f in out["agents"]} >= {"opus-sync", "codex-ui"}
 
 
-@pytest.mark.parametrize("theme", ["raid", "plain"])
 @pytest.mark.parametrize("width", [1280, 375])
-def test_frames_view(browse, theme, width):
-    p, page = open_view(browse, "/acme-shop?view=frames", ".frame", theme=theme, width=width)
+def test_frames_view(browse, width):
+    p, page = open_view(browse, "/acme-shop?view=frames", ".frame", width=width)
     opus = page.locator('.frame[data-agent="opus-checkout"]')
     assert "Hand off now" in opus.locator(".handoff").inner_text()
     meter = opus.locator(".fbar.hp .track")

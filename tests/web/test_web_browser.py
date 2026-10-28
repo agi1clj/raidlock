@@ -60,7 +60,7 @@ def test_overview_renders_without_errors(browse):
     for ws in ("acme-shop", "pocket-notes", "weather-api"):
         assert ws in names
     assert page.locator("#tabs a").count() == 5
-    order = [t.split()[-1] for t in page.locator("#projects .proj h3").all_inner_texts()]
+    order = [t.split()[0] for t in page.locator("#projects .proj h3").all_inner_texts()]
     assert order[0] == "acme-shop" and order[1] == "pocket-notes"
     assert "acme-shop" in page.locator("#projects .proj.att-0").inner_text()
     assert "docs-site" in page.locator("#idle").inner_text()
@@ -68,7 +68,7 @@ def test_overview_renders_without_errors(browse):
     acme = page.locator("#projects .proj", has_text="acme-shop")
     assert acme.locator(".repo").count() == 3
     line = " ".join(acme.locator(".status-line").text_content().split())
-    assert "2 in progress" in line and "1 blocked" in line and "today" in line
+    assert "2 on a quest" in line and "1 cursed" in line and "today" in line
     assert page.locator("#chatter").is_hidden()
     page.locator('#realmTabs a[data-sub="chat"]').click()
     page.locator("#chatter .msg").first.wait_for()
@@ -83,7 +83,7 @@ def test_workspace_route_focus_and_all_cards(browse):
     page = p.open("/acme-shop")
     page.wait_for_selector("#doingList .row", state="attached")
     assert page.locator("#tabs a[aria-current=page]").inner_text().startswith("acme-shop")
-    assert page.locator("#viewTabs a[aria-current=page]").inner_text() == "Focus"
+    assert page.locator("#viewTabs a[aria-current=page]").inner_text() == "War room"
     page.wait_for_selector("#needsList .row[data-id=refunds]")
     assert page.locator("#needsList .row[data-id=search-typo]").count() == 0
     assert "on others" in page.locator("#waitingNote").inner_text()
@@ -101,7 +101,7 @@ def test_workspace_route_focus_and_all_cards(browse):
     page.wait_for_function("() => !document.querySelector('#lanes .row[data-id=cart-api]')")
     ids = page.locator("#lanes .row").evaluate_all("els => els.map(e => e.dataset.id)")
     assert sorted(ids) == ["pdp-images", "search-typo", "sitemap"]
-    assert "1 blocked" in " ".join(page.locator("#wsStatus").text_content().split())
+    assert "1 cursed" in " ".join(page.locator("#wsStatus").text_content().split())
     page.locator("#repos button[data-repo='']").click()
     page.wait_for_selector("#lanes .row[data-id=cart-api]")
     page.go_back()
@@ -201,13 +201,10 @@ def test_menus_close_on_escape_and_return_focus(browse):
     ]
 
 
-def test_settings_offer_no_theme_switch(browse):
+def test_board_titles_use_raid_wording(browse):
     p = browse()
-    page = p.open("/acme-shop", theme="raid")
+    page = p.open("/acme-shop")
     page.wait_for_selector("#doingList .row", state="attached")
-    assert page.evaluate("document.documentElement.dataset.theme") == "raid"
-    page.locator("#settings summary").click()
-    assert page.locator("#themeBtn").count() == 0
     assert page.locator("#todoTitle .count").inner_text() == "2"
     title = page.locator("#todoTitle").inner_text()
     assert title.startswith("\U0001f4dc") and "Quest board" in title
@@ -273,10 +270,9 @@ def test_reduced_motion_stops_animations(browse):
 
 
 @pytest.mark.parametrize("path", ["/", "/acme-shop"])
-@pytest.mark.parametrize("theme", ["raid", "plain"])
-def test_mobile_375_has_no_horizontal_scroll(browse, path, theme):
+def test_mobile_375_has_no_horizontal_scroll(browse, path):
     p = browse(width=375, height=800, is_mobile=True, has_touch=True)
-    page = p.open(path, theme=theme, panels=("donePanel", "agentsPanel", "logPanel", "chatter"))
+    page = p.open(path, panels=("donePanel", "agentsPanel", "logPanel", "chatter"))
     page.wait_for_selector(".proj" if path == "/" else "#doingList .row", state="attached")
     page.wait_for_timeout(300)
     tabs = [None] if path == "/" else ["todo", "doing", "done"]
@@ -302,7 +298,7 @@ def test_scale_caps_dom_nodes(chromium, tmp_path):
         page = p.open("/" + d.board.name, panels=("logPanel",))
         page.wait_for_selector("#todoList .row", timeout=60000)
         assert page.locator("#todoList .row").count() == 5
-        assert page.locator("#todoMore").inner_text().startswith("Show all")
+        assert page.locator("#todoMore").inner_text().startswith("Unroll all")
         assert page.evaluate("document.getElementsByTagName('*').length") < 6000
         page.goto(running.url + "/" + d.board.name + "?view=all")
         page.wait_for_selector("#lanes .row", timeout=60000)
@@ -321,28 +317,27 @@ def test_scale_caps_dom_nodes(chromium, tmp_path):
 @pytest.mark.skipif(
     os.environ.get("RAIDLOCK_SHOTS") != "1", reason="set RAIDLOCK_SHOTS=1 to refresh README screenshots"
 )
-@pytest.mark.parametrize("theme", ["raid", "plain"])
-def test_screenshots(browse, theme):
+def test_screenshots(browse):
     ASSETS.mkdir(parents=True, exist_ok=True)
     for width, label in ((1280, "desktop"), (375, "mobile")):
         p = browse(width=width, height=900)
-        page = p.open("/acme-shop", theme=theme, panels=("agentsPanel",))
+        page = p.open("/acme-shop", panels=("agentsPanel",))
         page.wait_for_selector("#doingList .row", state="attached")
         page.evaluate("document.getElementById('soundBanner').hidden = true")
         page.wait_for_timeout(800)
-        page.screenshot(path=str(ASSETS / f"ui-{theme}-{label}.png"), full_page=True)
-        page = p.open("/", theme=theme)
+        page.screenshot(path=str(ASSETS / f"ui-raid-{label}.png"), full_page=True)
+        page = p.open("/")
         page.wait_for_selector(".proj")
         page.evaluate("document.getElementById('soundBanner').hidden = true")
         page.wait_for_timeout(800)
-        page.screenshot(path=str(ASSETS / f"ui-{theme}-overview-{label}.png"), full_page=label == "mobile")
+        page.screenshot(path=str(ASSETS / f"ui-raid-overview-{label}.png"), full_page=label == "mobile")
         views = (("map", ".tile"), ("replay", ".rp-body .tile"), ("graph", ".heat-svg"), ("frames", ".frame"))
         for view, ready in (*views, ("achievements", ".ach")):
-            page = p.open(f"/acme-shop?view={view}", theme=theme, storage={"rl.achievements": "true"})
+            page = p.open(f"/acme-shop?view={view}", storage={"rl.achievements": "true"})
             page.wait_for_selector(ready)
             page.evaluate("document.getElementById('soundBanner').hidden = true")
             page.wait_for_timeout(800)
-            page.locator("#viewPane").screenshot(path=str(ASSETS / f"ui-{theme}-{view}-{label}.png"))
+            page.locator("#viewPane").screenshot(path=str(ASSETS / f"ui-raid-{view}-{label}.png"))
 
 
 def test_limits_and_reputation_at_375px(browse):
@@ -552,7 +547,7 @@ def test_each_event_fires_its_cue_once(cue_lab):
     d.move("c2", "cal", "blocked")
     step("blocked")
     d.done("c1")
-    step("done")
+    step("done", "levelup")
     d.cost("c3", "ben", 1000, 0, 500)
     step("coin")
     tweak["lease"] = clock.later(120)
@@ -563,7 +558,7 @@ def test_each_event_fires_its_cue_once(cue_lab):
     step("expired")
     time.sleep(3.5)
     assert cue_counts(page) == expected
-    assert set(expected) == set(ALL_CUES) - {"levelup"}
+    assert set(expected) == set(ALL_CUES)
     assert page.evaluate("window.__voices") > 0
     assert p.errors == []
 
@@ -669,7 +664,7 @@ def test_a_slain_boss_brings_the_victory_screen_and_fanfare(cue_lab):
         route.fulfill(status=200, json=payload, headers={"Cache-Control": "no-cache"})
 
     page.route("**/api/board/cue-lab", board)
-    p.open("/cue-lab", theme="raid")
+    p.open("/cue-lab")
     page.wait_for_selector(".row[data-id=c1]")
     unlock_audio(page)
     page.wait_for_timeout(3500)

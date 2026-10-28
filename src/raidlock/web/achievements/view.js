@@ -43,16 +43,16 @@
   views.push({
     id: "achievements",
     endpoint: "achievements",
-    label: {raid: "Feats", plain: "Achievements"},
+    label: {raid: "Feats", sub: "Achievements"},
     optIn: "achievements",
     render(c, d, pane) {
       const titles = Object.entries(d.titles || {});
       c.setKids(pane, [
-        c.h("div", {class: "view-head"}, c.h("h2", null, c.raid ? "Feats" : "Achievements", c.raid && c.raidSub ? c.raidSub("Achievements") : null),
+        c.h("div", {class: "view-head"}, c.h("h2", null, "Feats", c.raidSub("Achievements")),
           c.h("p", {class: "cls", text: `${d.incomplete_history ? "Incomplete history (latest sequence " + d.last + "). " : ""}${d.earned} of ${d.total} earned, from recorded events only. Turn them off in Settings.`})),
         titles.length ? c.h("section", {class: "titles", "aria-label": "Titles earned"}, c.h("h3", {text: "Titles earned"}),
           c.h("ul", null, titles.map(([who, title]) => c.h("li", null, c.h("b", {text: who}), " " + title)))) : null,
-        c.h("div", {class: "achs"}, (d.achievements || []).map(a => badge(c, a)))], JSON.stringify([d, c.theme, Math.floor(Date.now() / 60000)]));
+        c.h("div", {class: "achs"}, (d.achievements || []).map(a => badge(c, a)))], JSON.stringify([d, Math.floor(Date.now() / 60000)]));
     }
   });
 })();

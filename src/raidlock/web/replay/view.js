@@ -103,7 +103,7 @@
       }, STEP_MS);
     });
     pane.replaceChildren(
-      c.h("div", {class: "view-head"}, c.h("h2", null, c.raid ? "Chronicle" : "Timeline", c.raid && c.raidSub ? c.raidSub("Timeline") : null),
+      c.h("div", {class: "view-head"}, c.h("h2", null, "Chronicle", c.raidSub("Timeline")),
         c.h("p", {class: "cls", text: "The board rebuilt from the transcript at any point. Transcript records are not signed, so treat this as unverified history; lock paths use today's repo layout."})),
       c.h("div", {class: "rp-controls"}, st.prev, st.range, st.next, st.play, st.live),
       st.out, st.body);
@@ -115,7 +115,7 @@
   views.push({
     id: "replay",
     endpoint: "replay",
-    label: {raid: "Chronicle", plain: "Timeline"},
+    label: {raid: "Chronicle", sub: "Timeline"},
     poll: false,
     leave() { stop(); },
     render(c, d, pane) {

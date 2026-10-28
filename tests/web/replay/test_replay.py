@@ -96,10 +96,9 @@ def test_cli_replay(raid, capsys):
     assert lanes(out)["a"] == ("doing", "ana") and out["marks"] == []
 
 
-@pytest.mark.parametrize("theme", ["raid", "plain"])
 @pytest.mark.parametrize("width", [1280, 375])
-def test_replay_view_scrubs(browse, theme, width):
-    p, page = open_view(browse, "/acme-shop?view=replay", ".rp-lane", theme=theme, width=width)
+def test_replay_view_scrubs(browse, width):
+    p, page = open_view(browse, "/acme-shop?view=replay", ".rp-lane", width=width)
     page.wait_for_selector(".rp-body .tile")
     done = page.locator('.rp-lane[data-lane="done"] .count')
     assert done.inner_text() == "2"

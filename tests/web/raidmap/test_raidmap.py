@@ -73,10 +73,9 @@ def test_cli_map(tmp_path, capsys):
     assert paths_of(out)["storefront/api/cart"]["contested"] is True
 
 
-@pytest.mark.parametrize("theme", ["raid", "plain"])
 @pytest.mark.parametrize("width", [1280, 375])
-def test_map_view_renders_in_both_themes(browse, theme, width):
-    p, page = open_view(browse, "/acme-shop?view=map", ".tile", theme=theme, width=width)
+def test_map_view_renders(browse, width):
+    p, page = open_view(browse, "/acme-shop?view=map", ".tile", width=width)
     cart = page.locator('.tile[data-path="storefront/api/cart"]')
     assert cart.get_attribute("data-holder") == "opus-checkout"
     assert "contested" in cart.get_attribute("class").split()

@@ -23,15 +23,14 @@
   views.push({
     id: "bosses",
     endpoint: "bosses",
-    label: {raid: "Boss board", plain: "Big quests"},
-    raidOnly: true,
+    label: {raid: "Boss board", sub: "Big quests"},
     render(c, d, pane) {
       const bosses = d.bosses || [], bags = d.bags || [];
       const drops = bags.reduce((n, g) => n + g.items.length, 0);
       const best = g => Math.max(...g.items.map(i => i.tier));
       const ranked = bags.slice().sort((a, b) => best(b) - best(a) || b.items.length - a.items.length || a.agent.localeCompare(b.agent));
       c.setKids(pane, [
-        c.h("div", {class: "view-head"}, c.h("h2", null, "Boss board", c.raidSub ? c.raidSub("Big quests and loot") : null),
+        c.h("div", {class: "view-head"}, c.h("h2", null, "Boss board", c.raidSub("Big quests and loot")),
           c.h("p", {class: "cls", text: `A quest that ${d.boss_dependents} or more others wait on, or that the raid leader names, is a boss. Its HP is the share of it and its dependents still open. Every finished quest drops one item for the agent who closed it.`})),
         bosses.length ? c.h("ul", {class: "bosses"}, bosses.map(b => boss(c, b)))
           : c.h("p", {class: "empty", text: `No bosses roam this realm yet. A quest becomes a boss once ${d.boss_dependents} others wait on it, or when the raid leader names it one.`}),
@@ -40,7 +39,7 @@
           : c.h("p", {class: "empty", text: "The bags are empty. Turn in a quest to earn the first drop."}),
         ranked.length > BAG_CAP ? c.h("details", {class: "more-bags"}, c.h("summary", {text: `Show all ${ranked.length} bags`}),
           c.h("ul", {class: "bags"}, ranked.slice(BAG_CAP).map(g => bag(c, g)))) : null],
-        JSON.stringify([d, c.theme]));
+        JSON.stringify(d));
     }
   });
 })();

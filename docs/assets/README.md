@@ -7,10 +7,10 @@ Images used by the README and guides. All art must be original to raidlock.
 | `demo.webp` | Animated WebP tour of the fictional demo realm (realm tabs, a guild, quest log, quest web, raid frames, treasury, a card, search). 1200 px, 25 fps, about 20 s, recorded at 1440 x 900; shown in the README | generated |
 | `hero.gif`, `hero.mp4` | Terminal recording of [scripts/demo.tape](../../scripts/demo.tape): three quests, two agents claim, an overlapping claim refused, done refused until review and a signed verify receipt, then the measured overhead table. 1200 x 680, 12 fps | generated; not used by the README |
 | `demo-60s.cast` | Terminal recording (asciicast v2) of [scripts/demo-60s.sh](../../scripts/demo-60s.sh): quota routing, auto-handoff to another provider, cross-vendor review, receipt-gated done, cost and reputation per model | generated |
-| `ui-raid-desktop.png`, `ui-plain-desktop.png` | Web board for the demo workspace, full page at 1280 px | generated |
-| `ui-raid-mobile.png`, `ui-plain-mobile.png` | Same board at 375 px | generated |
-| `ui-raid-overview-desktop.png`, `ui-plain-overview-desktop.png` | All-workspaces overview at 1280 px | generated |
-| `ui-raid-overview-mobile.png`, `ui-plain-overview-mobile.png` | Overview at 375 px | generated |
+| `ui-raid-desktop.png` | Web board for the demo workspace, full page at 1280 px | generated |
+| `ui-raid-mobile.png` | Same board at 375 px | generated |
+| `ui-raid-overview-desktop.png` | All-workspaces overview at 1280 px | generated |
+| `ui-raid-overview-mobile.png` | Overview at 375 px | generated |
 | `ui-raid-{map,replay,graph,frames,achievements}-desktop.png` | The five board views of the demo workspace at 1280 px | generated |
 | `brand/` | Mark, wordmark, lockup, palette and social preview; see [brand/README.md](brand/README.md) | hand-written SVG, PNG rendered |
 

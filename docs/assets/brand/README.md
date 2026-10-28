@@ -44,7 +44,7 @@ Rules:
 
 ## In the web UI
 
-`src/raidlock/web/static/app.css` defines the five `--brand-*` tokens in every theme block. The plain theme maps its accent, state and status colours to them, in light and in dark (`prefers-color-scheme`). The raid theme keeps its own gold accent and state colours and carries the dark brand values for anything brand-specific. The header shows the lockup as inline SVG: the mark takes the theme accent and the wordmark takes the ink colour, and the heading keeps the text "raidlock" for screen readers.
+`src/raidlock/web/static/app.css` defines the five `--brand-*` tokens in `:root`. The UI has one theme, raid, which is always dark: it keeps its own gold accent and state colours and carries the dark brand values for anything brand-specific. The header shows the lockup as inline SVG: the mark takes the accent and the wordmark takes the ink colour, and the heading keeps the text "raidlock" for screen readers.
 
 ## Regenerating PNGs
 

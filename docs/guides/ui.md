@@ -12,7 +12,7 @@ raid ui --open
 
 Routes:
 
-- `/` is the realm page, with three tabs. **Guilds** (plain: Workspaces) lists every workspace, busiest first (blocked or stalled, then review, then in progress); quiet workspaces are one line under them. **Tavern chatter** (plain: Chatter) shows recent notes and messages from every workspace. **Treasury** (plain: Cost) shows spend, the forecast and budget alerts across workspaces.
+- `/` is the realm page, with three tabs. **Guilds** (subtitle: Workspaces) lists every workspace, busiest first (blocked or stalled, then review, then in progress); quiet workspaces are one line under them. **Tavern chatter** (subtitle: Chatter) shows recent notes and messages from every workspace. **Treasury** (subtitle: Cost) shows spend, the forecast and budget alerts across workspaces.
 - `/<workspace>` opens one board on its **Focus** view.
 
 ### Focus view
@@ -58,7 +58,7 @@ The page stays alive: golden motes drift on the breeze over a denser star field,
 
 ### Accessibility and layout
 
-The UI follows WCAG 2.2 AA: text and controls meet contrast in light and dark color schemes, targets are at least 24 px, every control works from the keyboard with a visible focus ring, meters and live regions carry screen-reader labels, and animations stop under reduced motion or the animation setting. Layouts are checked at 390, 768, 1024, 1280 and 1440 px with no horizontal page scroll. Sections fold one level deep, text lines stay under about 75 characters, and the browser suite tests these rules.
+The UI follows WCAG 2.2 AA: text and controls meet contrast on the dark raid palette, targets are at least 24 px, every control works from the keyboard with a visible focus ring, meters and live regions carry screen-reader labels, and animations stop under reduced motion or the animation setting. Layouts are checked at 390, 768, 1024, 1280 and 1440 px with no horizontal page scroll. Sections fold one level deep, text lines stay under about 75 characters, and the browser suite tests these rules.
 
 ### Views
 
@@ -156,7 +156,7 @@ Names and art are original to raidlock. `raid achievements` prints the same list
 
 ### Settings
 
-The raid theme is always on. The page uses the raid look (dark, serif, stars, animations) and game wording: section titles lead with the raid name and keep the plain name as a subtitle (Quest board / To do, On a quest / In progress, Hall of legends / Done, Tavern chatter / Chatter, Treasury / Cost), views become War room, Quest log, War map, Chronicle, Quest web and Raid frames, repos are zones and the overview is the realm. Primary buttons read Turn in quest, Hold council, Lift the curse and Inspect loot. Each workspace shows its **Guild level** and the overview its **Realm level**: level 1 to 60 from closed cards against open ones (cancelled cards do not count), ranked Recruit, Squire, Knight, Champion, Hero, Legend and Mythic, with a quest progress bar. Gaining a level plays a level-up chime and animation (off with reduced motion or the animation setting). Copied commands always use plain terms.
+The UI has one theme, raid, and no theme switch. The page uses the raid look (dark, serif, stars, animations) and game wording: section titles lead with the raid name and keep the plain name as a subtitle (Quest board / To do, On a quest / In progress, Hall of legends / Done, Tavern chatter / Chatter, Treasury / Cost), views become War room, Quest log, War map, Chronicle, Quest web and Raid frames, repos are zones and the overview is the realm. Primary buttons read Turn in quest, Hold council, Lift the curse and Inspect loot. Each workspace shows its **Guild level** and the overview its **Realm level**: level 1 to 60 from closed cards against open ones (cancelled cards do not count), ranked Recruit, Squire, Knight, Champion, Hero, Legend and Mythic, with a quest progress bar. Gaining a level plays a level-up chime and animation (off with reduced motion or the animation setting). Copied commands always use plain terms.
 
 The **Settings** menu holds the switches below and the list of providers the usage strip leaves out. Each choice is stored in this browser's local storage, never on the board:
 

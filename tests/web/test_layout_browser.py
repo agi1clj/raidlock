@@ -28,7 +28,7 @@ def test_layout_matrix(view, width, scheme, path, kind):
     assert page.locator("#agentsPanel details").count() == 0
     assert not page.locator("#logPanel").evaluate("e => e.open")
     if kind == "empty":
-        assert page.locator("#needs").inner_text().strip() == "Nothing needs you"
+        assert page.locator("#needs").inner_text().strip() == "All is quiet in the realm"
     else:
         assert page.locator("#todoList > .row").count() == 5
         assert page.locator("#needsList button.primary").count() == 5

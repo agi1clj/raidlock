@@ -9,7 +9,7 @@ ROLES = {"haiku-inspector": "Healer", "codex-payments": "DPS", "gemini-search": 
 
 @pytest.mark.parametrize("width", [390, 1280])
 def test_party_roles_in_raid_frames(browse, width):
-    p, page = open_view(browse, "/acme-shop?view=frames", ".frame", theme="raid", width=width)
+    p, page = open_view(browse, "/acme-shop?view=frames", ".frame", width=width)
     page.locator("#viewPane .sub-fold > summary").click()
     for agent, role in ROLES.items():
         badge = page.locator(f'.frame[data-agent="{agent}"] .prole')
@@ -46,7 +46,7 @@ def realm(tmp_path):
 @pytest.mark.parametrize("width", [390, 1280])
 def test_boss_board_and_loot(chromium, realm, width):
     p = Page(chromium, realm, width=width)
-    page = p.open("/boss-realm?view=bosses", theme="raid")
+    page = p.open("/boss-realm?view=bosses")
     settle(page, ".boss")
     assert page.locator("#viewTabs a[data-sub=bosses]").inner_text() == "Boss board"
     gate = page.locator('.boss[data-id="gate"]')
@@ -66,20 +66,7 @@ def test_boss_board_and_loot(chromium, realm, width):
 
 
 def test_boss_board_empty_state(browse):
-    p, page = open_view(browse, "/acme-shop?view=bosses", "#viewPane .empty", theme="raid", width=390)
+    p, page = open_view(browse, "/acme-shop?view=bosses", "#viewPane .empty", width=390)
     assert "No bosses roam this realm yet" in page.locator("#viewPane").inner_text()
     assert page.locator('.bag[data-agent="codex-payments"] .drop').count() == 1
     assert_fits(p, page)
-
-
-def test_plain_theme_hides_raid_only_ui(browse):
-    p, page = open_view(browse, "/acme-shop?view=frames", ".frame", theme="plain")
-    assert page.locator(".prole").count() == 0
-    assert page.locator("#viewTabs a[data-sub=bosses]").count() == 0
-    page.goto(p.server.url + "/acme-shop?view=bosses")
-    page.wait_for_selector("#focus .row")
-    assert page.locator("#viewPane").is_hidden()
-    assert page.locator(".boss, .bag, .drop").count() == 0
-    text = page.locator("body").inner_text()
-    assert "Boss board" not in text and "Loot" not in text and "Tank" not in text
-    assert p.errors == []
