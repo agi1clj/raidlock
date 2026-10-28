@@ -1846,6 +1846,16 @@ def _who_opts(p):
     p.add_argument("--brief", action="store_true", help="one line")
 
 
+def _lease_state(r):
+    """A lease ends at its expiry or earlier, when its session's process is gone."""
+    if r.get("live"):
+        return f"live until {hhmm(r['expires'])}"
+    end = clock.parse(r["expires"]) if r.get("expires") else None
+    if end and end > clock.now():
+        return "expired: its session ended"
+    return f"expired at {hhmm(r['expires'])}" if r.get("expires") else "expired"
+
+
 @command("lead", "inspect or transfer the lead session lease", mutating=True)
 def cmd_lead(ctx, a):
     b = ctx.board
@@ -1853,11 +1863,10 @@ def cmd_lead(ctx, a):
         r = b.lead_status()
         if not r["held"]:
             return r, f"No lead lease on {b.name}. Next: {lead_cmd(b, 'lead takeover')}"
-        state = "live" if r["live"] else "EXPIRED"
         mine = _env_session()
         text = (
-            f"Lead {r['lead']}: session {r['session'] or '-'}, fence {r['fence']}, {state} until "
-            f"{hhmm(r['expires'])}, secret: {lead_secret_src(b)}" + (" (handover pending)" if r.get("pending") else "")
+            f"Lead {r['lead']}: session {r['session'] or '-'}, fence {r['fence']}, {_lease_state(r)}, "
+            f"secret: {lead_secret_src(b)}" + (" (handover pending)" if r.get("pending") else "")
         )
         if not r["live"]:
             text += f"\nThe lease is free. Next: {lead_cmd(b, 'lead takeover')}"
@@ -1882,7 +1891,7 @@ def cmd_lead(ctx, a):
     prev = r["previous"]
     print(
         f"WARNING: lead takeover: session {r['session']} replaces session {prev['session'] or '(none)'} "
-        f"(lease expired {prev['expires'] or '-'}); logged in the transcript.",
+        f"({_lease_state({'live': False, 'expires': prev['expires']})}); logged in the transcript.",
         file=sys.stderr,
     )
     return r, f"You hold the lead lease now (fence {r['fence']}). The previous lead secret is retired."

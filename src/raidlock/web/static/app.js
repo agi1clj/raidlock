@@ -217,8 +217,8 @@ function waitingText(reason) {
   const m = / overlaps .* held by (.+?) on card (.+?) in workspace (.+?) until (\S+)/.exec(reason);
   if (!m) return `Waiting: ${reason}`;
   const expiry = Date.parse(m[4]);
-  const end = Number.isFinite(expiry) ? expiry > Date.now() ? `lock frees ${untilText(m[4])}` : `lock expired ${untilText(m[4])}` : "lock held";
-  return `Waiting for ${m[2]} (${m[1]}) - ${end}`;
+  const end = Number.isFinite(expiry) ? expiry > Date.now() ? `lock frees ${untilText(m[4])}` : `lock expired ${untilText(m[4])}, so it can be taken over` : "lock held";
+  return `Waiting for ${m[2]} (${m[1]}): ${end}`;
 }
 function secondsAgo(t) { const s = (Date.now() - Date.parse(t || "")) / 1000; return isFinite(s) ? s : null; }
 function ago(t) {
@@ -732,7 +732,7 @@ function leaseText(c) {
   if (!l) return null;
   if (!l.expires) return h("span", {class: "pill lock", title: (l.paths || []).join(", ") || "no locked paths"}, "Lease held");
   const ms = Date.parse(l.expires) - Date.now();
-  const title = `Locked paths: ${(l.paths || []).join(", ") || "none"}. Lease ends ${l.expires}.`;
+  const title = `Locked paths: ${(l.paths || []).join(", ") || "none"}. Lease ${ms <= 0 || l.live === false ? "ended" : "ends"} ${localTime(l.expires)}.`;
   if (ms <= 0 || l.live === false) return h("span", {class: "pill lock low", title}, `Lease expired ${untilText(l.expires)}`);
   return h("span", {class: "pill lock" + (ms < 600000 ? " low" : ""), title}, `${ms < 600000 ? "Lease expiring soon: " : "Lease ends "}${untilText(l.expires)}`);
 }
@@ -800,7 +800,7 @@ function cardDetail(c, extra) {
   const rows = [];
   if (extra) rows.push(extra);
   if (cl && !cl.ok && (cl.reasons || []).length) rows.push(h("div", {class: "why"}, h("b", {text: "Not claimable yet: "}), cl.reasons.join("; ")));
-  if (c.team) rows.push(h("div", null, h("b", {text: "Party: "}), c.team));
+  if (c.team) rows.push(h("div", null, h("b", {text: "Team: "}), c.team));
   if (c.ticket) rows.push(h("div", null, h("b", {text: "Ticket: "}), c.ticket));
   if ((c.allow_protected || []).length) rows.push(h("div", null, h("b", {text: "Lead-approved protected paths: "}), c.allow_protected.join(", ")));
   if ((c.lock_exclusions || []).length) rows.push(h("div", null, h("b", {text: "Excluded lock paths: "}), c.lock_exclusions.join(", ")));
@@ -808,9 +808,9 @@ function cardDetail(c, extra) {
   if (c.scope) rows.push(h("div", null, h("b", {text: "Scope: "}), c.scope));
   if ((c.locks || []).length) rows.push(h("div", null, h("b", {text: "Warded paths: "}), c.locks.join(", ")));
   if ((c.depends || []).length) rows.push(h("div", null, h("b", {text: "After quests: "}), c.depends.join(", ")));
-  if (c.evidence) rows.push(h("div", null, h("b", {text: "Proof of deed: "}), /^https:\/\//.test(c.evidence) ? h("a", {href: c.evidence, target: "_blank", rel: "noopener noreferrer", text: c.evidence}) : c.evidence));
-  if (c.verify) rows.push(h("div", null, h("b", {text: "Proof: "}), c.verify));
-  if ((c.approvals || []).length) rows.push(h("div", null, h("b", {text: "Vouched for by: "}), c.approvals.join(", ")));
+  if (c.evidence) rows.push(h("div", null, h("b", {text: "Evidence: "}), /^https:\/\//.test(c.evidence) ? h("a", {href: c.evidence, target: "_blank", rel: "noopener noreferrer", text: c.evidence}) : c.evidence));
+  if (c.verify) rows.push(h("div", null, h("b", {text: "Check: "}), c.verify));
+  if ((c.approvals || []).length) rows.push(h("div", null, h("b", {text: "Approved by: "}), c.approvals.join(", ")));
   if (c.pr && c.pr.held) rows.push(h("div", {class: "why"}, h("b", {text: "Merged, not closed: "}), c.pr.held));
   for (const r of (d && d.reviews) || []) rows.push(h("div", null, h("b", {text: `Review by ${r.by}, ${r.verdict}: `}), r.note || ""));
   const notes = ((d || c).notes || []).slice().reverse();
@@ -998,7 +998,7 @@ function renderDone(cards) {
   if (!$("donePanel").open) { $("doneList").dataset.sig = ""; return; }
   const shown = done.slice(0, state.doneLimit);
   const kids = shown.map(c => row(c, {meta: [ownerPill(c), h("span", {class: "pill", text: `closed ${ago(c.updated)} ago`}), costPill(c)]}));
-  if (!done.length) kids.push(h("li", {class: "empty", text: "No legends yet. The raid leader turns in quests from the call above."}));
+  if (!done.length) kids.push(h("li", {class: "empty", text: "No legends yet. A quest lands here when the raid leader closes it with raid done <card>."}));
   if (done.length > shown.length) kids.push(h("li", {class: "more-row"}, h("button", {type: "button", class: "tog", id: "doneMore", text: `Show all ${done.length}`})));
   setKids($("doneList"), kids, JSON.stringify([shown.map(c => [c.id, c.updated]), done.length, state.doneLimit, [...state.open], Object.keys(state.details).length]));
 }
@@ -1578,7 +1578,7 @@ function renderWsBar(data, cards) {
   const repos = data.repos || [];
   if (state.repo && !repos.some(r => r.name === state.repo)) state.repo = "";
   const many = repos.length > 1;
-  const chips = many ? [h("button", {type: "button", class: "repo all", "data-repo": "", "aria-pressed": String(!state.repo), text: "All zones"}), ...repos.map(r => repoChip(r, true))] : [];
+  const chips = many ? [h("button", {type: "button", class: "repo all", "data-repo": "", "aria-pressed": String(!state.repo), text: "All repos"}), ...repos.map(r => repoChip(r, true))] : [];
   setKids($("repos"), chips, JSON.stringify([repos, state.repo]));
   const ids = new Set(cards.map(c => c.id));
   const titles = Object.fromEntries(cards.map(c => [c.id, c.title]));
@@ -1672,7 +1672,7 @@ function projCard(p, info) {
   if (p.missing) return h("div", {class: "proj att-0"}, h("h3", {text: p.name}), h("p", {class: "cls", text: p.error ? `This board cannot be read (${p.error}). Run raid doctor in its folder.` : "The board folder is missing. Remove it with raid workspaces, or restore the folder."}));
   const head = h("div", {class: "top"}, h("h3", null, p.name, info.total ? " " : null, info.total ? h("span", {class: "lvl-chip", title: `Guild level ${levelOf(p.counts).level}, ${levelOf(p.counts).rank}`, text: `Lv ${levelOf(p.counts).level}`}) : null), h("span", {class: "act", text: p.last ? `active ${ago(p.last)} ago` : "no activity yet"}));
   const repos = (p.repos || []).length ? h("div", {class: "repos"}, p.repos.map(r => repoChip(r, false))) : null;
-  if (!info.total) return h("a", {class: "proj att-3", href: href(p.name), "data-nav": p.name}, head, repos, h("div", {class: "start"}, "No cards yet. Add one from the lead terminal:", h("code", {text: 'raid --lead-secret "$LEAD_SECRET_FILE" new "First card" --team core --locks repo/path'})));
+  if (!info.total) return h("a", {class: "proj att-3", href: href(p.name), "data-nav": p.name}, head, repos, h("div", {class: "start"}, "No cards yet. Add one from the lead terminal:", h("code", {text: leadCmd('new "First card" --locks <repo>/<path>')})));
   const lbl = LANES.filter(l => p.counts[l]).map(l => `${p.counts[l]} ${LANE[l].toLowerCase()}`).join(", ");
   const bar = h("div", {class: "bar", role: "img", "aria-label": `Cards: ${lbl}`}, LANES.filter(l => p.counts[l]).map(l => { const i = h("i", {title: `${LANE[l]}: ${p.counts[l]}`, vars: {"--lc": `var(--${l})`}}); i.style.width = (100 * p.counts[l] / info.total) + "%"; return i; }));
   return h("a", {class: `proj att-${attention(info)}`, href: href(p.name), "data-nav": p.name}, head, repos, h("p", {class: "status-line"}, statusLine(info)), bar);
@@ -1693,7 +1693,7 @@ function renderOverview() {
   rows.sort((a, b) => a.rank - b.rank || (b.p.last || "").localeCompare(a.p.last || "") || a.p.name.localeCompare(b.p.name));
   const busy = rows.filter(r => r.rank < 3), idle = rows.filter(r => r.rank === 3);
   const sig = JSON.stringify([ps.map(p => [p.name, p.counts, p.repos, p.today, p.agents, p.last, p.missing, p.review]), Math.floor(Date.now() / 30000)]);
-  setKids(o, busy.length ? busy.map(r => projCard(r.p, r.info)) : [h("p", {class: "empty", text: "Every guild rests: no quests underway, inspected or cursed."})], sig);
+  setKids(o, busy.length ? busy.map(r => projCard(r.p, r.info)) : [h("p", {class: "empty", text: "Every guild rests: nothing underway, awaiting inspection or cursed."})], sig);
   $("idle").hidden = !idle.length;
   setKids($("idle"), [h("span", {class: "lbl", text: `Quiet (${idle.length}): `}), ...idle.flatMap((r, i) => [i ? ", " : null,
     h("a", {href: href(r.p.name), "data-nav": r.p.name, title: r.p.last ? `active ${ago(r.p.last)} ago` : "no activity yet", text: r.p.name})])], sig);
