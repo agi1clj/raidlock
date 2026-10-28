@@ -77,8 +77,7 @@ def missing_hint(platform=None, env=None):
         return "RAIDLOCK_SANDBOX=container needs bwrap inside a container; unset it on a normal host"
     if platform.startswith("linux"):
         return (
-            "install bubblewrap: sudo apt install bubblewrap (Debian, Ubuntu) "
-            "or sudo dnf install bubblewrap (Fedora)"
+            "install bubblewrap: sudo apt install bubblewrap (Debian, Ubuntu) or sudo dnf install bubblewrap (Fedora)"
         )
     if platform == "darwin":
         return f"{SANDBOX_EXEC} is missing; it ships with macOS"
