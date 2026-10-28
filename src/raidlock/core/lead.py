@@ -631,7 +631,10 @@ class Lead:
             stored = self.store.get()
             if stored and hmac.compare_digest(digest(stored), digest(secret)):
                 return 0
-            raise IdentityError("the presented lead secret is not valid for this board")
+            raise IdentityError(
+                "the presented lead secret is not valid for this board",
+                hint="pass the lead secret file of this board; raidlock lead status shows its path",
+            )
         h = digest(secret)
         if hmac.compare_digest(h, lease.get("hash", "")):
             if not any_session and legacy_anchor(lease.get("pid_start")):
@@ -670,7 +673,11 @@ class Lead:
                     or (clock.age_seconds(lease["expires"]) or 0) > 7 * 86400
                     or not alive(lease.get("pid"), lease.get("pid_start"), self.table())
                 ):
-                    raise StaleLead("the lead lease expired; use explicit lead takeover", fence=lease.get("fence", 0))
+                    raise StaleLead(
+                        "the lead lease expired; take it over to keep leading",
+                        fence=lease.get("fence", 0),
+                        hint="raidlock --lead-secret <file> lead takeover",
+                    )
                 if lease.get("pid") and (pid != lease["pid"] or start != lease.get("pid_start")) and not descendant:
                     raise ForeignLead(
                         "the lead session process does not match its lease",

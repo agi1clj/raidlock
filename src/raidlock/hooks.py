@@ -1362,6 +1362,12 @@ def post_tool(data, env):
             ingest_transcript(data)
         except Exception as e:
             log_error(env, "limits", e)
+        board_dir = binding.get("board") or find_board(data.get("cwd"))
+        if board_dir:
+            try:
+                open_board(board_dir, {}).lead_session_active(session)
+            except Exception as e:
+                log_error(env, "lead-keepalive", e)
     if binding.get("card") and binding.get("fence") and binding.get("board") and heartbeat_due(env, data, binding):
         board = open_board(binding["board"], {})
         caller = binding_caller(board, binding, subagent=is_subagent(data), env=worker_env(data, env))

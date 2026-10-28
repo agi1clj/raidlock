@@ -38,7 +38,11 @@ test = ["pytest>=8", "hypothesis>=6"]
 ui-test = ["pytest>=8", "pytest-playwright>=0.5"]
 
 [dependency-groups]
-dev = ["pytest>=8", "hypothesis>=6"]
+dev = [
+    "pytest>=8",
+    "hypothesis>=6",
+    "pytest-xdist==3.8.0",
+]
 
 [project.scripts]
 raidlock = "raidlock.cli:main"

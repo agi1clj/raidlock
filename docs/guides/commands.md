@@ -1,6 +1,6 @@
 # Command reference
 
-`raid` and `raidlock` are the same program, and every hint, error and refusal uses the name you typed. `raid` lists the everyday commands, `raid help advanced` the rest, and `raid <command> --help` the exact flags. This page lists every shipped command with the flags it takes beyond the common ones. Lead-only commands need `--lead-secret FILE` from the lead's session; hints and copy-ready commands include it.
+`raid` and `raidlock` are the same program, and every hint, error and refusal uses the name you typed. Every error ends with a `Next:` line: the exact command that fixes it, or at least the command's own `--help`. `raid` lists the everyday commands, `raid help advanced` the rest, and `raid <command> --help` the exact flags. This page lists every shipped command with the flags it takes beyond the common ones. Lead-only commands need `--lead-secret FILE` from the lead's session; hints and copy-ready commands include it.
 
 ## Common flags
 

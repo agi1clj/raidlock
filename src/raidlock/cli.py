@@ -587,6 +587,10 @@ def main(argv=None, prog=None):
         return code
     except RaidlockError as e:
         _lead_identity_hint(e, locals().get("ctx"), argv)
+        if not e.hint:
+            # No error is a dead end: point at the command's own help when nothing more specific applies.
+            cmd = getattr(locals().get("args"), "_cmd", "")
+            e.hint = f"raidlock {cmd} --help" if cmd else "raidlock --help"
         e.message, e.hint = rename(e.message, prog), rename(e.hint, prog)
         if want_json:
             print(json.dumps(e.to_dict(), sort_keys=True, ensure_ascii=False, separators=(",", ":"), default=str))

@@ -106,6 +106,7 @@ Takeover requires the current secret and an expired lease, rotates the secret an
 
 Most of this is automatic in Claude Code:
 
+- While the lead's session keeps using tools (running tests, waiting on CI), the PostToolUse hook renews its lead lease once half of `ttl_minutes` is spent, so an active lead never lapses.
 - When the lead's session ends, the SessionEnd hook frees its lease at once (`lead_released` in the transcript), so the next session can run `lead takeover` without waiting out `ttl_minutes`.
 - When that same session comes back (`--resume`, or the next turn of a headless `claude -p --resume` lead), SessionStart re-arms its lease (`lead_rearmed`) unless someone took over in between. Nothing to run.
 - A session that starts while the lease is free is told so, with the exact takeover command.

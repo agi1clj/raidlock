@@ -38,8 +38,10 @@ uv tool install --force dist/raidlock-*.whl
 ## Tests
 
 ```bash
-uv run --locked pytest --ignore=tests/web
+uv run --locked pytest -n auto --ignore=tests/web
 ```
+
+`-n auto` (pytest-xdist, in the dev group) runs the suite on every core: about 2 minutes instead of 8 on a laptop.
 
 UI changes reuse the tokens and components in [docs/guides/design.md](docs/guides/design.md). Web UI tests use Playwright and run separately:
 
