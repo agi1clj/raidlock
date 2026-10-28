@@ -85,6 +85,7 @@ def test_join_inside_lead_session_uses_separate_private_files(world, monkeypatch
         assert path == Path(world.board.home) / "agents" / world.board.uid / f"{name}.env"
         assert path.stat().st_mode & 0o777 == 0o600
         assert f"source {shlex.quote(str(path))}" in text
+        assert text.endswith('Next: raidlock claim first --checkout "$PWD"')
         assert world.lead_token not in path.read_text()
         assert result["team"] == "core"
         files.append((path, path.read_text()))

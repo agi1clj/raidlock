@@ -840,7 +840,8 @@ def cmd_up(ctx, a):
             )
             r["env_file"] = path
             text += "\nsource " + shlex.quote(path)
-        return {"action": "join", **r}, text + "\nNext: raidlock claimable"
+        nxt = f'raidlock claim {shlex.quote(a.card)} --checkout "$PWD"' if a.card else "raidlock claimable"
+        return {"action": "join", **r}, text + "\nNext: " + nxt
     return {"action": "status", **_status(board, caller)}, _status_text(board, caller)
 
 

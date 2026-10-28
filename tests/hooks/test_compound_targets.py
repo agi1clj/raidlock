@@ -61,10 +61,10 @@ def test_absolute_write_target_survives_unknown_directory(tmp_path, monkeypatch)
     monkeypatch.setattr(hooks, "write_decision", check)
     result = hooks.pre_bash({"cwd": str(tmp_path), "tool_input": {"command": "source s.sh; echo x 2>/dev/null"}}, {})
     assert (result or {}).get("hookSpecificOutput", {}).get("permissionDecision") != "deny"
-    assert checked == ["/dev/null"]
     command = f"source s.sh; echo x > {tmp_path}/owned.txt"
     result = hooks.pre_bash({"cwd": str(tmp_path), "tool_input": {"command": command}}, {})
     assert result["hookSpecificOutput"]["permissionDecision"] == "deny"
+    assert checked == [str(tmp_path / "owned.txt")]
 
 
 @pytest.mark.parametrize(
