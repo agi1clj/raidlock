@@ -418,3 +418,15 @@ def test_p5_relaxing_close_must_say_so(world):
     world.board.join(world.lead, agent="codex", provider="anthropic", role="reviewer")
     _go_stale(world.board, "codex")
     assert world.board.move("task", "done", world.lead)["gates"] == "relaxed"
+
+
+def test_p5_relaxed_gates_must_reach_the_bell(world):
+    from raidlock.web import data
+
+    world.board.join(world.lead, agent="codex", provider="anthropic", role="reviewer")
+    _go_stale(world.board, "codex")
+    world.board.move("task", "done", world.lead)
+    snap = world.board.snapshot()
+    assert snap["gate_event"]["event"] == "relaxed"
+    items = data.needs_items(snap, [])
+    assert [i["title"] for i in items if i["kind"] == "gates"] == ["Review gates relaxed"]

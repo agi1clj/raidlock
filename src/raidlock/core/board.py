@@ -612,9 +612,10 @@ class Board:
         settings, multi = self._gate_settings(meta, agents)
         changed = ""
         if settings != meta.get("settings"):
-            meta["settings"] = settings
-            store.write_json(self._p("board.json"), meta)
             changed = "enabled" if multi else "relaxed"
+            meta["settings"] = settings
+            meta["gate_event"] = {"event": changed, "ts": clock.iso()}
+            store.write_json(self._p("board.json"), meta)
             self._record(
                 "status",
                 actor,
@@ -2196,6 +2197,7 @@ class Board:
             "lead": self.lead,
             "settings": self.live_settings(),
             "warnings": self.warnings(),
+            "gate_event": store.read_json(self._p("board.json")).get("gate_event") or {},
             "now": clock.iso(),
             "lead_lease": self.leadlease().summary(),
             "cards": [self.card_view(c, leases, agents) for c in cards],

@@ -1,6 +1,7 @@
 import io
 import json
 import time
+import types
 
 import pytest
 
@@ -21,7 +22,7 @@ def write(home, latest, age=0):
 
 def test_newer_release_produces_a_notice(home):
     write(home, "99.0.0")
-    assert updates.notice() == f"raidlock 99.0.0 is available (you have {__version__}): uv tool upgrade raidlock"
+    assert updates.notice() == f"raidlock 99.0.0 is available (you have {__version__}): raid upgrade"
     assert updates.available()["latest"] == "99.0.0"
 
 
@@ -129,3 +130,39 @@ def test_new_release_changes_the_overview_etag(home):
     before = catalog.overview_key()
     write(home, "99.0.0")
     assert catalog.overview_key() != before
+
+
+def test_upgrade_uses_the_installing_tool_and_the_plugin(monkeypatch):
+    calls = []
+    monkeypatch.setattr(updates.sys, "prefix", "/home/me/.local/share/uv/tools/raidlock")
+    monkeypatch.setattr(updates.shutil, "which", lambda name: f"/bin/{name}")
+
+    def run(argv, timeout=300):
+        calls.append(argv)
+        return types.SimpleNamespace(returncode=0, stdout="raidlock@raidlock\n", stderr="")
+
+    monkeypatch.setattr(updates, "_run", run)
+    assert updates.upgrade_steps() == [
+        ["/bin/uv", "tool", "upgrade", "--refresh", "raidlock"],
+        ["/bin/claude", "plugin", "marketplace", "update", "raidlock"],
+        ["/bin/claude", "plugin", "update", "raidlock@raidlock"],
+    ]
+
+
+def test_upgrade_skips_what_is_not_installed(monkeypatch):
+    monkeypatch.setattr(updates.sys, "prefix", "/usr/lib/python3")
+    monkeypatch.setattr(updates.shutil, "which", lambda name: "/bin/pipx" if name == "pipx" else None)
+    assert updates.upgrade_steps() == []
+    monkeypatch.setattr(updates.sys, "prefix", "/home/me/.local/pipx/venvs/raidlock")
+    assert updates.upgrade_steps() == [["/bin/pipx", "upgrade", "raidlock"]]
+
+
+def test_upgrade_command_stops_on_a_failed_step(monkeypatch, capsys):
+    from raidlock import cli
+
+    monkeypatch.setattr(updates, "upgrade_steps", lambda: [["/bin/uv", "tool", "upgrade", "--refresh", "raidlock"]])
+    monkeypatch.setattr(
+        updates, "_run", lambda argv, timeout=300: types.SimpleNamespace(returncode=2, stdout="", stderr="offline")
+    )
+    assert cli.main(["upgrade"]) == 3
+    assert "uv tool upgrade --refresh raidlock failed: offline" in capsys.readouterr().err

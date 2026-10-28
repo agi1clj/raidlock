@@ -11,6 +11,7 @@ import traceback
 
 from . import __version__
 from .core import Board, Usage, clock, model, registry
+from .core import paths as P
 from .core.db import Index
 from .core.errors import IdentityError, Precondition, RaidlockError
 from .core.hints import lead_cmd, lead_secret_src, quote_path
@@ -20,7 +21,7 @@ from .core.model import LANES
 
 COMMANDS = {}
 GROUPS = (
-    ("Start", ("up", "quickstart", "doctor")),
+    ("Start", ("up", "quickstart", "doctor", "upgrade")),
     ("Plan", ("new", "plan")),
     ("Work", ("brief", "claim", "note", "move", "done")),
     ("Agents", ("delegate", "who", "lead")),
@@ -209,6 +210,7 @@ EXAMPLES = {
     "next": ["raidlock next", "raidlock next --provider codex"],
     "duel": [f"{LEAD} duel checkout --vs claude,codex"],
     "doctor": ["raidlock doctor"],
+    "upgrade": ["raidlock upgrade"],
     "ui": ["raidlock ui --open"],
 }
 
@@ -563,7 +565,7 @@ def main(argv=None, prog=None):
     try:
         args = parse(argv, prog)
         found = None
-        if args._cmd not in ("doctor", "migrate", "help", "version"):
+        if args._cmd not in ("doctor", "migrate", "help", "version", "upgrade"):
             from .core.board import find_board_dir
             from .core.migrate import reject_legacy
 
@@ -1232,9 +1234,38 @@ def cmd_plan(ctx, a):
         if a.var:
             raise Precondition("--var applies only to recipe imports")
         items = _read_plan(a.file, a.team)
+        if not a.file.endswith(".json"):
+            _infer_task_locks(ctx.board, items)
     cards = ctx.board.import_plan(ctx.caller(), items)
     ids = [c["id"] for c in cards]
-    return {"cards": ids}, f"Imported {len(ids)} card(s): {', '.join(ids)}.\nNext: raidlock show"
+    inferred = [c["id"] for c, i in zip(cards, items, strict=True) if i.get("inferred_locks")]
+    text = f"Imported {len(ids)} card(s): {', '.join(ids)}."
+    if inferred:
+        text += f"\nLocks taken from file paths named in {len(inferred)} task(s); check them with raidlock show <id>."
+    return {"cards": ids, **({"inferred_locks": inferred} if inferred else {})}, text + "\nNext: raidlock show"
+
+
+_TASK_PATH = re.compile(r"(?<![\w./~@+-])[\w.@+-]+(?:/[\w.@+-]+)+")
+
+
+def _infer_task_locks(board, items):
+    """Lock the file paths a task names (Spec Kit: "Create the model in src/models/user.py") when it has no locks.
+    A path is used only when the board maps it to one repo; ambiguous paths are left out."""
+    resolver = board._resolver()
+    for item in items:
+        if not isinstance(item, dict) or item.get("locks"):
+            continue
+        locks = []
+        for raw in _TASK_PATH.findall(item.get("title", "")):
+            raw = raw.rstrip(".")
+            try:
+                path = P.canonical(raw)
+            except Precondition:
+                continue
+            if resolver._match(P.split(path))[0] and path not in locks:
+                locks.append(path)
+        if locks:
+            item.update(locks=",".join(locks), inferred_locks=True)
 
 
 def _read_plan(path, team):
@@ -2043,6 +2074,28 @@ def cmd_tokens(ctx, a):
     r = TK.report(board)
     lines = [f"{i['name']}: ~{i['tokens']} ({i['detail']})" for i in r["items"]]
     return r, "\n".join(lines + [f"total: ~{r['total']} tokens per session ({r['method']})"])
+
+
+@command("upgrade", "upgrade raidlock and its Claude Code plugin to the latest release")
+def cmd_upgrade(ctx, a):
+    from . import updates
+
+    steps = updates.upgrade_steps()
+    ran = []
+    for argv in steps:
+        proc = updates._run(argv)
+        line = " ".join([os.path.basename(argv[0]), *argv[1:]])
+        ran.append({"command": line, "ok": proc.returncode == 0})
+        if proc.returncode != 0:
+            detail = (proc.stderr or proc.stdout).strip()[-300:]
+            raise Precondition(f"{line} failed: {detail}", ran=ran)
+    cli_step = any(r["command"].startswith(("uv ", "pipx ")) for r in ran)
+    lines = [f"Ran: {r['command']}" for r in ran]
+    if not cli_step:
+        lines.append("This raidlock was not installed with uv or pipx; upgrade it the way you installed it.")
+    if any("plugin" in r["command"] for r in ran):
+        lines.append("Start a new Claude Code session so the new hooks load.")
+    return {"ran": ran, "cli": cli_step}, "\n".join(lines) or "Nothing to upgrade."
 
 
 @command("version", "print the version")

@@ -1062,7 +1062,7 @@ function renderAgents(cards) {
   setKids($("agents"), kids, sig);
 }
 
-const BELL_ICON = {close: "\u2705", apply: "\u{1FA79}", duel: "\u2694\uFE0F", review: "\u{1F989}", blocked: "\u{1F480}", stalled: "\u231B"};
+const BELL_ICON = {close: "\u2705", apply: "\u{1FA79}", duel: "\u2694\uFE0F", review: "\u{1F989}", blocked: "\u{1F480}", stalled: "\u231B", gates: "\u2696\uFE0F"};
 function bellItems() {
   const ps = (state.projects || []).filter(p => state.view === "*" || p.name === state.view);
   return ps.flatMap(p => (p.needs || []).map(n => ({...n, guild: p.name, key: `${p.name}:${n.kind}:${n.card}`})));
@@ -1099,7 +1099,6 @@ function renderUpdate(u) {
   const old = $("updateMenu");
   if (!u) { if (old) old.remove(); return; }
   if (old) return;
-  const plugin = "claude plugin marketplace update raidlock && claude plugin update raidlock@raidlock";
   const row = (label, cmd) => {
     const btn = h("button", {type: "button", class: "tog", text: "Copy"});
     btn.addEventListener("click", () => copyCommand(btn, cmd, "Copy"));
@@ -1109,7 +1108,7 @@ function renderUpdate(u) {
     h("summary", {class: "tog update-chip", title: `raidlock ${u.latest} is available`}, "Update", h("span", {class: "v", text: ` ${u.latest}`})),
     h("div", {class: "menu-body upd-body"},
       h("b", {text: `raidlock ${u.latest} is available (you have ${u.current})`}),
-      row("CLI", u.upgrade), row("Claude Code plugin", plugin),
+      row("CLI and plugin", u.upgrade),
       h("span", {class: "cls", text: "Then start a new Claude Code session so the new hooks load."}),
       h("a", {href: `https://github.com/agi1clj/raidlock/releases/tag/v${u.latest}`, target: "_blank", rel: "noopener", text: "What's new"}))));
 }

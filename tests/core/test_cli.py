@@ -184,6 +184,26 @@ def test_plan_import_reads_spec_tool_task_lists(cli, tmp_path):
     )
     _, r = cli("plan", "import", str(kit), as_env=cli.lead, expect=0)
     assert r["cards"] == ["create-the-order-model-in-app-models"]
+    assert r["inferred_locks"] == ["create-the-order-model-in-app-models"]
+    _, card = cli("show", "create-the-order-model-in-app-models", "--fields", "all", as_env=cli.lead, expect=0)
+    assert card["card"]["locks"] == ["app/models/order.py"]
+
+
+def test_plan_import_skips_unsafe_or_unmapped_task_paths(cli, tmp_path):
+    kit = tmp_path / "tasks.md"
+    kit.write_text(
+        "- [ ] T001 Read ../secrets/key.pem and /etc/passwd\n"
+        "- [ ] T002 Update app/api/cart.py and app/api/cart.py.\n"
+        "- [ ] T003 Keep explicit locks for app/x.py | locks: app/other\n",
+        encoding="utf-8",
+    )
+    _, r = cli("plan", "import", str(kit), as_env=cli.lead, expect=0)
+    first, second, third = r["cards"]
+    assert r["inferred_locks"] == [second]
+    shown = {cid: cli("show", cid, "--fields", "all", as_env=cli.lead, expect=0)[1]["card"] for cid in r["cards"]}
+    assert shown[first]["locks"] == []
+    assert shown[second]["locks"] == ["app/api/cart.py"]
+    assert shown[third]["locks"] == ["app/other"]
 
 
 def test_up_creates_then_joins(tmp_path):
