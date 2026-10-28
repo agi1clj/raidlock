@@ -4,6 +4,14 @@ All notable changes to this project are documented here.
 
 The format follows [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/), and the project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.5](https://github.com/agi1clj/raidlock/compare/v0.2.4...v0.2.5) (2026-10-28)
+
+
+### Bug Fixes
+
+* review gates follow the providers present, the lead lease recovers on its own, Raid is the only theme ([#31](https://github.com/agi1clj/raidlock/issues/31)) ([066ab29](https://github.com/agi1clj/raidlock/commit/066ab29d1415f89cf0f1fee75f7fc50a0ca02cc3))
+* **web:** keep keyboard focus across re-renders and reopened cards ([#33](https://github.com/agi1clj/raidlock/issues/33)) ([93563aa](https://github.com/agi1clj/raidlock/commit/93563aa97af46e15b61588fadbd5d705e8446eb2))
+
 ## [0.2.4](https://github.com/agi1clj/raidlock/compare/v0.2.3...v0.2.4) (2026-10-28)
 
 
