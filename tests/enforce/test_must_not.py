@@ -430,3 +430,20 @@ def test_p5_relaxed_gates_must_reach_the_bell(world):
     assert snap["gate_event"]["event"] == "relaxed"
     items = data.needs_items(snap, [])
     assert [i["title"] for i in items if i["kind"] == "gates"] == ["Review gates relaxed"]
+
+
+def test_p5_shell_agents_must_not_count_as_a_second_provider(world):
+    world.board.join(world.lead, agent="sub", runtime="shell")
+    world.board.join(world.lead, agent="person", provider="human")
+    assert world.board.agents()["sub"]["provider"] == "local"
+    assert world.board.settings["require_review"] == DEFAULT_REVIEW
+    assert world.board.move("task", "done", world.lead)["lane"] == "done"
+
+
+def test_p5_a_local_reviewer_must_not_satisfy_cross_provider_review(world):
+    world.board.join(world.lead, agent="codex", provider="anthropic", role="reviewer")
+    joined = world.board.join(world.lead, agent="sub", runtime="shell", role="reviewer")
+    sub = world.board.caller(agent="sub", token=joined["token"])
+    world.board.move("task", "review", world.worker)
+    world.board.review("task", sub, "approve")
+    assert world.board.approvals(world.board.card("task")) == []

@@ -26,6 +26,7 @@ from .hints import lead_cmd
 from .lock import FileLock
 from .paths import parse_list
 
+MODEL_PROVIDERS = ("anthropic", "openai", "google")
 DEFAULT_SETTINGS = {
     "auth": "token",
     "require_review": {"count": 0, "other_provider": False},
@@ -574,7 +575,7 @@ class Board:
         live = set()
         for name, agent in agents.items():
             provider = agent.get("provider")
-            if provider in (None, "", "human"):
+            if provider not in MODEL_PROVIDERS:
                 continue
             age = clock.age_seconds(seen.get(name) or agent.get("last_seen", ""))
             if name == self.lead or name in holders or (age is not None and age <= ttl):
@@ -1573,7 +1574,9 @@ class Board:
                 continue
             if card.get("allow_protected") and (not owner_provider or not r.get("provider")):
                 continue
-            if need["other_provider"] and owner_provider and r.get("provider") == owner_provider:
+            if need["other_provider"] and (
+                r.get("provider") not in (*MODEL_PROVIDERS, "human") or r.get("provider") == owner_provider
+            ):
                 continue
             out.append(name)
         return out
