@@ -1850,7 +1850,8 @@ def _lease_state(r):
     """A lease ends at its expiry or earlier, when its session's process is gone."""
     if r.get("live"):
         return f"live until {hhmm(r['expires'])}"
-    if r.get("expires") and clock.parse(r["expires"]) > clock.now():
+    end = clock.parse(r["expires"]) if r.get("expires") else None
+    if end and end > clock.now():
         return "expired: its session ended"
     return f"expired at {hhmm(r['expires'])}" if r.get("expires") else "expired"
 
