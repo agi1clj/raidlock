@@ -1438,8 +1438,11 @@ def session_start(data, env):
         binding.update({"name": caller.name, "board": board_dir})
         if caller.is_lead:
             binding.update(lead_session=caller.session, lead_fence=caller.lead_fence)
-        if not caller.is_lead:
-            binding["proof"] = hashlib.sha256(env.get("RAIDLOCK_TOKEN", "").encode()).hexdigest()
+        # A worker may start with only its card capability (the token unset after claim).
+        if not caller.is_lead and env.get("RAIDLOCK_TOKEN"):
+            binding["proof"] = hashlib.sha256(env["RAIDLOCK_TOKEN"].encode()).hexdigest()
+        elif not caller.is_lead and env.get("RAIDLOCK_CAP"):
+            binding["cap"] = env["RAIDLOCK_CAP"]
         if str(env.get("RAIDLOCK_FENCE", "")).isdigit():
             binding["fence"] = int(env["RAIDLOCK_FENCE"])
         save_binding(env, data.get("session_id", ""), "main", binding)
